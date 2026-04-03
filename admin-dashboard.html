@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - Chongqing Check-in</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, sans-serif; background: #f0f2f5; }
+    
+    .header {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+    .header h1 { font-size: 20px; margin-bottom: 10px; }
+    .logout-btn { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+    
+    .content { padding: 15px; }
+    .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
+    .stat { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: center; }
+    .stat h3 { font-size: 13px; color: #666; margin-bottom: 8px; }
+    .stat .num { font-size: 24px; font-weight: bold; color: #10b981; }
+    .stat.warn .num { color: #f59e0b; }
+    .stat.danger .num { color: #ef4444; }
+    
+    .section { background: white; border-radius: 10px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .section h2 { font-size: 16px; margin-bottom: 15px; color: #333; border-bottom: 2px solid #e5e5e5; padding-bottom: 10px; }
+    
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead { background: #f9fafb; }
+    th, td { padding: 10px; text-align: left; border-bottom: 1px solid #e5e5e5; }
+    th { font-weight: 600; color: #666; font-size: 12px; }
+    .code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 11px; word-break: break-all; }
+    
+    .loading { text-align: center; padding: 30px; color: #999; }
+    .spinner { border: 3px solid #e5e5e5; border-top-color: #10b981; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto 15px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    
+    .refresh { background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 14px; cursor: pointer; float: right; }
+    .tabs { display: flex; background: white; border-radius: 10px; overflow: hidden; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .tab { flex: 1; padding: 12px; border: none; background: white; color: #666; font-size: 14px; cursor: pointer; border-bottom: 3px solid transparent; }
+    .tab.active { color: #10b981; border-bottom-color: #10b981; }
+    .page { display: none; }
+    .page.active { display: block; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🎯 Chongqing Check-in Admin</h1>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </div>
+  
+  <div class="content">
+    <div class="tabs">
+      <button class="tab active" onclick="show('dashboard')">📊 Stats</button>
+      <button class="tab" onclick="show('users')">👥 Users</button>
+      <button class="tab" onclick="show('checkins')">📍 Records</button>
+    </div>
+    
+    <div class="page active" id="dashboard">
+      <div class="stats">
+        <div class="stat">
+          <h3>Total Users</h3>
+          <div class="num" id="total-users">-</div>
+        </div>
+        <div class="stat">
+          <h3>Today</h3>
+          <div class="num" id="today-checkins">-</div>
+        </div>
+        <div class="stat warn">
+          <h3>All Records</h3>
+          <div class="num" id="total-checkins">-</div>
+        </div>
+        <div class="stat danger">
+          <h3>Top Score</h3>
+          <div class="num" id="max-points">-</div>
+        </div>
+      </div>
+      
+      <div class="section">
+        <h2>🏆 TOP 10 <button class="refresh" onclick="load()">🔄 Refresh</button></h2>
+        <div class="loading" id="dashboard-loading"><div class="spinner"></div>Loading...</div>
+        <table id="leaderboard" style="display:none;">
+          <thead><tr><th>Rank</th><th>User</th><th>Points</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    
+    <div class="page" id="users">
+      <div class="section">
+        <h2>All Users <button class="refresh" onclick="loadUsers()">🔄 Refresh</button></h2>
+        <div class="loading" id="users-loading"><div class="spinner"></div>Loading...</div>
+        <table id="users-table" style="display:none;">
+          <thead><tr><th>User ID</th><th>Points</th><th>Joined</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    
+    <div class="page" id="checkins">
+      <div class="section">
+        <h2>Check-in Records <button class="refresh" onclick="loadCheckins()">🔄 Refresh</button></h2>
+        <div class="loading" id="checkins-loading"><div class="spinner"></div>Loading...</div>
+        <table id="checkins-table" style="display:none;">
+          <thead><tr><th>User</th><th>Spot</th><th>Points</th><th>Date</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = 'https://ussvekkgyntubivhfext.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzc3Zla2tneW50dWJpdmhmZXh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTEwODQwMiwiZXhwIjoyMDkwNjg0NDAyfQ.i1fbQC96UGnToKL6fa7GTfaMtt0s_TGpNNR0xb3ufR0';
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    
+    let live = true;
+    
+    window.onload = function() { load(); };
+    
+    function logout() {
+      if (confirm('Confirm logout?')) {
+        live = false;
+        localStorage.removeItem('admin_logged');
+        localStorage.removeItem('admin_name');
+        location.replace('login.html');
+      }
+    }
+    
+    function show(page) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.getElementById(page).classList.add('active');
+      event.target.classList.add('active');
+      if (page === 'dashboard') load();
+      if (page === 'users') loadUsers();
+      if (page === 'checkins') loadCheckins();
+    }
+    
+    async function load() {
+      document.getElementById('dashboard-loading').style.display = 'block';
+      document.getElementById('leaderboard').style.display = 'none';
+      
+      const { data: users } = await supabase.from('users').select('*').order('points', { ascending: false });
+      const { data: checkins } = await supabase.from('checkins').select('checked_at');
+      
+      if (!live) return;
+      
+      const today = new Date().toISOString().split('T')[0];
+      const todayCount = checkins ? checkins.filter(c => c.checked_at && c.checked_at.startsWith(today)).length : 0;
+      const max = users && users.length > 0 ? Math.max(...users.map(u => u.points || 0)) : 0;
+      
+      document.getElementById('total-users').textContent = users ? users.length : 0;
+      document.getElementById('today-checkins').textContent = todayCount;
+      document.getElementById('total-checkins').textContent = checkins ? checkins.length : 0;
+      document.getElementById('max-points').textContent = max;
+      
+      if (users && users.length > 0) {
+        const tbody = document.querySelector('#leaderboard tbody');
+        tbody.innerHTML = users.slice(0, 10).map((u, i) => 
+          `<tr><td>#${i+1}</td><td><span class="code">${(u.alipay_user_id || '').substring(0,15)}${(u.alipay_user_id||'').length>15?'...':''}</span></td><td><b>${u.points||0}</b></td></tr>`
+        ).join('');
+        document.getElementById('dashboard-loading').style.display = 'none';
+        document.getElementById('leaderboard').style.display = 'table';
+      } else {
+        document.getElementById('dashboard-loading').innerHTML = 'No data';
+      }
+    }
+    
+    async function loadUsers() {
+      document.getElementById('users-loading').style.display = 'block';
+      document.getElementById('users-table').style.display = 'none';
+      
+      const { data } = await supabase.from('users').select('*').order('created_at', { ascending: false });
+      
+      if (!live) return;
+      
+      if (data && data.length > 0) {
+        const tbody = document.querySelector('#users-table tbody');
+        tbody.innerHTML = data.map(u => 
+          `<tr><td><span class="code">${(u.alipay_user_id || '').substring(0,20)}${(u.alipay_user_id||'').length>20?'...':''}</span></td><td>${u.points||0}</td><td>${new Date(u.created_at||Date.now()).toLocaleDateString('zh-CN')}</td></tr>`
+        ).join('');
+        document.getElementById('users-loading').style.display = 'none';
+        document.getElementById('users-table').style.display = 'table';
+      } else {
+        document.getElementById('users-loading').innerHTML = 'No users';
+      }
+    }
+    
+    async function loadCheckins() {
+      document.getElementById('checkins-loading').style.display = 'block';
+      document.getElementById('checkins-table').style.display = 'none';
+      
+      const { data } = await supabase.from('checkins').select('*').order('checked_at', { ascending: false }).limit(50);
+      
+      if (!live) return;
+      
+      if (data && data.length > 0) {
+        const tbody = document.querySelector('#checkins-table tbody');
+        tbody.innerHTML = data.map(c => 
+          `<tr><td><span class="code">${(c.alipay_user_id || '').substring(0,12)}${(c.alipay_user_id||'').length>12?'...':''}</span></td><td>Spot ${c.checkpoint_id}</td><td>${c.points||0}</td><td>${c.checked_at ? new Date(c.checked_at).toLocaleDateString('zh-CN') : '-'}</td></tr>`
+        ).join('');
+        document.getElementById('checkins-loading').style.display = 'none';
+        document.getElementById('checkins-table').style.display = 'table';
+      } else {
+        document.getElementById('checkins-loading').innerHTML = 'No data';
+      }
+    }
+  </script>
+</body>
+</html>

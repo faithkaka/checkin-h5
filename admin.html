@@ -646,19 +646,45 @@
     
     // 初始化
     window.addEventListener('DOMContentLoaded', () => {
+      console.log('admin.html 加载完成');
       checkLogin();
     });
     
-    // 检查登录状态
+    // 检查登录状态（支持 localStorage 和 URL 参数）
     function checkLogin() {
-      const logged = localStorage.getItem('admin_logged');
-      if (logged === 'true') {
-        currentUser = localStorage.getItem('admin_name');
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlLogged = urlParams.get('logged');
+      const urlName = urlParams.get('name');
+      const localLogged = localStorage.getItem('admin_logged');
+      const localName = localStorage.getItem('admin_name');
+      
+      console.log('检查登录 - URL:', urlLogged, urlName);
+      console.log('检查登录 - Local:', localLogged, localName);
+      
+      // 优先使用 URL 参数登录（从 admin-login.html 跳过来）
+      if (urlLogged === 'true' && urlName) {
+        console.log('使用 URL 参数登录');
+        localStorage.setItem('admin_logged', 'true');
+        localStorage.setItem('admin_name', urlName);
+        currentUser = urlName;
         showAdminLayout();
-      } else {
-        document.getElementById('login-page').style.display = 'flex';
-        document.getElementById('admin-layout').classList.remove('active');
+        // 清理 URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+        return;
       }
+      
+      // 用 localStorage
+      if (localLogged === 'true' && localName) {
+        console.log('使用 localStorage 登录');
+        currentUser = localName;
+        showAdminLayout();
+        return;
+      }
+      
+      // 未登录
+      console.log('未登录，显示登录页');
+      document.getElementById('login-page').style.display = 'flex';
+      document.getElementById('admin-layout').classList.remove('active');
     }
     
     // 登录表单提交

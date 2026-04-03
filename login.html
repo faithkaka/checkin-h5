@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login - Chongqing Check-in</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .login-box {
+      background: white;
+      padding: 30px 20px;
+      border-radius: 16px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+      width: 100%;
+      max-width: 360px;
+      text-align: center;
+    }
+    h1 { font-size: 24px; margin-bottom: 30px; color: #333; }
+    .form-group { margin-bottom: 20px; text-align: left; }
+    .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #333; font-size: 14px; }
+    .form-group input {
+      width: 100%;
+      padding: 14px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    .btn {
+      padding: 14px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+    }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .error {
+      background: #fee2e2;
+      color: #991b1b;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      display: none;
+      text-align: left;
+    }
+    .success {
+      background: #d1fae5;
+      color: #065f46;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      display: none;
+      text-align: center;
+    }
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .note { margin-top: 20px; color: #999; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="login-box">
+    <h1>🔐 Admin Login</h1>
+    
+    <div class="error" id="error-msg"></div>
+    <div class="success" id="success-msg"></div>
+    
+    <form id="login-form">
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="username" name="username" placeholder="Enter username" required autocomplete="off" />
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="password" name="password" placeholder="Enter password" required autocomplete="off" />
+      </div>
+      <button type="submit" class="btn" id="submit-btn">
+        <span id="btn-text">LOGIN</span>
+      </button>
+    </form>
+    
+    <div class="note" style="margin-top: 10px; color: #10b981; font-weight: 600; display: none;" id="redirect-note">
+      ✅ Login successful! Redirecting...
+    </div>
+    <div class="note">Default: admin / admin123</div>
+  </div>
+  
+  <script>
+    const credentials = { username: 'admin', password: 'admin123' };
+    const form = document.getElementById('login-form');
+    const submitBtn = document.getElementById('submit-btn');
+    const btnText = document.getElementById('btn-text');
+    const errorMsg = document.getElementById('error-msg');
+    const successMsg = document.getElementById('success-msg');
+    const redirectNote = document.getElementById('redirect-note');
+    
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      
+      console.log('Login attempt:', username, password);
+      
+      // Validate
+      if (username !== credentials.username || password !== credentials.password) {
+        errorMsg.textContent = '❌ Invalid username or password';
+        errorMsg.style.display = 'block';
+        successMsg.style.display = 'none';
+        redirectNote.style.display = 'none';
+        return;
+      }
+      
+      // Success
+      errorMsg.style.display = 'none';
+      successMsg.innerHTML = '<span class="loading"></span> Login successful! Redirecting...';
+      successMsg.style.display = 'block';
+      redirectNote.style.display = 'block';
+      submitBtn.disabled = true;
+      btnText.textContent = 'Success';
+      
+      console.log('Login successful, redirecting...');
+      localStorage.setItem('admin_logged', 'true');
+      localStorage.setItem('admin_name', username);
+      
+      // Triple backup redirect
+      let redirectUrl = 'admin-dashboard.html?logged=true&user=' + encodeURIComponent(username);
+      
+      // Method 1: replace
+      console.log('Method 1: location.replace');
+      window.location.replace(redirectUrl);
+      
+      // Method 2: backup after 1.5s
+      setTimeout(function() {
+        console.log('Method 2: location.href');
+        window.location.href = redirectUrl;
+      }, 1500);
+      
+      // Method 3: force after 3s
+      setTimeout(function() {
+        console.log('Method 3: force reload');
+        window.location.href = redirectUrl;
+      }, 3000);
+    });
+    
+    window.addEventListener('DOMContentLoaded', function() {
+      console.log('Page loaded');
+      errorMsg.style.display = 'none';
+      successMsg.style.display = 'none';
+      redirectNote.style.display = 'none';
+    });
+  </script>
+</body>
+</html>
