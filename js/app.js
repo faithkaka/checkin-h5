@@ -388,6 +388,10 @@ const CheckpointManager = {
         if (window.AlipayUserManager) {
           AlipayUserManager.saveCheckinData();
         }
+        // 同步到 Supabase
+        if (window.SupabaseManager) {
+          SupabaseManager.saveCheckinData();
+        }
       }
     } else {
       // 进行打卡
@@ -409,6 +413,10 @@ const CheckpointManager = {
       // 保存用户数据
       if (window.AlipayUserManager) {
         AlipayUserManager.saveCheckinData();
+      }
+      // 同步到 Supabase
+      if (window.SupabaseManager) {
+        SupabaseManager.saveCheckinData();
       }
     }
   }

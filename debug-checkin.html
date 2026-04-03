@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>调试打卡数据</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: sans-serif; padding: 15px; background: #f0f2f5; padding-bottom: 30px; }
+    h1 { color: #667eea; margin-bottom: 15px; font-size: 20px; }
+    .card { background: white; padding: 15px; border-radius: 10px; margin: 10px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .card h3 { font-size: 16px; margin-bottom: 10px; color: #333; }
+    .card p { font-size: 14px; color: #666; margin: 5px 0; }
+    .btn { background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 14px; margin: 5px; display: inline-block; }
+    .btn-secondary { background: linear-gradient(135deg, #667eea, #5b66ce); }
+    .btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); }
+    .btn:active { transform: scale(0.98); }
+    pre { background: #1e293b; color: #10b981; padding: 15px; border-radius: 8px; overflow: auto; font-size: 12px; max-height: 300px; }
+    .log-entry { margin: 3px 0; font-size: 12px; }
+    .success { color: #10b981; }
+    .error { color: #ef4444; }
+    .info { color: #0ea5e9; }
+  </style>
+</head>
+<body>
+  <h1>🔍 打卡数据调试</h1>
+  
+  <div class="card">
+    <h3>📱 当前用户</h3>
+    <p id="user-info">加载中...</p>
+  </div>
+  
+  <div class="card">
+    <h3>📊 本地数据（localStorage）</h3>
+    <p id="local-data">加载中...</p>
+  </div>
+  
+  <div class="card">
+    <h3>☁️ Supabase 数据</h3>
+    <p id="supabase-data">加载中...</p>
+  </div>
+  
+  <div class="card">
+    <h3>🛠️ 操作</h3>
+    <button class="btn" onclick="checkData()">🔄 检查数据</button>
+    <button class="btn btn-secondary" onclick="syncToSupabase()">☁️ 同步到 Supabase</button>
+    <button class="btn btn-danger" onclick="clearData()">🗑️ 清除数据</button>
+  </div>
+  
+  <div class="card">
+    <h3>📋 日志</h3>
+    <pre id="log">等待操作...</pre>
+  </div>
+  
+  <script>
+    var API_URL = 'https://ussvekkgyntubivhfext.supabase.co/rest/v1';
+    var API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzc3Zla2tneW50dWJpdmhmZXh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTEwODQwMiwiZXhwIjoyMDkwNjg0NDAyfQ.i1fbQC96UGnToKL6fa7GTfaMtt0s_TGpNNR0xb3ufR0';
+    
+    function log(msg, type) {
+      var time = new Date().toLocaleTimeString();
+      var icon = type === 'success' ? '✅' : (type === 'error' ? '❌' : 'ℹ️');
+      var html = '<div class="log-entry ' + (type || '') + '">[' + time + '] ' + icon + ' ' + escapeHtml(msg) + '</div>';
+      document.getElementById('log').innerHTML += html;
+      console.log(msg);
+    }
+    
+    function escapeHtml(text) {
+      var div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    function checkData() {
+      log('=== 开始检查 ===', 'info');
+      
+      // 获取本地用户 ID
+      var userId = localStorage.getItem('alipay_user_id') || '未知';
+      document.getElementById('user-info').innerHTML = '<b>用户 ID:</b> ' + userId;
+      log('用户 ID: ' + userId);
+      
+      // 获取本地打卡数据
+      var checkinData = localStorage.getItem('checkin_data');
+      if (checkinData) {
+        try {
+          var data = JSON.parse(checkinData);
+          document.getElementById('local-data').innerHTML = 
+            '<b>积分:</b> ' + (data.points || 0) + '<br>' +
+            '<b>已打卡:</b> ' + (data.checkedCheckpoints || []).join(', ') + '<br>' +
+            '<b>更新时间:</b> ' + new Date(data.lastUpdate || Date.now()).toLocaleString();
+          log('本地数据：积分=' + (data.points || 0) + ', 打卡点=' + (data.checkedCheckpoints || []).length, 'success');
+        } catch (e) {
+          document.getElementById('local-data').textContent = '数据解析失败';
+          log('本地数据解析失败：' + e.message, 'error');
+        }
+      } else {
+        document.getElementById('local-data').textContent = '无数据';
+        log('本地无打卡数据', 'error');
+      }
+      
+      // 查询 Supabase 数据
+      log('查询 Supabase...');
+      fetch(API_URL + '/users?select=*&alipay_user_id=eq.' + userId + '&limit=1', {
+        headers: {
+          'apikey': API_KEY,
+          'Authorization': 'Bearer ' + API_KEY
+        }
+      })
+      .then(function(res) {
+        return res.json();
+      })
+      .then(function(data) {
+        log('Supabase 查询完成', 'success');
+        if (data && data.length > 0) {
+          var user = data[0];
+          document.getElementById('supabase-data').innerHTML = 
+            '<b>积分:</b> ' + (user.points || 0) + '<br>' +
+            '<b>更新时间:</b> ' + (user.updated_at || user.created_at || '-');
+          log('Supabase 数据：积分=' + (user.points || 0), 'success');
+        } else {
+          document.getElementById('supabase-data').textContent = '无数据（用户未同步）';
+          log('Supabase 无此用户数据', 'error');
+        }
+      })
+      .catch(function(err) {
+        log('Supabase 查询失败：' + err.message, 'error');
+        document.getElementById('supabase-data').textContent = '查询失败：' + err.message;
+      });
+    }
+    
+    function syncToSupabase() {
+      log('=== 开始同步 ===', 'info');
+      
+      var userId = localStorage.getItem('alipay_user_id');
+      if (!userId) {
+        log('❌ 没有用户 ID，无法同步', 'error');
+        alert('请先打卡生成用户数据');
+        return;
+      }
+      
+      var checkinData = localStorage.getItem('checkin_data');
+      if (!checkinData) {
+        log('❌ 没有打卡数据，无法同步', 'error');
+        alert('请先打卡');
+        return;
+      }
+      
+      try {
+        var data = JSON.parse(checkinData);
+        log('同步用户积分：' + (data.points || 0));
+        
+        // 更新用户表
+        fetch(API_URL + '/users', {
+          method: 'POST',
+          headers: {
+            'apikey': API_KEY,
+            'Authorization': 'Bearer ' + API_KEY,
+            'Content-Type': 'application/json',
+            'Prefer': 'resolution=merge-duplicates'
+          },
+          body: JSON.stringify({
+            alipay_user_id: userId,
+            points: data.points || 0,
+            updated_at: new Date().toISOString()
+          })
+        })
+        .then(function(res) {
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          return res.json();
+        })
+        .then(function(result) {
+          log('✅ 用户积分已同步', 'success');
+          
+          // 同步打卡记录
+          if (data.checkedCheckpoints && data.checkedCheckpoints.length > 0) {
+            log('同步打卡记录...');
+            
+            data.checkedCheckpoints.forEach(function(cpId) {
+              fetch(API_URL + '/checkins', {
+                method: 'POST',
+                headers: {
+                  'apikey': API_KEY,
+                  'Authorization': 'Bearer ' + API_KEY,
+                  'Content-Type': 'application/json',
+                  'Prefer': 'resolution=merge-duplicates'
+                },
+                body: JSON.stringify({
+                  alipay_user_id: userId,
+                  checkpoint_id: cpId,
+                  points: 15,
+                  checked_at: new Date().toISOString()
+                })
+              })
+              .then(function(res) {
+                if (res.ok) log('✅ 打卡点 ' + cpId + ' 已同步', 'success');
+                else log('⚠️ 打卡点 ' + cpId + ' 同步失败', 'error');
+              })
+              .catch(function(err) {
+                log('❌ 打卡点 ' + cpId + ' 错误：' + err.message, 'error');
+              });
+            });
+          }
+          
+          alert('✅ 数据已同步到 Supabase！');
+        })
+        .catch(function(err) {
+          log('❌ 同步失败：' + err.message, 'error');
+          alert('同步失败：' + err.message);
+        });
+        
+      } catch (e) {
+        log('❌ 数据解析失败：' + e.message, 'error');
+      }
+    }
+    
+    function clearData() {
+      if (confirm('确定清除所有打卡数据？')) {
+        localStorage.removeItem('alipay_user_id');
+        localStorage.removeItem('checkin_data');
+        log('✅ 数据已清除', 'success');
+        alert('数据已清除，请刷新页面');
+        location.reload();
+      }
+    }
+    
+    log('页面加载完成');
+    log('请先打卡，然后点击"检查数据"查看本地和云端数据');
+    setTimeout(checkData, 500);
+  </script>
+</body>
+</html>

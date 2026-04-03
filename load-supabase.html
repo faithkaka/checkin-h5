@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>加载 Supabase SDK</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; text-align: center; }
+    .loading { color: #667eea; font-size: 18px; }
+    .spinner { border: 4px solid #f3f4f6; border-top-color: #667eea; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .success { color: #10b981; margin-top: 20px; }
+    .error { color: #dc2626; margin-top: 20px; }
+    pre { background: #1e293b; color: #10b981; padding: 15px; border-radius: 8px; text-align: left; max-height: 200px; overflow: auto; margin-top: 20px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <h1>🚀 加载 Supabase SDK</h1>
+  <div class="loading">正在加载 Supabase SDK...</div>
+  <div class="spinner"></div>
+  <div id="result"></div>
+  <pre id="log">加载中...</pre>
+  
+  <script>
+    function log(msg) {
+      var time = new Date().toLocaleTimeString();
+      document.getElementById('log').innerHTML += '[' + time + '] ' + msg + '\n';
+      console.log(msg);
+    }
+    
+    // 动态加载 Supabase SDK
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+    script.onload = function() {
+      log('✅ SDK 加载成功');
+      
+      setTimeout(function() {
+        if (typeof supabase !== 'undefined') {
+          log('✅ supabase 对象可用');
+          
+          try {
+            var client = supabase.createClient(
+              'https://ussvekkgyntubivhfext.supabase.co',
+              'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzc3Zla2tneW50dWJpdmhmZXh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTEwODQwMiwiZXhwIjoyMDkwNjg0NDAyfQ.i1fbQC96UGnToKL6fa7GTfaMtt0s_TGpNNR0xb3ufR0'
+            );
+            log('✅ Supabase 客户端创建成功');
+            
+            document.querySelector('.loading').style.display = 'none';
+            document.querySelector('.spinner').style.display = 'none';
+            
+            var resultEl = document.getElementById('result');
+            resultEl.className = 'success';
+            resultEl.innerHTML = '<h3>✅ SDK 加载成功！</h3><p>现在可以正常使用打卡功能了</p><p><a href="index.html" style="color:#667eea;font-weight:bold;">→ 前往打卡页面</a></p>';
+            
+            // 3 秒后跳转到打卡页面
+            setTimeout(function() {
+              location.href = 'index.html';
+            }, 3000);
+            
+          } catch (err) {
+            log('❌ 创建客户端失败：' + err.message);
+            document.querySelector('.loading').className = 'error';
+            document.querySelector('.loading').textContent = '❌ 创建客户端失败';
+          }
+          
+        } else {
+          log('❌ supabase 对象未定义');
+          document.querySelector('.loading').className = 'error';
+          document.querySelector('.loading').textContent = '❌ SDK 加载失败';
+        }
+      }, 500);
+    };
+    
+    script.onerror = function() {
+      log('❌ SDK 加载失败 - 网络问题或 CDN 被拦截');
+      document.querySelector('.loading').className = 'error';
+      document.querySelector('.loading').textContent = '❌ 无法加载 Supabase SDK';
+      document.querySelector('.spinner').style.display = 'none';
+      
+      var resultEl = document.getElementById('result');
+      resultEl.innerHTML = '<p style="margin-top:20px;"><a href="test-checkin.html" style="color:#10b981;font-weight:bold;">→ 使用本地测试页面（无需 SDK）</a></p>';
+    };
+    
+    document.head.appendChild(script);
+    log('开始加载 Supabase SDK...');
+  </script>
+</body>
+</html>

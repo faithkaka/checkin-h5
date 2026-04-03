@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>快速测试打卡 - 修复版</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: sans-serif; padding: 20px; background: #f0f2f5; }
+    .card { background: white; padding: 20px; border-radius: 10px; margin: 15px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .card h3 { font-size: 16px; margin-bottom: 10px; color: #333; }
+    .btn { background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; padding: 15px 25px; border-radius: 8px; cursor: pointer; font-size: 16px; margin: 10px 5px 10px 0; display: inline-block; }
+    .btn:active { transform: scale(0.98); }
+    .btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); }
+    pre { background: #1e293b; color: #10b981; padding: 15px; border-radius: 8px; overflow: auto; font-size: 12px; max-height: 300px; }
+    .stat { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 20px; border-radius: 10px; margin: 10px 0; text-align: center; }
+    .stat .num { font-size: 40px; font-weight: bold; }
+    .stat .label { font-size: 14px; opacity: 0.9; margin-bottom: 5px; }
+    .status { padding: 15px; border-radius: 8px; margin: 10px 0; }
+    .status.success { background: #dcfce7; color: #10b981; }
+    .status.error { background: #fef2f2; color: #dc2626; }
+    .status.info { background: #dbeafe; color: #1e40af; }
+  </style>
+</head>
+<body>
+  <h1>🎯 快速测试打卡 - 修复版</h1>
+  
+  <div class="card">
+    <h3>👤 用户信息</h3>
+    <div id="user-status" class="status info">读取中...</div>
+  </div>
+  
+  <div class="stat">
+    <div class="label">当前积分</div>
+    <div class="num" id="points">0</div>
+  </div>
+  
+  <div class="card">
+    <h3>🎮 测试操作</h3>
+    <button class="btn" onclick="addPoints(15)">+15 分（模拟打卡）</button>
+    <button class="btn" onclick="syncToSupabase()">☁️ 同步到云端</button>
+    <button class="btn btn-danger" onclick="clearAll()">🗑️ 清除所有数据</button>
+  </div>
+  
+  <div class="card">
+    <h3>📊 本地数据</h3>
+    <div id="local-status" class="status info">读取中...</div>
+  </div>
+  
+  <div class="card">
+    <h3>📋 详细日志</h3>
+    <pre id="log">等待操作...</pre>
+  </div>
+  
+  <script>
+    var API_URL = 'https://ussvekkgyntubivhfext.supabase.co/rest/v1';
+    var API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzc3Zla2tneW50dWJpdmhmZXh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTEwODQwMiwiZXhwIjoyMDkwNjg0NDAyfQ.i1fbQC96UGnToKL6fa7GTfaMtt0s_TGpNNR0xb3ufR0';
+    
+    function log(msg) {
+      var time = new Date().toLocaleTimeString();
+      document.getElementById('log').innerHTML += '[' + time + '] ' + msg + '\n';
+      console.log(msg);
+    }
+    
+    function checkData() {
+      log('=== 检查数据 ===');
+      
+      var userId = localStorage.getItem('alipay_user_id');
+      if (!userId) {
+        userId = 'alipay_test_' + Date.now();
+        localStorage.setItem('alipay_user_id', userId);
+        log('生成测试用户 ID: ' + userId);
+      }
+      document.getElementById('user-status').className = 'status success';
+      document.getElementById('user-status').textContent = '✅ 用户：' + userId;
+      log('用户 ID: ' + userId);
+      
+      var checkinData = localStorage.getItem('checkin_data');
+      if (checkinData) {
+        try {
+          var data = JSON.parse(checkinData);
+          var points = data.points || 0;
+          var checkpoints = data.checkedCheckpoints || [];
+          document.getElementById('points').textContent = points;
+          document.getElementById('local-status').className = 'status success';
+          document.getElementById('local-status').textContent = '✅ 积分：' + points + ' 分 | 打卡点：' + checkpoints.length + ' 个';
+          log('本地数据：积分=' + points + ', 打卡点=' + checkpoints.join(','));
+        } catch (e) {
+          document.getElementById('local-status').className = 'status error';
+          document.getElementById('local-status').textContent = '❌ 数据损坏';
+          log('数据解析失败：' + e.message);
+        }
+      } else {
+        document.getElementById('points').textContent = '0';
+        document.getElementById('local-status').className = 'status info';
+        document.getElementById('local-status').textContent = 'ℹ️ 暂无打卡数据';
+        log('本地无打卡数据');
+      }
+    }
+    
+    function addPoints(num) {
+      log('=== 添加积分 ===');
+      
+      var userId = localStorage.getItem('alipay_user_id');
+      if (!userId) {
+        userId = 'alipay_test_' + Date.now();
+        localStorage.setItem('alipay_user_id', userId);
+        log('生成用户 ID: ' + userId);
+      }
+      
+      var currentData = { points: 0, checkedCheckpoints: [] };
+      var checkinData = localStorage.getItem('checkin_data');
+      if (checkinData) {
+        try {
+          currentData = JSON.parse(checkinData);
+        } catch (e) {
+          log('解析现有数据失败，使用空数据');
+        }
+      }
+      
+      currentData.points = (currentData.points || 0) + num;
+      currentData.checkedCheckpoints = currentData.checkedCheckpoints || [];
+      
+      var newCheckpointId = currentData.checkedCheckpoints.length + 1;
+      if (currentData.checkedCheckpoints.indexOf(newCheckpointId) === -1) {
+        currentData.checkedCheckpoints.push(newCheckpointId);
+      }
+      currentData.lastUpdate = Date.now();
+      
+      localStorage.setItem('checkin_data', JSON.stringify(currentData));
+      log('✅ 积分+' + num + '，当前积分：' + currentData.points);
+      log('打卡点：' + currentData.checkedCheckpoints.join(','));
+      
+      checkData();
+      
+      alert('✅ 积分+' + num + '！\n当前积分：' + currentData.points + '\n\n现在可以点击"同步到云端"了');
+    }
+    
+    function syncToSupabase() {
+      log('=== 开始同步 ===');
+      
+      var userId = localStorage.getItem('alipay_user_id');
+      if (!userId) {
+        log('❌ 没有用户 ID');
+        alert('请先添加积分');
+        return;
+      }
+      
+      var checkinData = localStorage.getItem('checkin_data');
+      if (!checkinData) {
+        log('❌ 没有打卡数据');
+        alert('请先添加积分');
+        return;
+      }
+      
+      try {
+        var data = JSON.parse(checkinData);
+        var points = data.points || 0;
+        
+        log('同步用户积分：' + points);
+        
+        // 步骤 1: 查询用户是否存在
+        fetch(API_URL + '/users?alipay_user_id=eq.' + userId + '&select=id', {
+          headers: {
+            'apikey': API_KEY,
+            'Authorization': 'Bearer ' + API_KEY
+          }
+        })
+        .then(function(res) {
+          log('查询 HTTP: ' + res.status);
+          return res.json();
+        })
+        .then(function(users) {
+          log('查询结果：' + users.length + ' 条');
+          
+          if (users && users.length > 0) {
+            // 用户存在，更新
+            log('用户已存在，执行 UPDATE');
+            return fetch(API_URL + '/users?alipay_user_id=eq.' + userId, {
+              method: 'PATCH',
+              headers: {
+                'apikey': API_KEY,
+                'Authorization': 'Bearer ' + API_KEY,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ points: points })
+            })
+            .then(function(res) {
+              log('更新 HTTP: ' + res.status);
+              if (!res.ok) throw new Error('HTTP ' + res.status);
+              return { success: true, action: 'update' };
+            });
+          } else {
+            // 用户不存在，插入
+            log('用户不存在，执行 INSERT');
+            return fetch(API_URL + '/users', {
+              method: 'POST',
+              headers: {
+                'apikey': API_KEY,
+                'Authorization': 'Bearer ' + API_KEY,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                alipay_user_id: userId,
+                points: points
+              })
+            })
+            .then(function(res) {
+              log('插入 HTTP: ' + res.status);
+              if (res.status === 201 || res.status === 200) {
+                return { success: true, action: 'insert' };
+              } else if (res.status === 409) {
+                log('⚠️ 用户已存在（409），忽略');
+                return { success: true, action: 'exists' };
+              }
+              throw new Error('HTTP ' + res.status);
+            });
+          }
+        })
+        .then(function(result) {
+          log('✅ 用户同步成功：' + result.action);
+          
+          // 同步打卡记录
+          var checkpoints = data.checkedCheckpoints || [];
+          if (checkpoints.length > 0) {
+            log('同步 ' + checkpoints.length + ' 个打卡记录...');
+            var syncPromises = checkpoints.map(function(cpId) {
+              return fetch(API_URL + '/checkins', {
+                method: 'POST',
+                headers: {
+                  'apikey': API_KEY,
+                  'Authorization': 'Bearer ' + API_KEY,
+                  'Content-Type': 'application/json',
+                  'Prefer': 'resolution=merge-duplicates'
+                },
+                body: JSON.stringify({
+                  alipay_user_id: userId,
+                  checkpoint_id: cpId,
+                  points: 15,
+                  checked_at: new Date().toISOString()
+                })
+              })
+              .then(function(res) {
+                if (res.ok || res.status === 409) {
+                  log('✅ 打卡点 ' + cpId + ' 同步成功');
+                  return { success: true, cpId: cpId };
+                } else {
+                  log('⚠️ 打卡点 ' + cpId + ' 状态：' + res.status);
+                  return { success: false, cpId: cpId, status: res.status };
+                }
+              })
+              .catch(function(err) {
+                log('❌ 打卡点 ' + cpId + ' 错误：' + err.message);
+                return { success: false, cpId: cpId, error: err.message };
+              });
+            });
+            
+            return Promise.all(syncPromises);
+          }
+          return [];
+        })
+        .then(function(results) {
+          var successCount = results.filter(function(r) { return r && r.success; }).length;
+          var totalCp = data.checkedCheckpoints ? data.checkedCheckpoints.length : 0;
+          log('✅ 同步完成！成功：' + successCount + '/' + totalCp);
+          alert('✅ 同步成功！\n\n用户 ID: ' + userId + '\n积分：' + points + '\n打卡点：' + successCount + '\n\n可以去管理后台查看了！');
+        })
+        .catch(function(err) {
+          log('❌ 同步失败：' + err.message);
+          alert('❌ 同步失败：' + err.message);
+        });
+        
+      } catch (e) {
+        log('❌ 数据解析失败：' + e.message);
+        alert('数据格式错误：' + e.message);
+      }
+    }
+    
+    function clearAll() {
+      if (confirm('确定清除所有数据？')) {
+        localStorage.removeItem('alipay_user_id');
+        localStorage.removeItem('checkin_data');
+        log('✅ 数据已清除');
+        checkData();
+        alert('数据已清除！');
+      }
+    }
+    
+    log('页面加载完成');
+    checkData();
+  </script>
+</body>
+</html>

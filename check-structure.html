@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Supabase 表结构检查</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #f0f2f5; }
+    .card { background: white; padding: 20px; border-radius: 10px; margin: 15px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .card h3 { font-size: 16px; margin-bottom: 10px; color: #333; }
+    .btn { background: #10b981; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 14px; margin: 5px; }
+    .btn:active { transform: scale(0.98); }
+    pre { background: #1e293b; color: #10b981; padding: 15px; border-radius: 8px; overflow: auto; font-size: 12px; max-height: 400px; }
+    .success { background: #dcfce7; color: #10b981; padding: 10px; border-radius: 6px; margin: 10px 0; }
+    .error { background: #fef2f2; color: #dc2626; padding: 10px; border-radius: 6px; margin: 10px 0; }
+    .field { background: #f3f4f6; padding: 8px 12px; border-radius: 6px; margin: 5px 0; font-family: monospace; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>🔍 Supabase 表结构检查</h1>
+  
+  <div class="card">
+    <h3>📋 检查数据库表结构</h3>
+    <button class="btn" onclick="checkTables()">检查 users 表</button>
+    <button class="btn" onclick="checkCheckins()">检查 checkins 表</button>
+    <div id="result"></div>
+  </div>
+  
+  <div class="card">
+    <h3>🧪 测试插入数据</h3>
+    <button class="btn" onclick="testInsert()">测试插入 users 表</button>
+    <div id="test-result"></div>
+  </div>
+  
+  <div class="card">
+    <h3>📋 详细日志</h3>
+    <pre id="log">等待操作...</pre>
+  </div>
+  
+  <script>
+    var API_URL = 'https://ussvekkgyntubivhfext.supabase.co/rest/v1';
+    var API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzc3Zla2tneW50dWJpdmhmZXh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTEwODQwMiwiZXhwIjoyMDkwNjg0NDAyfQ.i1fbQC96UGnToKL6fa7GTfaMtt0s_TGpNNR0xb3ufR0';
+    
+    function log(msg) {
+      var time = new Date().toLocaleTimeString();
+      document.getElementById('log').innerHTML += '[' + time + '] ' + msg + '\n';
+      console.log(msg);
+    }
+    
+    function checkTables() {
+      var resultEl = document.getElementById('result');
+      resultEl.innerHTML = '<p>🔄 查询 users 表结构...</p>';
+      log('=== 检查 users 表 ===');
+      
+      // 查询所有列名
+      fetch(API_URL + '/users?select=*&limit=1', {
+        headers: {
+          'apikey': API_KEY,
+          'Authorization': 'Bearer ' + API_KEY,
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(function(res) {
+        log('HTTP: ' + res.status + ' ' + res.statusText);
+        if (!res.ok) {
+          return res.text().then(function(text) {
+            log('❌ 错误：' + text);
+            throw new Error('HTTP ' + res.status + ': ' + text.substring(0, 200));
+          });
+        }
+        return res.json();
+      })
+      .then(function(data) {
+        log('✅ 查询成功');
+        log('返回数据：' + JSON.stringify(data));
+        
+        var html = '<div class="success">';
+        html += '<h4>✅ users 表可访问</h4>';
+        
+        if (data && data.length > 0) {
+          var fields = Object.keys(data[0]);
+          html += '<p><b>字段列表：</b></p>';
+          fields.forEach(function(field) {
+            html += '<div class="field">' + field + '</div>';
+          });
+          
+          html += '<p><b>示例数据：</b></p>';
+          html += '<pre>' + JSON.stringify(data[0], null, 2) + '</pre>';
+        } else {
+          html += '<p>表是空的，但结构正常</p>';
+        }
+        
+        html += '</div>';
+        resultEl.innerHTML = html;
+      })
+      .catch(function(err) {
+        resultEl.innerHTML = '<div class="error"><h4>❌ 查询失败</h4><p>' + err.message + '</p></div>';
+      });
+    }
+    
+    function checkCheckins() {
+      var resultEl = document.getElementById('result');
+      resultEl.innerHTML = '<p>🔄 查询 checkins 表结构...</p>';
+      log('=== 检查 checkins 表 ===');
+      
+      fetch(API_URL + '/checkins?select=*&limit=1', {
+        headers: {
+          'apikey': API_KEY,
+          'Authorization': 'Bearer ' + API_KEY,
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(function(res) {
+        log('HTTP: ' + res.status);
+        if (!res.ok) {
+          return res.text().then(function(text) {
+            throw new Error('HTTP ' + res.status + ': ' + text.substring(0, 200));
+          });
+        }
+        return res.json();
+      })
+      .then(function(data) {
+        log('✅ 查询成功');
+        
+        var html = '<div class="success">';
+        html += '<h4>✅ checkins 表可访问</h4>';
+        
+        if (data && data.length > 0) {
+          var fields = Object.keys(data[0]);
+          html += '<p><b>字段列表：</b></p>';
+          fields.forEach(function(field) {
+            html += '<div class="field">' + field + '</div>';
+          });
+        } else {
+          html += '<p>表是空的</p>';
+        }
+        
+        html += '</div>';
+        resultEl.innerHTML = html;
+      })
+      .catch(function(err) {
+        resultEl.innerHTML = '<div class="error"><h4>❌ 查询失败</h4><p>' + err.message + '</p></div>';
+      });
+    }
+    
+    function testInsert() {
+      var testUserId = 'test_' + Date.now();
+      var resultEl = document.getElementById('test-result');
+      resultEl.innerHTML = '<p>🔄 测试插入数据...</p>';
+      log('=== 测试插入 users 表 ===');
+      log('测试用户 ID: ' + testUserId);
+      
+      fetch(API_URL + '/users', {
+        method: 'POST',
+        headers: {
+          'apikey': API_KEY,
+          'Authorization': 'Bearer ' + API_KEY,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify({
+          alipay_user_id: testUserId,
+          points: 15
+        })
+      })
+      .then(function(res) {
+        log('HTTP: ' + res.status + ' ' + res.statusText);
+        
+        if (!res.ok) {
+          return res.text().then(function(text) {
+            log('❌ 错误响应：' + text);
+            throw new Error('HTTP ' + res.status + ': ' + text);
+          });
+        }
+        return res.json();
+      })
+      .then(function(data) {
+        log('✅ 插入成功');
+        log('返回数据：' + JSON.stringify(data));
+        
+        var html = '<div class="success">';
+        html += '<h4>✅ 插入成功！</h4>';
+        html += '<p><b>插入的用户 ID：</b> ' + testUserId + '</p>';
+        html += '<p><b>返回数据：</b></p>';
+        html += '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+        html += '<p>🎉 现在可以用正确的字段名插入数据了！</p>';
+        html += '</div>';
+        resultEl.innerHTML = html;
+      })
+      .catch(function(err) {
+        log('❌ 插入失败：' + err.message);
+        resultEl.innerHTML = '<div class="error">';
+        resultEl.innerHTML += '<h4>❌ 插入失败</h4>';
+        resultEl.innerHTML += '<p><b>错误信息：</b></p>';
+        resultEl.innerHTML += '<pre style="background:#fef2f2;color:#dc2626;padding:10px;border-radius:6px;overflow:auto;">' + err.message + '</pre>';
+        resultEl.innerHTML += '<p><b>可能原因：</b></p>';
+        resultEl.innerHTML += '<ul style="margin:10px 0;padding-left:20px;">';
+        resultEl.innerHTML += '<li>字段名不正确（查看上面的字段列表）</li>';
+        resultEl.innerHTML += '<li>缺少必填字段</li>';
+        resultEl.innerHTML += '<li>约束冲突（用户已存在）</li>';
+        resultEl.innerHTML += '</ul>';
+        resultEl.innerHTML += '</div>';
+      });
+    }
+    
+    log('页面加载完成');
+    log('API URL: ' + API_URL);
+    log('请先点击"检查 users 表"查看正确的字段名');
+  </script>
+</body>
+</html>
