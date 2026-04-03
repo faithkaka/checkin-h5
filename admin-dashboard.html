@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Dashboard - Chongqing Check-in</title>
+  <title>管理后台 - 重庆打卡</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, sans-serif; background: #f0f2f5; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f0f2f5; }
     
     .header {
       background: linear-gradient(135deg, #667eea, #764ba2);
@@ -31,9 +31,9 @@
     
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     thead { background: #f9fafb; }
-    th, td { padding: 10px; text-align: left; border-bottom: 1px solid #e5e5e5; }
-    th { font-weight: 600; color: #666; font-size: 12px; }
-    .code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 11px; word-break: break-all; }
+    th, td { padding: 10px; text-align: left; border-bottom: 1px solid #e5e5e5; word-break: break-all; }
+    th { font-weight: 600; color: #666; font-size: 12px; white-space: nowrap; }
+    .code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 11px; display: inline-block; max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
     
     .loading { text-align: center; padding: 30px; color: #999; }
     .spinner { border: 3px solid #e5e5e5; border-top-color: #10b981; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto 15px; }
@@ -41,73 +41,95 @@
     
     .refresh { background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 14px; cursor: pointer; float: right; }
     .tabs { display: flex; background: white; border-radius: 10px; overflow: hidden; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-    .tab { flex: 1; padding: 12px; border: none; background: white; color: #666; font-size: 14px; cursor: pointer; border-bottom: 3px solid transparent; }
-    .tab.active { color: #10b981; border-bottom-color: #10b981; }
+    .tab { flex: 1; padding: 12px; border: none; background: white; color: #666; font-size: 14px; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.3s; }
+    .tab.active { color: #10b981; border-bottom-color: #10b981; background: #f0fdf4; }
     .page { display: none; }
     .page.active { display: block; }
+    .error { color: #ef4444; padding: 20px; text-align: center; }
   </style>
 </head>
 <body>
   <div class="header">
-    <h1>🎯 Chongqing Check-in Admin</h1>
-    <button class="logout-btn" onclick="logout()">Logout</button>
+    <h1>🎯 重庆打卡管理后台</h1>
+    <button class="logout-btn" onclick="logout()">退出登录</button>
   </div>
   
   <div class="content">
     <div class="tabs">
-      <button class="tab active" onclick="show('dashboard')">📊 Stats</button>
-      <button class="tab" onclick="show('users')">👥 Users</button>
-      <button class="tab" onclick="show('checkins')">📍 Records</button>
+      <button class="tab active" onclick="show('dashboard')">📊 数据概览</button>
+      <button class="tab" onclick="show('users')">👥 用户管理</button>
+      <button class="tab" onclick="show('checkins')">📍 打卡记录</button>
     </div>
     
+    <!-- 数据概览页 -->
     <div class="page active" id="dashboard">
       <div class="stats">
         <div class="stat">
-          <h3>Total Users</h3>
+          <h3>总用户数</h3>
           <div class="num" id="total-users">-</div>
         </div>
         <div class="stat">
-          <h3>Today</h3>
+          <h3>今日打卡</h3>
           <div class="num" id="today-checkins">-</div>
         </div>
         <div class="stat warn">
-          <h3>All Records</h3>
+          <h3>总打卡数</h3>
           <div class="num" id="total-checkins">-</div>
         </div>
         <div class="stat danger">
-          <h3>Top Score</h3>
+          <h3>最高积分</h3>
           <div class="num" id="max-points">-</div>
         </div>
       </div>
       
       <div class="section">
-        <h2>🏆 TOP 10 <button class="refresh" onclick="load()">🔄 Refresh</button></h2>
-        <div class="loading" id="dashboard-loading"><div class="spinner"></div>Loading...</div>
+        <h2>🏆 TOP 10 排行榜 <button class="refresh" onclick="loadDashboard()">🔄 刷新</button></h2>
+        <div class="loading" id="dashboard-loading">
+          <div class="spinner"></div>
+          <div>加载中...</div>
+        </div>
+        <div class="error" id="dashboard-error" style="display:none;"></div>
         <table id="leaderboard" style="display:none;">
-          <thead><tr><th>Rank</th><th>User</th><th>Points</th></tr></thead>
-          <tbody></tbody>
+          <thead>
+            <tr><th>排名</th><th>用户 ID</th><th>积分</th><th>注册时间</th></tr>
+          </thead>
+          <tbody id="leaderboard-body"></tbody>
         </table>
       </div>
     </div>
     
+    <!-- 用户管理页 -->
     <div class="page" id="users">
       <div class="section">
-        <h2>All Users <button class="refresh" onclick="loadUsers()">🔄 Refresh</button></h2>
-        <div class="loading" id="users-loading"><div class="spinner"></div>Loading...</div>
+        <h2>所有用户 <button class="refresh" onclick="loadUsers()">🔄 刷新</button></h2>
+        <div class="loading" id="users-loading">
+          <div class="spinner"></div>
+          <div>加载中...</div>
+        </div>
+        <div class="error" id="users-error" style="display:none;"></div>
         <table id="users-table" style="display:none;">
-          <thead><tr><th>User ID</th><th>Points</th><th>Joined</th></tr></thead>
-          <tbody></tbody>
+          <thead>
+            <tr><th>用户 ID</th><th>积分</th><th>注册时间</th></tr>
+          </thead>
+          <tbody id="users-body"></tbody>
         </table>
       </div>
     </div>
     
+    <!-- 打卡记录页 -->
     <div class="page" id="checkins">
       <div class="section">
-        <h2>Check-in Records <button class="refresh" onclick="loadCheckins()">🔄 Refresh</button></h2>
-        <div class="loading" id="checkins-loading"><div class="spinner"></div>Loading...</div>
+        <h2>打卡记录 <button class="refresh" onclick="loadCheckins()">🔄 刷新</button></h2>
+        <div class="loading" id="checkins-loading">
+          <div class="spinner"></div>
+          <div>加载中...</div>
+        </div>
+        <div class="error" id="checkins-error" style="display:none;"></div>
         <table id="checkins-table" style="display:none;">
-          <thead><tr><th>User</th><th>Spot</th><th>Points</th><th>Date</th></tr></thead>
-          <tbody></tbody>
+          <thead>
+            <tr><th>用户</th><th>打卡点</th><th>积分</th><th>打卡时间</th></tr>
+          </thead>
+          <tbody id="checkins-body"></tbody>
         </table>
       </div>
     </div>
@@ -115,100 +137,250 @@
   
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
+    // Supabase 配置
     const SUPABASE_URL = 'https://ussvekkgyntubivhfext.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzc3Zla2tneW50dWJpdmhmZXh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTEwODQwMiwiZXhwIjoyMDkwNjg0NDAyfQ.i1fbQC96UGnToKL6fa7GTfaMtt0s_TGpNNR0xb3ufR0';
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     
+    let supabase = null;
     let live = true;
     
-    window.onload = function() { load(); };
+    // 初始化 Supabase（带重试机制）
+    function initSupabase() {
+      try {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+          timeoutMs: 10000,
+          db: { schema: 'public' }
+        });
+        console.log('✅ Supabase 初始化成功');
+        return true;
+      } catch (err) {
+        console.error('❌ Supabase 初始化失败:', err);
+        return false;
+      }
+    }
     
+    // 页面加载
+    window.addEventListener('DOMContentLoaded', function() {
+      console.log('页面加载完成');
+      if (initSupabase()) {
+        loadDashboard();
+      } else {
+        showError('dashboard', 'Supabase 初始化失败，请刷新重试');
+      }
+    });
+    
+    // 显示错误
+    function showError(page, msg) {
+      const loading = document.getElementById(page + '-loading');
+      const error = document.getElementById(page + '-error');
+      const table = document.getElementById(page === 'dashboard' ? 'leaderboard' : page + '-table');
+      
+      if (loading) loading.style.display = 'none';
+      if (error) {
+        error.textContent = '❌ ' + msg;
+        error.style.display = 'block';
+      }
+      if (table) table.style.display = 'none';
+    }
+    
+    // 隐藏错误
+    function hideError(page) {
+      const error = document.getElementById(page + '-error');
+      if (error) error.style.display = 'none';
+    }
+    
+    // 退出登录
     function logout() {
-      if (confirm('Confirm logout?')) {
+      if (confirm('确定要退出登录吗？')) {
         live = false;
-        localStorage.removeItem('admin_logged');
-        localStorage.removeItem('admin_name');
+        try {
+          localStorage.removeItem('admin_logged');
+          localStorage.removeItem('admin_name');
+        } catch(e) {}
         location.replace('login.html');
       }
     }
     
+    // 切换标签页
     function show(page) {
       document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
       document.getElementById(page).classList.add('active');
       event.target.classList.add('active');
-      if (page === 'dashboard') load();
+      
+      if (page === 'dashboard') loadDashboard();
       if (page === 'users') loadUsers();
       if (page === 'checkins') loadCheckins();
     }
     
-    async function load() {
+    // 加载仪表板
+    async function loadDashboard() {
+      console.log('加载仪表板...');
+      hideError('dashboard');
       document.getElementById('dashboard-loading').style.display = 'block';
       document.getElementById('leaderboard').style.display = 'none';
       
-      const { data: users } = await supabase.from('users').select('*').order('points', { ascending: false });
-      const { data: checkins } = await supabase.from('checkins').select('checked_at');
-      
-      if (!live) return;
-      
-      const today = new Date().toISOString().split('T')[0];
-      const todayCount = checkins ? checkins.filter(c => c.checked_at && c.checked_at.startsWith(today)).length : 0;
-      const max = users && users.length > 0 ? Math.max(...users.map(u => u.points || 0)) : 0;
-      
-      document.getElementById('total-users').textContent = users ? users.length : 0;
-      document.getElementById('today-checkins').textContent = todayCount;
-      document.getElementById('total-checkins').textContent = checkins ? checkins.length : 0;
-      document.getElementById('max-points').textContent = max;
-      
-      if (users && users.length > 0) {
-        const tbody = document.querySelector('#leaderboard tbody');
-        tbody.innerHTML = users.slice(0, 10).map((u, i) => 
-          `<tr><td>#${i+1}</td><td><span class="code">${(u.alipay_user_id || '').substring(0,15)}${(u.alipay_user_id||'').length>15?'...':''}</span></td><td><b>${u.points||0}</b></td></tr>`
-        ).join('');
-        document.getElementById('dashboard-loading').style.display = 'none';
-        document.getElementById('leaderboard').style.display = 'table';
-      } else {
-        document.getElementById('dashboard-loading').innerHTML = 'No data';
+      try {
+        // 1. 获取用户数据（带超时）
+        console.log('获取用户数据...');
+        const usersPromise = supabase
+          .from('users')
+          .select('*')
+          .order('points', { ascending: false })
+          .limit(100);
+        
+        // 2. 获取打卡记录
+        console.log('获取打卡记录...');
+        const checkinsPromise = supabase
+          .from('checkins')
+          .select('checked_at')
+          .timeout(5000);
+        
+        // 3. 并发请求
+        const [usersResult, checkinsResult] = await Promise.all([usersPromise, checkinsPromise]);
+        
+        if (!live) return;
+        
+        // 4. 处理错误
+        if (usersResult.error) {
+          throw new Error('用户数据加载失败：' + usersResult.error.message);
+        }
+        
+        const users = usersResult.data || [];
+        const checkins = checkinsResult.data || [];
+        
+        console.log('获取到', users.length, '个用户', checkins.length, '条打卡记录');
+        
+        // 5. 计算统计数据
+        const today = new Date().toISOString().split('T')[0];
+        const todayCount = checkins.filter(c => c.checked_at && c.checked_at.startsWith(today)).length;
+        const max = users.length > 0 ? Math.max(...users.map(u => u.points || 0)) : 0;
+        
+        // 6. 更新统计卡片
+        document.getElementById('total-users').textContent = users.length;
+        document.getElementById('today-checkins').textContent = todayCount;
+        document.getElementById('total-checkins').textContent = checkins.length;
+        document.getElementById('max-points').textContent = max;
+        
+        // 7. 显示排行榜
+        if (users.length > 0) {
+          const tbody = document.getElementById('leaderboard-body');
+          tbody.innerHTML = users.slice(0, 10).map((u, i) => {
+            const userId = u.alipay_user_id || u.id || '未知';
+            const shortId = userId.length > 30 ? userId.substring(0, 30) + '...' : userId;
+            const date = u.created_at ? new Date(u.created_at).toLocaleDateString('zh-CN') : '-';
+            return `<tr>
+              <td><strong>#${i+1}</strong></td>
+              <td><span class="code" title="${userId}">${shortId}</span></td>
+              <td><strong style="color: #10b981;">${u.points || 0}</strong></td>
+              <td>${date}</td>
+            </tr>`;
+          }).join('');
+          
+          document.getElementById('dashboard-loading').style.display = 'none';
+          document.getElementById('leaderboard').style.display = 'table';
+        } else {
+          document.getElementById('dashboard-loading').innerHTML = '暂无数据';
+        }
+        
+      } catch (err) {
+        console.error('加载仪表板失败:', err);
+        if (live) {
+          showError('dashboard', '加载失败：' + err.message + '<br>请检查网络连接或刷新重试');
+        }
       }
     }
     
+    // 加载用户列表
     async function loadUsers() {
+      console.log('加载用户列表...');
+      hideError('users');
       document.getElementById('users-loading').style.display = 'block';
       document.getElementById('users-table').style.display = 'none';
       
-      const { data } = await supabase.from('users').select('*').order('created_at', { ascending: false });
-      
-      if (!live) return;
-      
-      if (data && data.length > 0) {
-        const tbody = document.querySelector('#users-table tbody');
-        tbody.innerHTML = data.map(u => 
-          `<tr><td><span class="code">${(u.alipay_user_id || '').substring(0,20)}${(u.alipay_user_id||'').length>20?'...':''}</span></td><td>${u.points||0}</td><td>${new Date(u.created_at||Date.now()).toLocaleDateString('zh-CN')}</td></tr>`
-        ).join('');
-        document.getElementById('users-loading').style.display = 'none';
-        document.getElementById('users-table').style.display = 'table';
-      } else {
-        document.getElementById('users-loading').innerHTML = 'No users';
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(100)
+          .timeout(5000);
+        
+        if (!live) return;
+        
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          const tbody = document.getElementById('users-body');
+          tbody.innerHTML = data.map(u => {
+            const userId = u.alipay_user_id || u.id || '未知';
+            const shortId = userId.length > 30 ? userId.substring(0, 30) + '...' : userId;
+            const date = u.created_at ? new Date(u.created_at).toLocaleDateString('zh-CN') : '-';
+            return `<tr>
+              <td><span class="code" title="${userId}">${shortId}</span></td>
+              <td><strong>${u.points || 0}</strong></td>
+              <td>${date}</td>
+            </tr>`;
+          }).join('');
+          
+          document.getElementById('users-loading').style.display = 'none';
+          document.getElementById('users-table').style.display = 'table';
+        } else {
+          document.getElementById('users-loading').innerHTML = '暂无用户';
+        }
+        
+      } catch (err) {
+        console.error('加载用户失败:', err);
+        if (live) {
+          showError('users', '加载失败：' + err.message);
+        }
       }
     }
     
+    // 加载打卡记录
     async function loadCheckins() {
+      console.log('加载打卡记录...');
+      hideError('checkins');
       document.getElementById('checkins-loading').style.display = 'block';
       document.getElementById('checkins-table').style.display = 'none';
       
-      const { data } = await supabase.from('checkins').select('*').order('checked_at', { ascending: false }).limit(50);
-      
-      if (!live) return;
-      
-      if (data && data.length > 0) {
-        const tbody = document.querySelector('#checkins-table tbody');
-        tbody.innerHTML = data.map(c => 
-          `<tr><td><span class="code">${(c.alipay_user_id || '').substring(0,12)}${(c.alipay_user_id||'').length>12?'...':''}</span></td><td>Spot ${c.checkpoint_id}</td><td>${c.points||0}</td><td>${c.checked_at ? new Date(c.checked_at).toLocaleDateString('zh-CN') : '-'}</td></tr>`
-        ).join('');
-        document.getElementById('checkins-loading').style.display = 'none';
-        document.getElementById('checkins-table').style.display = 'table';
-      } else {
-        document.getElementById('checkins-loading').innerHTML = 'No data';
+      try {
+        const { data, error } = await supabase
+          .from('checkins')
+          .select('*')
+          .order('checked_at', { ascending: false })
+          .limit(50)
+          .timeout(5000);
+        
+        if (!live) return;
+        
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          const tbody = document.getElementById('checkins-body');
+          tbody.innerHTML = data.map(c => {
+            const userId = c.alipay_user_id || '未知';
+            const shortId = userId.length > 20 ? userId.substring(0, 20) + '...' : userId;
+            const date = c.checked_at ? new Date(c.checked_at).toLocaleString('zh-CN') : '-';
+            return `<tr>
+              <td><span class="code" title="${userId}">${shortId}</span></td>
+              <td>打卡点 ${c.checkpoint_id}</td>
+              <td>${c.points || 0}</td>
+              <td>${date}</td>
+            </tr>`;
+          }).join('');
+          
+          document.getElementById('checkins-loading').style.display = 'none';
+          document.getElementById('checkins-table').style.display = 'table';
+        } else {
+          document.getElementById('checkins-loading').innerHTML = '暂无打卡记录';
+        }
+        
+      } catch (err) {
+        console.error('加载打卡记录失败:', err);
+        if (live) {
+          showError('checkins', '加载失败：' + err.message);
+        }
       }
     }
   </script>

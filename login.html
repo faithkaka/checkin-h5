@@ -2,13 +2,14 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Login - Chongqing Check-in</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>管理后台登录 - 重庆打卡</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       min-height: 100vh;
       display: flex;
@@ -16,25 +17,87 @@
       justify-content: center;
       padding: 20px;
     }
+    
     .login-box {
       background: white;
-      padding: 30px 20px;
+      padding: 35px 25px;
       border-radius: 16px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+      box-shadow: 0 15px 50px rgba(0,0,0,0.3);
       width: 100%;
-      max-width: 360px;
+      max-width: 380px;
       text-align: center;
     }
-    h1 { font-size: 24px; margin-bottom: 30px; color: #333; }
-    .form-group { margin-bottom: 20px; text-align: left; }
-    .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #333; font-size: 14px; }
+    
+    .login-box h1 {
+      font-size: 24px;
+      margin-bottom: 10px;
+      color: #333;
+    }
+    
+    .subtitle {
+      color: #999;
+      font-size: 13px;
+      margin-bottom: 30px;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+      text-align: left;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #333;
+      font-size: 14px;
+    }
+    
     .form-group input {
       width: 100%;
-      padding: 14px;
-      border: 2px solid #e0e0e0;
+      padding: 14px 16px;
+      border: 2px solid #e5e5e5;
       border-radius: 8px;
       font-size: 16px;
+      transition: all 0.3s;
+      -webkit-appearance: none;
     }
+    
+    .form-group input:focus {
+      outline: none;
+      border-color: #10b981;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+    
+    .form-group input::placeholder {
+      color: #ccc;
+    }
+    
+    .error-msg {
+      background: #fef2f2;
+      color: #dc2626;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      display: none;
+      text-align: left;
+      border: 1px solid #fecaca;
+    }
+    
+    .success-msg {
+      background: #f0fdf4;
+      color: #16a34a;
+      padding: 14px 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      display: none;
+      text-align: center;
+      border: 1px solid #bbf7d0;
+      font-weight: 500;
+    }
+    
     .btn {
       padding: 14px 24px;
       border: none;
@@ -45,133 +108,211 @@
       width: 100%;
       background: linear-gradient(135deg, #10b981, #059669);
       color: white;
+      transition: all 0.3s;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
     }
-    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
-    .error {
-      background: #fee2e2;
-      color: #991b1b;
-      padding: 12px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-      font-size: 14px;
-      display: none;
-      text-align: left;
+    
+    .btn:hover {
+      box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
     }
-    .success {
-      background: #d1fae5;
-      color: #065f46;
-      padding: 12px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-      font-size: 14px;
-      display: none;
-      text-align: center;
+    
+    .btn:active {
+      transform: scale(0.98);
     }
-    .loading {
+    
+    .btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .loading-spinner {
       display: inline-block;
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
       border: 3px solid rgba(255,255,255,0.3);
       border-top-color: white;
       border-radius: 50%;
-      animation: spin 1s linear infinite;
+      animation: spin 0.8s linear infinite;
       margin-right: 8px;
       vertical-align: middle;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .note { margin-top: 20px; color: #999; font-size: 13px; }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .note {
+      margin-top: 25px;
+      color: #999;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    
+    .note strong {
+      color: #666;
+    }
+    
+    .redirect-note {
+      margin-top: 15px;
+      color: #16a34a;
+      font-weight: 600;
+      font-size: 14px;
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
   </style>
 </head>
 <body>
   <div class="login-box">
-    <h1>🔐 Admin Login</h1>
+    <h1>🔐 管理后台登录</h1>
+    <p class="subtitle">请输入管理员账号和密码</p>
     
-    <div class="error" id="error-msg"></div>
-    <div class="success" id="success-msg"></div>
+    <div class="error-msg" id="error-msg"></div>
+    <div class="success-msg" id="success-msg"></div>
     
     <form id="login-form">
       <div class="form-group">
-        <label>Username</label>
-        <input type="text" id="username" name="username" placeholder="Enter username" required autocomplete="off" />
+        <label>管理员账号</label>
+        <input 
+          type="text" 
+          id="username" 
+          name="username" 
+          placeholder="请输入管理员账号" 
+          value="admin"
+          required 
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="none"
+        />
       </div>
+      
       <div class="form-group">
-        <label>Password</label>
-        <input type="password" id="password" name="password" placeholder="Enter password" required autocomplete="off" />
+        <label>密码</label>
+        <input 
+          type="password" 
+          id="password" 
+          name="password" 
+          placeholder="请输入密码" 
+          value="admin123"
+          required 
+          autocomplete="off"
+        />
       </div>
+      
       <button type="submit" class="btn" id="submit-btn">
-        <span id="btn-text">LOGIN</span>
+        <span id="btn-text">登 录</span>
       </button>
     </form>
     
-    <div class="note" style="margin-top: 10px; color: #10b981; font-weight: 600; display: none;" id="redirect-note">
-      ✅ Login successful! Redirecting...
+    <div class="note">
+      <strong>默认账号</strong><br>
+      账号：admin<br>
+      密码：admin123
     </div>
-    <div class="note">Default: admin / admin123</div>
+    
+    <div class="redirect-note" id="redirect-note">
+      ✅ 登录成功！正在跳转到管理后台...
+    </div>
   </div>
   
   <script>
-    const credentials = { username: 'admin', password: 'admin123' };
+    // 管理员账号配置
+    const CREDENTIALS = {
+      username: 'admin',
+      password: 'admin123'
+    };
+    
+    // 获取 DOM 元素
     const form = document.getElementById('login-form');
     const submitBtn = document.getElementById('submit-btn');
     const btnText = document.getElementById('btn-text');
     const errorMsg = document.getElementById('error-msg');
     const successMsg = document.getElementById('success-msg');
     const redirectNote = document.getElementById('redirect-note');
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
     
-    form.addEventListener('submit', function(e) {
-      e.preventDefault();
-      
-      const username = document.getElementById('username').value.trim();
-      const password = document.getElementById('password').value;
-      
-      console.log('Login attempt:', username, password);
-      
-      // Validate
-      if (username !== credentials.username || password !== credentials.password) {
-        errorMsg.textContent = '❌ Invalid username or password';
-        errorMsg.style.display = 'block';
-        successMsg.style.display = 'none';
-        redirectNote.style.display = 'none';
-        return;
-      }
-      
-      // Success
-      errorMsg.style.display = 'none';
-      successMsg.innerHTML = '<span class="loading"></span> Login successful! Redirecting...';
-      successMsg.style.display = 'block';
-      redirectNote.style.display = 'block';
-      submitBtn.disabled = true;
-      btnText.textContent = 'Success';
-      
-      console.log('Login successful, redirecting...');
-      localStorage.setItem('admin_logged', 'true');
-      localStorage.setItem('admin_name', username);
-      
-      // Triple backup redirect
-      let redirectUrl = 'admin-dashboard.html?logged=true&user=' + encodeURIComponent(username);
-      
-      // Method 1: replace
-      console.log('Method 1: location.replace');
-      window.location.replace(redirectUrl);
-      
-      // Method 2: backup after 1.5s
-      setTimeout(function() {
-        console.log('Method 2: location.href');
-        window.location.href = redirectUrl;
-      }, 1500);
-      
-      // Method 3: force after 3s
-      setTimeout(function() {
-        console.log('Method 3: force reload');
-        window.location.href = redirectUrl;
-      }, 3000);
-    });
-    
+    // 页面加载完成
     window.addEventListener('DOMContentLoaded', function() {
-      console.log('Page loaded');
+      console.log('登录页面加载完成');
       errorMsg.style.display = 'none';
       successMsg.style.display = 'none';
       redirectNote.style.display = 'none';
+      submitBtn.disabled = false;
+      btnText.textContent = '登 录';
+    });
+    
+    // 处理登录表单提交
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const username = usernameInput.value.trim();
+      const password = passwordInput.value;
+      
+      console.log('登录尝试:', { username: username, hasPassword: !!password });
+      
+      // 隐藏之前的消息
+      errorMsg.style.display = 'none';
+      successMsg.style.display = 'none';
+      redirectNote.style.display = 'none';
+      
+      // 验证账号密码
+      if (username !== CREDENTIALS.username || password !== CREDENTIALS.password) {
+        console.log('登录失败：账号或密码错误');
+        errorMsg.innerHTML = '<strong>❌ 登录失败</strong><br>账号或密码错误，请检查后重试。';
+        errorMsg.style.display = 'block';
+        
+        // 清空密码框
+        passwordInput.value = '';
+        passwordInput.focus();
+        return;
+      }
+      
+      // 登录成功
+      console.log('登录成功！');
+      
+      // 显示成功消息
+      successMsg.innerHTML = '<span class="loading-spinner"></span> 登录成功！正在跳转...';
+      successMsg.style.display = 'block';
+      redirectNote.style.display = 'block';
+      
+      // 禁用按钮
+      submitBtn.disabled = true;
+      btnText.innerHTML = '<span class="loading-spinner"></span> 登录成功';
+      
+      // 保存到 localStorage
+      try {
+        localStorage.setItem('admin_logged', 'true');
+        localStorage.setItem('admin_name', username);
+        console.log('已保存登录状态到 localStorage');
+      } catch (err) {
+        console.warn('localStorage 不可用:', err);
+      }
+      
+      // 跳转到管理后台（三重备份）
+      const targetUrl = 'admin.html?logged=true&user=' + encodeURIComponent(username);
+      console.log('准备跳转到:', targetUrl);
+      
+      // 备份 1: replace 方法
+      window.location.replace(targetUrl);
+      
+      // 备份 2: 1.5 秒后 href 跳转
+      setTimeout(function() {
+        console.log('备份 1: href 跳转');
+        window.location.href = targetUrl;
+      }, 1500);
+      
+      // 备份 3: 3 秒后强制跳转
+      setTimeout(function() {
+        console.log('备份 2: 强制跳转');
+        window.location.href = targetUrl;
+      }, 3000);
     });
   </script>
 </body>
