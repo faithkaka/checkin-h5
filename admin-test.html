@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理后台 - 调试工具</title>
+  <style>
+    body {
+      font-family: -apple-system, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .card {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    h1 { color: #333; margin-bottom: 10px; }
+    h2 { color: #666; margin-bottom: 20px; }
+    .btn {
+      padding: 12px 24px;
+      background: #10b981;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 10px 5px;
+    }
+    .btn-danger { background: #ef4444; }
+    .btn-info { background: #3b82f6; }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    .form-group input {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 16px;
+    }
+    .log {
+      background: #1f2937;
+      color: #10b981;
+      padding: 15px;
+      border-radius: 8px;
+      font-family: monospace;
+      margin-top: 20px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .status {
+      padding: 15px;
+      border-radius: 8px;
+      margin: 20px 0;
+      font-weight: bold;
+    }
+    .status.success { background: #d1fae5; color: #065f46; }
+    .status.error { background: #fee2e2; color: #991b1b; }
+    .status.info { background: #dbeafe; color: #1e40af; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🔧 管理后台 - 调试工具</h1>
+    <h2>用于测试登录和调试问题</h2>
+    
+    <div id="status-area"></div>
+    
+    <div class="form-group">
+      <label>测试用户名:</label>
+      <input type="text" id="test-name" value="admin" />
+    </div>
+    
+    <div class="form-group">
+      <label>测试密码:</label>
+      <input type="password" id="test-password" value="admin123" />
+    </div>
+    
+    <button class="btn" onclick="testLogin()">🧪 测试登录</button>
+    <button class="btn btn-info" onclick="checkSupabase()">📊 测试 Supabase 连接</button>
+    <button class="btn btn-danger" onclick="clearLogin()">🗑️ 清除登录状态</button>
+    <button class="btn" onclick="location.href='admin.html'">🎯 返回管理后台</button>
+    
+    <div class="log" id="log"></div>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = 'https://ussvekkgyntubivhfext.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzc3Zla2tneW50dWJpdmhmZXh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTEwODQwMiwiZXhwIjoyMDkwNjg0NDAyfQ.i1fbQC96UGnToKL6fa7GTfaMtt0s_TGpNNR0xb3ufR0';
+    
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    
+    const ADMIN_CREDENTIALS = {
+      name: 'admin',
+      password: 'admin123'
+    };
+    
+    function log(msg, type = 'info') {
+      const logEl = document.getElementById('log');
+      const div = document.createElement('div');
+      div.style.borderBottom = '1px solid #374151';
+      div.style.padding = '5px 0';
+      div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      logEl.insertBefore(div, logEl.firstChild);
+    }
+    
+    function showStatus(msg, type = 'info') {
+      const area = document.getElementById('status-area');
+      area.innerHTML = `<div class="status ${type}">${msg}</div>`;
+    }
+    
+    function testLogin() {
+      const name = document.getElementById('test-name').value.trim();
+      const password = document.getElementById('test-password').value;
+      
+      log('='.repeat(50));
+      log('开始测试登录...');
+      log('输入的用户名：' + JSON.stringify(name));
+      log('输入的密码：' + JSON.stringify(password));
+      log('期望的用户名：' + JSON.stringify(ADMIN_CREDENTIALS.name));
+      log('期望的密码：' + JSON.stringify(ADMIN_CREDENTIALS.password));
+      
+      const nameMatch = name === ADMIN_CREDENTIALS.name;
+      const passMatch = password === ADMIN_CREDENTIALS.password;
+      
+      log('用户名匹配：' + (nameMatch ? '✅' : '❌'));
+      log('密码匹配：' + (passMatch ? '✅' : '❌'));
+      
+      if (nameMatch && passMatch) {
+        log('✅ 登录验证成功！');
+        showStatus('✅ 登录成功！正在跳转...', 'success');
+        
+        localStorage.setItem('admin_logged', 'true');
+        localStorage.setItem('admin_name', name);
+        
+        setTimeout(() => {
+          location.href = 'admin.html';
+        }, 1500);
+      } else {
+        log('❌ 登录验证失败！');
+        showStatus('❌ 用户名或密码错误，请检查输入', 'error');
+      }
+    }
+    
+    async function checkSupabase() {
+      log('='.repeat(50));
+      log('开始测试 Supabase 连接...');
+      
+      try {
+        const { data, error } = await supabase.from('users').select('count').limit(1);
+        
+        if (error) {
+          throw error;
+        }
+        
+        log('✅ Supabase 连接成功！');
+        log('可以访问 users 表');
+        
+        // 获取用户数
+        const { count } = await supabase.from('users').select('*', { count: 'exact', head: true });
+        log('当前用户数：' + count);
+        
+        showStatus('✅ Supabase 连接正常！用户数：' + count, 'success');
+      } catch (err) {
+        log('❌ Supabase 连接失败：' + err.message);
+        showStatus('❌ Supabase 连接失败：' + err.message, 'error');
+      }
+    }
+    
+    function clearLogin() {
+      if (confirm('确定要清除登录状态吗？')) {
+        localStorage.removeItem('admin_logged');
+        localStorage.removeItem('admin_name');
+        log('✅ 登录状态已清除');
+        showStatus('✅ 登录状态已清除，请重新登录', 'info');
+        setTimeout(() => location.reload(), 1000);
+      }
+    }
+    
+    // 页面加载时检查
+    window.addEventListener('DOMContentLoaded', () => {
+      log('调试工具已加载');
+      log('当前登录状态：' + (localStorage.getItem('admin_logged') === 'true' ? '✅ 已登录' : '❌ 未登录'));
+      log('当前用户名：' + localStorage.getItem('admin_name'));
+      
+      if (localStorage.getItem('admin_logged') === 'true') {
+        showStatus('ℹ️ 当前已登录为：' + localStorage.getItem('admin_name'), 'info');
+      }
+    });
+  </script>
+</body>
+</html>
