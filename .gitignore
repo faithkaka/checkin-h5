@@ -1,0 +1,16 @@
+# Git 忽略文件
+.DS_Store
+*.log
+node_modules/
+.local_history/
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 配置文件（包含敏感信息）
+url.txt
+
+# 临时文件
+*.tmp
+*.bak

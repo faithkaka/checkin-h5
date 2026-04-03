@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Supabase 配置验证</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    .container {
+      background: white;
+      border-radius: 16px;
+      padding: 30px;
+      margin: 20px 0;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    h1 {
+      color: #333;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 30px;
+    }
+    .status-card {
+      background: #f0f9ff;
+      border: 2px solid #0ea5e9;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    .status-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #e0f2fe;
+    }
+    .status-item:last-child {
+      border-bottom: none;
+    }
+    .status-label {
+      font-weight: bold;
+      color: #0369a1;
+    }
+    .status-value {
+      color: #333;
+      font-family: monospace;
+      word-break: break-all;
+    }
+    .status-success { color: #10b981; font-weight: bold; }
+    .status-error { color: #ef4444; font-weight: bold; }
+    .btn {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+      margin: 10px 0;
+      transition: transform 0.2s;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn.secondary {
+      background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+    }
+    .btn.danger {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    }
+    .log-area {
+      background: #1f2937;
+      color: #10b981;
+      border-radius: 8px;
+      padding: 15px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      max-height: 400px;
+      overflow-y: auto;
+      margin: 20px 0;
+    }
+    .log-entry {
+      margin: 5px 0;
+      padding: 5px;
+      border-left: 3px solid #10b981;
+      padding-left: 10px;
+    }
+    .log-entry.error {
+      border-left-color: #ef4444;
+      color: #fca5a5;
+    }
+    .log-entry.info {
+      border-left-color: #3b82f6;
+      color: #93c5fd;
+    }
+    .table-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+      margin: 20px 0;
+    }
+    .table-item {
+      background: #f9fafb;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      border: 2px solid #e5e7eb;
+    }
+    .table-item.success {
+      background: #d1fae5;
+      border-color: #10b981;
+      color: #065f46;
+    }
+    .section {
+      margin: 30px 0;
+    }
+    .section h2 {
+      color: #333;
+      border-bottom: 2px solid #e5e7eb;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 Supabase 配置验证</h1>
+    <p class="subtitle">检查 Supabase 连接和数据库配置</p>
+    
+    <div class="status-card">
+      <div class="status-item">
+        <span class="status-label">Supabase URL:</span>
+        <span class="status-value" id="supabase-url">加载中...</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">连接状态:</span>
+        <span class="status-value" id="connection-status">⏳ 检测中...</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">当前用户:</span>
+        <span class="status-value" id="current-user">未识别</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">支付宝环境:</span>
+        <span class="status-value" id="alipay-env">检测中...</span>
+      </div>
+    </div>
+    
+    <div class="section">
+      <h2>📊 数据库表检查</h2>
+      <div class="table-list" id="table-list">
+        <!-- 表状态将在这里显示 -->
+      </div>
+    </div>
+    
+    <div class="section">
+      <h2>🧪 测试操作</h2>
+      <button class="btn" onclick="testConnection()">测试 Supabase 连接</button>
+      <button class="btn secondary" onclick="testInsert()">测试插入数据</button>
+      <button class="btn secondary" onclick="testQuery()">测试查询数据</button>
+      <button class="btn danger" onclick="clearTest()">清除测试数据</button>
+      <button class="btn" onclick="location.href='index.html'">返回打卡首页</button>
+    </div>
+    
+    <div class="section">
+      <h2>📝 操作日志</h2>
+      <div class="log-area" id="log-area">
+        <div class="log-entry info">系统就绪，等待测试...</div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-manager.js"></script>
+  <script>
+    let supabase = null;
+    
+    // 初始化
+    window.addEventListener('DOMContentLoaded', async () => {
+      document.getElementById('supabase-url').textContent = SupabaseManager.supabaseUrl;
+      document.getElementById('alipay-env').textContent = SupabaseManager.isAlipay ? '✅ 是' : '❌ 否';
+      
+      await initSupabase();
+    });
+    
+    // 初始化 Supabase
+    async function initSupabase() {
+      try {
+        supabase = supabase.createClient(SupabaseManager.supabaseUrl, SupabaseManager.supabaseKey);
+        log('✅ Supabase 客户端创建成功', 'success');
+        
+        // 测试连接
+        await testConnection();
+      } catch (err) {
+        log('❌ Supabase 初始化失败：' + err.message, 'error');
+        document.getElementById('connection-status').innerHTML = '<span class="status-error">连接失败</span>';
+      }
+    }
+    
+    // 测试连接
+    async function testConnection() {
+      const statusEl = document.getElementById('connection-status');
+      statusEl.innerHTML = '<span class="status-value">⏳ 连接中...</span>';
+      
+      try {
+        const { data, error } = await supabase.from('users').select('count').limit(1);
+        
+        if (error) {
+          throw error;
+        }
+        
+        statusEl.innerHTML = '<span class="status-success">✅ 连接成功</span>';
+        log('✅ Supabase 连接测试成功', 'success');
+        
+        // 检查所有表
+        await checkTables();
+      } catch (err) {
+        statusEl.innerHTML = '<span class="status-error">❌ 连接失败</span>';
+        log('❌ 连接测试失败：' + err.message, 'error');
+      }
+    }
+    
+    // 检查表
+    async function checkTables() {
+      const tables = ['users', 'checkins', 'checkpoints', 'achievements', 'user_achievements'];
+      const tableList = document.getElementById('table-list');
+      tableList.innerHTML = '';
+      
+      for (const table of tables) {
+        try {
+          const { data, error } = await supabase.from(table).select('*').limit(1);
+          
+          if (error) {
+            throw error;
+          }
+          
+          const div = document.createElement('div');
+          div.className = 'table-item success';
+          div.innerHTML = `✅ ${table}`;
+          tableList.appendChild(div);
+          log(`✅ 表 ${table} 存在且可访问`, 'success');
+        } catch (err) {
+          const div = document.createElement('div');
+          div.className = 'table-item';
+          div.innerHTML = `❌ ${table}`;
+          tableList.appendChild(div);
+          log(`❌ 表 ${table} 访问失败：${err.message}`, 'error');
+        }
+      }
+    }
+    
+    // 测试插入
+    async function testInsert() {
+      const testUserId = 'test_' + Date.now();
+      
+      try {
+        // 插入测试用户
+        const { data: user, error: userError } = await supabase
+          .from('users')
+          .insert({
+            user_id: testUserId,
+            alipay_user_id: testUserId,
+            points: 0
+          })
+          .select()
+          .single();
+        
+        if (userError) throw userError;
+        
+        log(`✅ 测试用户创建成功：${testUserId}`, 'success');
+        
+        // 插入测试打卡记录
+        const { data: checkin, error: checkinError } = await supabase
+          .from('checkins')
+          .insert({
+            user_id: testUserId,
+            checkpoint_id: 1,
+            checked: true,
+            points: 15
+          })
+          .select()
+          .single();
+        
+        if (checkinError) throw checkinError;
+        
+        log(`✅ 测试打卡记录创建成功`, 'success');
+        
+        // 更新用户 ID 显示
+        document.getElementById('current-user').textContent = testUserId;
+        SupabaseManager.userId = testUserId;
+        
+        alert(`测试数据创建成功！\n用户 ID: ${testUserId}`);
+      } catch (err) {
+        log('❌ 插入测试失败：' + err.message, 'error');
+        alert('插入测试失败：' + err.message);
+      }
+    }
+    
+    // 测试查询
+    async function testQuery() {
+      try {
+        // 查询所有用户
+        const { data: users, error } = await supabase
+          .from('users')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(10);
+        
+        if (error) throw error;
+        
+        log(`✅ 查询成功，共有 ${users.length} 个用户`, 'success');
+        
+        if (users.length > 0) {
+          log('最近用户：', 'info');
+          users.forEach(u => {
+            log(`  - ${u.user_id}: ${u.points}积分`, 'info');
+          });
+        }
+      } catch (err) {
+        log('❌ 查询测试失败：' + err.message, 'error');
+      }
+    }
+    
+    // 清除测试数据
+    async function clearTest() {
+      if (!confirm('确定要清除所有测试数据吗？\n\n这将删除所有 user_id 以 "test_" 开头的用户和打卡记录。')) {
+        return;
+      }
+      
+      try {
+        // 删除测试打卡记录
+        const { error: checkinError } = await supabase
+          .from('checkins')
+          .delete()
+          .like('user_id', 'test_%');
+        
+        if (checkinError) throw checkinError;
+        
+        // 删除测试用户
+        const { error: userError } = await supabase
+          .from('users')
+          .delete()
+          .like('user_id', 'test_%');
+        
+        if (userError) throw userError;
+        
+        log('✅ 测试数据已清除', 'success');
+        alert('测试数据已清除！');
+      } catch (err) {
+        log('❌ 清除失败：' + err.message, 'error');
+        alert('清除失败：' + err.message);
+      }
+    }
+    
+    // 日志
+    function log(message, type = 'info') {
+      const logArea = document.getElementById('log-area');
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      const time = new Date().toLocaleTimeString();
+      entry.textContent = `[${time}] ${message}`;
+      logArea.insertBefore(entry, logArea.firstChild);
+      
+      // 限制日志数量
+      while (logArea.children.length > 50) {
+        logArea.removeChild(logArea.lastChild);
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>✅ Supabase 集成测试</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      padding: 30px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+    h1 { color: #333; text-align: center; margin-bottom: 10px; }
+    .subtitle { text-align: center; color: #666; margin-bottom: 30px; }
+    .status {
+      padding: 20px;
+      border-radius: 12px;
+      margin: 20px 0;
+      font-weight: bold;
+    }
+    .success { background: #d1fae5; color: #065f46; border: 2px solid #10b981; }
+    .error { background: #fee2e2; color: #991b1b; border: 2px solid #ef4444; }
+    .info { background: #dbeafe; color: #1e40af; border: 2px solid #3b82f6; }
+    .btn {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+      border: none;
+      padding: 15px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: bold;
+      width: 100%;
+      margin: 10px 0;
+      cursor: pointer;
+    }
+    .btn.secondary { background: linear-gradient(135deg, #6b7280, #4b5563); }
+    .log {
+      background: #1f2937;
+      color: #10b981;
+      padding: 15px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 13px;
+      max-height: 300px;
+      overflow-y: auto;
+      margin-top: 20px;
+    }
+    .log-item { padding: 5px 0; border-bottom: 1px solid #374151; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 Supabase 集成测试</h1>
+    <p class="subtitle">验证数据库连接和数据读写</p>
+    
+    <div id="status" class="status info">正在初始化...</div>
+    
+    <div style="margin: 20px 0;">
+      <strong>👤 当前用户:</strong> <span id="user-id">-</span><br>
+      <strong>📊 当前积分:</strong> <span id="user-points">-</span><br>
+      <strong>📍 已打卡:</strong> <span id="checkin-count">-</span>/5
+    </div>
+    
+    <button class="btn" onclick="runFullTest()">▶️ 运行完整测试</button>
+    <button class="btn" onclick="testCheckin()">📍 测试打卡</button>
+    <button class="btn secondary" onclick="resetData()">🔄 重置数据</button>
+    <button class="btn" onclick="location.href='index.html'">🏠 返回打卡首页</button>
+    
+    <div class="log" id="log"></div>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-manager.js"></script>
+  <script>
+    const log = document.getElementById('log');
+    const statusDiv = document.getElementById('status');
+    
+    function addLog(msg, type = 'info') {
+      const div = document.createElement('div');
+      div.className = 'log-item';
+      div.style.color = type === 'error' ? '#fca5a5' : '#10b981';
+      div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      log.insertBefore(div, log.firstChild);
+    }
+    
+    async function runFullTest() {
+      try {
+        addLog('开始测试...');
+        
+        // 1. 初始化 SupabaseManager
+        addLog('1️⃣ 初始化 SupabaseManager...');
+        SupabaseManager.init();
+        await waitForLogin();
+        
+        document.getElementById('user-id').textContent = SupabaseManager.userId;
+        addLog(`✅ 用户 ID: ${SupabaseManager.userId}`);
+        
+        // 2. 查询数据库表
+        addLog('2️⃣ 查询数据库表...');
+        const { data: checkpoints } = await SupabaseManager.supabase.from('checkpoints').select();
+        addLog(`✅ 打卡点数量：${checkpoints.length}`);
+        
+        const { data: users } = await SupabaseManager.supabase.from('users').select();
+        addLog(`✅ 用户总数：${users.length}`);
+        
+        // 3. 加载用户数据
+        addLog('3️⃣ 加载用户数据...');
+        const { data: userData } = await SupabaseManager.supabase
+          .from('users')
+          .select('points')
+          .eq('alipay_user_id', SupabaseManager.userId)
+          .single();
+        
+        const points = userData ? userData.points : 0;
+        document.getElementById('user-points').textContent = points;
+        addLog(`✅ 用户积分：${points}`);
+        
+        // 4. 加载打卡记录
+        const { data: checkins } = await SupabaseManager.supabase
+          .from('checkins')
+          .select('checkpoint_id')
+          .eq('alipay_user_id', SupabaseManager.userId);
+        
+        document.getElementById('checkin-count').textContent = checkins ? checkins.length : 0;
+        addLog(`✅ 已打卡数：${checkins ? checkins.length : 0}`);
+        
+        statusDiv.className = 'status success';
+        statusDiv.textContent = '✅ 所有测试通过！';
+        
+      } catch (err) {
+        addLog('❌ 测试失败：' + err.message, 'error');
+        statusDiv.className = 'status error';
+        statusDiv.textContent = '❌ 测试失败：' + err.message;
+      }
+    }
+    
+    async function testCheckin() {
+      if (!SupabaseManager.userId) {
+        alert('请先运行完整测试初始化用户');
+        return;
+      }
+      
+      try {
+        // 打卡第一个点
+        const { error } = await SupabaseManager.supabase
+          .from('checkins')
+          .upsert({
+            alipay_user_id: SupabaseManager.userId,
+            checkpoint_id: 1,
+            points: 15
+          }, {
+            onConflict: 'alipay_user_id,checkpoint_id'
+          });
+        
+        if (error) throw error;
+        
+        addLog('✅ 打卡成功！解放碑 +15 分');
+        
+        // 更新用户积分
+        const { data: checkins } = await SupabaseManager.supabase
+          .from('checkins')
+          .select('points')
+          .eq('alipay_user_id', SupabaseManager.userId);
+        
+        const totalPoints = checkins.reduce((sum, c) => sum + c.points, 0);
+        
+        await SupabaseManager.supabase
+          .from('users')
+          .upsert({
+            alipay_user_id: SupabaseManager.userId,
+            points: totalPoints
+          }, {
+            onConflict: 'alipay_user_id'
+          });
+        
+        document.getElementById('user-points').textContent = totalPoints;
+        document.getElementById('checkin-count').textContent = checkins.length;
+        
+        statusDiv.className = 'status success';
+        statusDiv.textContent = '✅ 打卡成功！积分已更新';
+        
+      } catch (err) {
+        addLog('❌ 打卡失败：' + err.message, 'error');
+        alert('打卡失败：' + err.message);
+      }
+    }
+    
+    async function resetData() {
+      if (!confirm('确定要重置所有测试数据吗？')) return;
+      
+      try {
+        // 删除测试打卡记录
+        await SupabaseManager.supabase
+          .from('checkins')
+          .delete()
+          .eq('alipay_user_id', SupabaseManager.userId);
+        
+        // 重置积分
+        await SupabaseManager.supabase
+          .from('users')
+          .update({ points: 0 })
+          .eq('alipay_user_id', SupabaseManager.userId);
+        
+        addLog('✅ 数据已重置');
+        document.getElementById('user-points').textContent = '0';
+        document.getElementById('checkin-count').textContent = '0';
+        
+      } catch (err) {
+        addLog('❌ 重置失败：' + err.message, 'error');
+      }
+    }
+    
+    function waitForLogin() {
+      return new Promise(resolve => {
+        let attempts = 0;
+        const interval = setInterval(() => {
+          if (SupabaseManager.userId) {
+            clearInterval(interval);
+            resolve();
+          } else if (attempts++ > 20) {
+            clearInterval(interval);
+            resolve(); // 超时也继续
+          }
+        }, 100);
+      });
+    }
+    
+    // 自动初始化
+    window.addEventListener('DOMContentLoaded', () => {
+      SupabaseManager.init();
+      addLog('🚀 页面已加载，点击"运行完整测试"开始');
+    });
+  </script>
+</body>
+</html>

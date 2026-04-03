@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>趣玩重庆一日游 - 打卡活动</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- 主内容区 -->
+    <div class="main-content">
+      <!-- 首页 - 打卡地图 -->
+      <div id="home-page" class="page active">
+        <div class="map-container">
+          <div class="map-wrapper" id="checkin-map">
+            <!-- 重庆一日游地图背景 -->
+            <div class="map-background"></div>
+            <img src="images/map-bg.png" alt="重庆一日游地图" class="map-image" />
+            <!-- 打卡点标记将在这里渲染 -->
+          </div>
+        </div>
+      </div>
+
+      <!-- 点位页 -->
+      <div id="checkpoint-page" class="page">
+        <div class="checkpoint-list" id="checkpoint-list">
+          <h2>🎯 打卡点位</h2>
+          <div class="checkpoint-section">
+            <h3>📍 打卡点</h3>
+            <div class="checkpoint-items" id="mandatory-checkpoints"></div>
+          </div>
+          <div class="checkpoint-section">
+            <h3>🎁 打卡兑奖规则</h3>
+            <div class="rules-content" id="rules-content">
+              <div class="rule-card">
+                <h4>积分规则</h4>
+                <ul>
+                  <li>完成每个打卡点可获得相应积分</li>
+                  <li>5 个打卡点总计 <strong>90 积分</strong></li>
+                  <li>积分可累计，解锁不同等级成就</li>
+                </ul>
+              </div>
+              <div class="rule-card">
+                <h4>成就等级</h4>
+                <div class="achievement-level">
+                  <span class="level-badge level-1">🥉</span>
+                  <div class="level-info">
+                    <strong>山城萌新</strong>
+                    <p>累计 30 积分解锁</p>
+                  </div>
+                </div>
+                <div class="achievement-level">
+                  <span class="level-badge level-2">🥈</span>
+                  <div class="level-info">
+                    <strong>雾都探索者</strong>
+                    <p>累计 50 积分解锁</p>
+                  </div>
+                </div>
+                <div class="achievement-level">
+                  <span class="level-badge level-3">🥇</span>
+                  <div class="level-info">
+                    <strong>巴渝达人</strong>
+                    <p>累计 70 积分解锁</p>
+                  </div>
+                </div>
+                <div class="achievement-level">
+                  <span class="level-badge level-4">🏆</span>
+                  <div class="level-info">
+                    <strong>重庆通</strong>
+                    <p>累计 90 积分解锁</p>
+                  </div>
+                </div>
+              </div>
+              <div class="rule-card">
+                <h4>兑奖说明</h4>
+                <ul>
+                  <li>达成任意成就后获得兑奖资格</li>
+                  <li><strong>每位用户只能兑奖一次</strong></li>
+                  <li>兑奖时向工作人员出示兑奖码</li>
+                  <li>兑奖券存入"我的兑奖券"中</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 奖品页 -->
+      <div id="prize-page" class="page">
+        <div class="prize-container">
+          <h2>🎁 兑奖中心</h2>
+          <div class="progress-info">
+            <p>当前积分：<span id="prize-points">0</span> / 90</p>
+          </div>
+          
+          <div class="prize-cards" id="prize-cards">
+            <!-- 阶段 1 -->
+            <div class="prize-card" data-stage="1">
+              <div class="card-header">
+                <span class="stage-badge stage-1">🥉</span>
+                <span class="achievement-name">山城萌新</span>
+              </div>
+              <div class="card-requirements">
+                <p>📍 累计 30 积分即可解锁</p>
+                <p class="achievement-desc">🌶️ 初入山城，开启美食之旅</p>
+              </div>
+              <div class="card-status">
+                <div class="status-indicator" id="stage1-indicator"></div>
+                <span class="status-text" id="stage1-text">未达成</span>
+              </div>
+              <button class="redeem-btn" id="redeem-btn-1" disabled>
+                线下兑奖
+              </button>
+            </div>
+
+            <!-- 阶段 2 -->
+            <div class="prize-card" data-stage="2">
+              <div class="card-header">
+                <span class="stage-badge stage-2">🥈</span>
+                <span class="achievement-name">雾都探索者</span>
+              </div>
+              <div class="card-requirements">
+                <p>📍 累计 50 积分即可解锁</p>
+                <p class="achievement-desc">🚝 穿梭雾都，体验轻轨穿楼</p>
+              </div>
+              <div class="card-status">
+                <div class="status-indicator" id="stage2-indicator"></div>
+                <span class="status-text" id="stage2-text">未达成</span>
+              </div>
+              <button class="redeem-btn" id="redeem-btn-2" disabled>
+                线下兑奖
+              </button>
+            </div>
+
+            <!-- 阶段 3 -->
+            <div class="prize-card" data-stage="3">
+              <div class="card-header">
+                <span class="stage-badge stage-3">🥇</span>
+                <span class="achievement-name">巴渝达人</span>
+              </div>
+              <div class="card-requirements">
+                <p>📍 累计 70 积分即可解锁</p>
+                <p class="achievement-desc">🌉 深度游玩，打卡网红景点</p>
+              </div>
+              <div class="card-status">
+                <div class="status-indicator" id="stage3-indicator"></div>
+                <span class="status-text" id="stage3-text">未达成</span>
+              </div>
+              <button class="redeem-btn" id="redeem-btn-3" disabled>
+                线下兑奖
+              </button>
+            </div>
+
+            <!-- 阶段 4 -->
+            <div class="prize-card" data-stage="4">
+              <div class="card-header">
+                <span class="stage-badge stage-4">🏆</span>
+                <span class="achievement-name">重庆通</span>
+              </div>
+              <div class="card-requirements">
+                <p>📍 累计 90 积分即可解锁</p>
+                <p class="achievement-desc">🏅 完美一日游，征服所有景点</p>
+              </div>
+              <div class="card-status">
+                <div class="status-indicator" id="stage4-indicator"></div>
+                <span class="status-text" id="stage4-text">未达成</span>
+              </div>
+              <button class="redeem-btn" id="redeem-btn-4" disabled>
+                线下兑奖
+              </button>
+            </div>
+          </div>
+
+          <div class="voucher-section">
+            <h3>🎫 我的兑奖券</h3>
+            <div class="voucher-list" id="voucher-list">
+              <p class="empty-tip">暂无可用兑奖券</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 分享页 -->
+      <div id="share-page" class="page">
+        <div class="share-container">
+          <h2>📸 精彩瞬间</h2>
+          <div class="share-content" id="share-content">
+            <!-- 照片墙 -->
+            <div class="photo-wall" id="photo-wall">
+              <div class="photo-slider" id="photo-slider">
+                <!-- 照片将通过 JS 动态添加 -->
+              </div>
+              <div class="photo-indicators" id="photo-indicators">
+                <!-- 指示器 -->
+              </div>
+              <div class="photo-placeholder" id="photo-placeholder">
+                <span>📷</span>
+                <p>点击"+"添加打卡照片</p>
+                <button class="add-photo-btn" id="add-photo-btn">+ 添加照片</button>
+              </div>
+            </div>
+            
+            <div class="share-copy" id="share-copy">
+              <p id="share-text">我在"趣玩重庆一日游"打卡活动中，已经获得 <span id="share-points">0</span> 积分！打卡了重庆地标景点，快来一起探索山城魅力吧！</p>
+            </div>
+            <div class="share-actions">
+              <button class="action-btn" id="save-local-btn">
+                💾 保存到本地
+              </button>
+              <button class="action-btn" id="share-channel-btn">
+                📤 分享到其他渠道
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 隐藏的文件输入 -->
+      <input type="file" id="photo-input" accept="image/*" multiple style="display: none;" />
+    </div>
+
+    <!-- 底部导航 -->
+    <nav class="bottom-nav">
+      <div class="nav-item active" data-page="home">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-text">首页</span>
+      </div>
+      <div class="nav-item" data-page="checkpoint">
+        <span class="nav-icon">📍</span>
+        <span class="nav-text">点位</span>
+      </div>
+      <div class="nav-item" data-page="prize">
+        <span class="nav-icon">🎁</span>
+        <span class="nav-text">奖品</span>
+      </div>
+      <div class="nav-item" data-page="share">
+        <span class="nav-icon">📤</span>
+        <span class="nav-text">分享</span>
+      </div>
+    </nav>
+
+    <!-- 打卡成功弹窗 -->
+    <div class="modal" id="checkin-success-modal">
+      <div class="modal-content">
+        <div class="success-icon">✅</div>
+        <h3>打卡成功！</h3>
+        <p>获得 <span class="reward-points">+1</span> 积分</p>
+        <div class="achievement-tip" id="achievement-tip" style="display: none;">
+          <p class="tip-title">🎉 恭喜达成新成就！</p>
+          <p class="tip-desc" id="tip-desc"></p>
+          <p class="tip-sub">兑奖券已存入您的账户</p>
+        </div>
+        <button class="modal-btn" id="close-modal-btn">太棒了！</button>
+      </div>
+    </div>
+
+    <!-- 兑奖提示弹窗 -->
+    <div class="modal" id="redeem-modal">
+      <div class="modal-content">
+        <div class="reward-icon">🎁</div>
+        <h3 id="redeem-title">恭喜获得兑奖资格！</h3>
+        <p id="redeem-desc"></p>
+        <div class="redeem-guide">
+          <p>📍 请前往兑奖处兑奖</p>
+          <p>🎫 兑奖券已存入"我的兑奖券"</p>
+        </div>
+        <button class="modal-btn" id="close-redeem-modal-btn">知道了</button>
+      </div>
+    </div>
+
+    <!-- 兑奖确认弹窗 -->
+    <div class="modal" id="redeem-confirm-modal">
+      <div class="modal-content">
+        <h3>确认线下兑奖</h3>
+        <p>请向工作人员出示此页面</p>
+        <div class="qr-code" id="qr-code">
+          <!-- QR 码将在这里生成 -->
+        </div>
+        <div class="redeem-info">
+          <p>成就名称：<span id="redeem-achievement"></span></p>
+          <p>兑奖状态：<span class="status-highlight">待核销</span></p>
+        </div>
+        <button class="modal-btn primary" id="confirm-redeem-btn">确认核销</button>
+        <button class="modal-btn secondary" id="cancel-redeem-btn">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Supabase JS SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-manager.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

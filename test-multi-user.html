@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📊 多用户测试</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      padding: 30px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+    h1 { color: #333; text-align: center; margin-bottom: 10px; }
+    .subtitle { text-align: center; color: #666; margin-bottom: 30px; }
+    .card {
+      background: #f8fafc;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    .card h3 {
+      color: #1e293b;
+      margin-bottom: 15px;
+      font-size: 18px;
+    }
+    .user-info {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+    .info-item {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .info-label {
+      color: #64748b;
+      font-size: 14px;
+      margin-bottom: 5px;
+    }
+    .info-value {
+      color: #1e293b;
+      font-weight: bold;
+      font-size: 18px;
+      word-break: break-all;
+    }
+    .btn {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+      border: none;
+      padding: 15px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: bold;
+      width: 100%;
+      margin: 10px 0;
+      cursor: pointer;
+    }
+    .btn.secondary { background: linear-gradient(135deg, #6b7280, #4b5563); }
+    .btn.danger { background: linear-gradient(135deg, #ef4444, #dc2626); }
+    .log {
+      background: #1f2937;
+      color: #10b981;
+      padding: 15px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 13px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .log-item {
+      padding: 5px 0;
+      border-bottom: 1px solid #374151;
+    }
+    .log-item.error { color: #fca5a5; }
+    .user-list {
+      margin-top: 20px;
+    }
+    .user-item {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 10px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-left: 4px solid #10b981;
+    }
+    .user-item .user-id {
+      font-family: monospace;
+      color: #1e293b;
+      word-break: break-all;
+    }
+    .user-item .user-points {
+      background: #10b981;
+      color: white;
+      padding: 5px 15px;
+      border-radius: 20px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>👥 多用户测试</h1>
+    <p class="subtitle">验证所有用户使用同一链接，数据独立存储</p>
+    
+    <div class="card">
+      <h3>📊 当前用户信息</h3>
+      <div class="user-info">
+        <div class="info-item">
+          <div class="info-label">用户 ID</div>
+          <div class="info-value" id="current-user-id">-</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">支付宝环境</div>
+          <div class="info-value" id="alipay-env">-</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">当前积分</div>
+          <div class="info-value" id="current-points">-</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">已打卡数</div>
+          <div class="info-value" id="checkin-count">-</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <h3>🧪 测试操作</h3>
+      <button class="btn" onclick="quickCheckin()">⚡ 快速打卡（所有点位）</button>
+      <button class="btn secondary" onclick="clearMyData()">🗑️ 清除我的数据</button>
+      <button class="btn" onclick="loadAllUsers()">📊 查看所有用户</button>
+      <button class="btn" onclick="location.href='index.html'">🏠 返回打卡首页</button>
+    </div>
+    
+    <div class="user-list card">
+      <h3>📈 用户排行榜</h3>
+      <div id="leaderboard">
+        <p style="text-align: center; color: #64748b;">点击"📊 查看所有用户"加载</p>
+      </div>
+    </div>
+    
+    <div class="log" id="log"></div>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-manager.js"></script>
+  <script>
+    const logEl = document.getElementById('log');
+    
+    function log(msg, type = 'info') {
+      const div = document.createElement('div');
+      div.className = 'log-item' + (type === 'error' ? ' error' : '');
+      div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      logEl.insertBefore(div, logEl.firstChild);
+    }
+    
+    async function init() {
+      log('正在初始化...');
+      
+      // 初始化 SupabaseManager
+      if (window.SupabaseManager) {
+        await SupabaseManager.init();
+      }
+      
+      // 更新显示
+      document.getElementById('current-user-id').textContent = SupabaseManager.userId || '未识别';
+      document.getElementById('alipay-env').textContent = SupabaseManager.isAlipay ? '✅ 是' : '❌ 否';
+      
+      // 加载用户数据
+      await loadUserData();
+      
+      log('✅ 初始化完成');
+    }
+    
+    async function loadUserData() {
+      const { data: userData } = await SupabaseManager.supabase
+        .from('users')
+        .select('points')
+        .eq('alipay_user_id', SupabaseManager.userId)
+        .single();
+      
+      const points = userData ? userData.points : 0;
+      document.getElementById('current-points').textContent = points;
+      
+      const { data: checkins } = await SupabaseManager.supabase
+        .from('checkins')
+        .select('checkpoint_id')
+        .eq('alipay_user_id', SupabaseManager.userId);
+      
+      document.getElementById('checkin-count').textContent = checkins ? checkins.length : 0;
+      
+      log('📊 用户数据已加载');
+    }
+    
+    async function quickCheckin() {
+      if (!confirm('快速打卡所有 5 个点位？')) return;
+      
+      try {
+        let totalPoints = 0;
+        const checkpoints = [
+          { id: 1, points: 15 },
+          { id: 2, points: 15 },
+          { id: 3, points: 15 },
+          { id: 4, points: 20 },
+          { id: 5, points: 25 }
+        ];
+        
+        // 保存打卡记录
+        for (const cp of checkpoints) {
+          await SupabaseManager.supabase
+            .from('checkins')
+            .upsert({
+              alipay_user_id: SupabaseManager.userId,
+              checkpoint_id: cp.id,
+              points: cp.points,
+              checked_at: new Date().toISOString()
+            }, {
+              onConflict: 'alipay_user_id,checkpoint_id'
+            });
+          
+          totalPoints += cp.points;
+        }
+        
+        // 更新用户积分
+        await SupabaseManager.supabase
+          .from('users')
+          .update({ points: totalPoints })
+          .eq('alipay_user_id', SupabaseManager.userId);
+        
+        log('✅ 快速打卡完成！+90 分');
+        document.getElementById('current-points').textContent = totalPoints;
+        document.getElementById('checkin-count').textContent = 5;
+        
+      } catch (err) {
+        log('❌ 打卡失败：' + err.message, 'error');
+      }
+    }
+    
+    async function clearMyData() {
+      if (!confirm('确定要清除你的所有打卡数据吗？')) return;
+      
+      try {
+        // 删除打卡记录
+        await SupabaseManager.supabase
+          .from('checkins')
+          .delete()
+          .eq('alipay_user_id', SupabaseManager.userId);
+        
+        // 重置积分
+        await SupabaseManager.supabase
+          .from('users')
+          .update({ points: 0 })
+          .eq('alipay_user_id', SupabaseManager.userId);
+        
+        // 清除本地缓存
+        SupabaseManager.clearUserData();
+        
+        log('✅ 数据已清除，刷新页面...');
+        setTimeout(() => location.reload(), 1000);
+        
+      } catch (err) {
+        log('❌ 清除失败：' + err.message, 'error');
+      }
+    }
+    
+    async function loadAllUsers() {
+      try {
+        const { data: users, error } = await SupabaseManager.supabase
+          .from('users')
+          .select('alipay_user_id, points, created_at')
+          .order('points', { ascending: false });
+        
+        if (error) throw error;
+        
+        const boardEl = document.getElementById('leaderboard');
+        if (!users || users.length === 0) {
+          boardEl.innerHTML = '<p style="text-align: center; color: #64748b;">暂无用户数据</p>';
+          return;
+        }
+        
+        boardEl.innerHTML = users.map((u, i) => `
+          <div class="user-item">
+            <div>
+              <strong>#${i + 1}</strong>
+              <div class="user-id">${u.alipay_user_id}</div>
+              <div style="font-size: 12px; color: #64748b;">
+                ${new Date(u.created_at).toLocaleDateString()}
+              </div>
+            </div>
+            <div class="user-points">${u.points}分</div>
+          </div>
+        `).join('');
+        
+        log(`📊 加载到 ${users.length} 个用户`);
+        
+      } catch (err) {
+        log('❌ 加载失败：' + err.message, 'error');
+      }
+    }
+    
+    // 页面加载时初始化
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
