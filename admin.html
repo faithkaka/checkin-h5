@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>重庆打卡 - 管理后台</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <style>
+    :root {
+      --primary: #10b981;
+      --primary-dark: #059669;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --info: #3b82f6;
+      --dark: #1f2937;
+      --light: #f3f4f6;
+      --border: #e5e7eb;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--light);
+      color: var(--dark);
+    }
+    
+    /* 登录页面 */
+    .login-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .login-box {
+      background: white;
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      width: 100%;
+      max-width: 400px;
+    }
+    
+    .login-box h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      color: var(--dark);
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: var(--dark);
+    }
+    
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      font-size: 16px;
+      transition: border-color 0.3s;
+    }
+    
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+      width: 100%;
+    }
+    
+    .btn-primary:hover {
+      background: var(--primary-dark);
+    }
+    
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+    }
+    
+    .btn-warning {
+      background: var(--warning);
+      color: white;
+    }
+    
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 14px;
+    }
+    
+    /* 管理后台布局 */
+    .admin-layout {
+      display: none; /* 登录后显示 */
+      min-height: 100vh;
+    }
+    
+    .admin-layout.active {
+      display: flex;
+    }
+    
+    /* 侧边栏 */
+    .sidebar {
+      width: 250px;
+      background: var(--dark);
+      color: white;
+      padding: 20px;
+      position: fixed;
+      height: 100vh;
+      overflow-y: auto;
+    }
+    
+    .sidebar h2 {
+      margin-bottom: 30px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      font-size: 20px;
+    }
+    
+    .nav-menu {
+      list-style: none;
+    }
+    
+    .nav-menu li {
+      margin-bottom: 10px;
+    }
+    
+    .nav-menu a {
+      display: block;
+      padding: 12px 16px;
+      color: rgba(255,255,255,0.8);
+      text-decoration: none;
+      border-radius: 8px;
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+    
+    .nav-menu a:hover,
+    .nav-menu a.active {
+      background: var(--primary);
+      color: white;
+    }
+    
+    /* 主内容区 */
+    .main-content {
+      flex: 1;
+      margin-left: 250px;
+      padding: 30px;
+    }
+    
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid var(--border);
+    }
+    
+    .header h1 {
+      color: var(--dark);
+    }
+    
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    
+    .logout-btn {
+      background: var(--danger);
+      color: white;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    
+    /* 统计卡片 */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    
+    .stat-card {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      border-left: 4px solid var(--primary);
+    }
+    
+    .stat-card.danger {
+      border-left-color: var(--danger);
+    }
+    
+    .stat-card.warning {
+      border-left-color: var(--warning);
+    }
+    
+    .stat-card.info {
+      border-left-color: var(--info);
+    }
+    
+    .stat-card h3 {
+      color: #6b7280;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+    
+    .stat-card .value {
+      font-size: 32px;
+      font-weight: bold;
+      color: var(--dark);
+    }
+    
+    /* 表格 */
+    .table-container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    
+    .table-header {
+      padding: 20px;
+      border-bottom: 2px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .table-header h3 {
+      font-size: 18px;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    thead {
+      background: var(--light);
+    }
+    
+    th, td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    th {
+      font-weight: 600;
+      color: #6b7280;
+      font-size: 14px;
+    }
+    
+    tbody tr:hover {
+      background: #f9fafb;
+    }
+    
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    
+    .status-badge.success {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    
+    .status-badge.warning {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    
+    .status-badge.info {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+    
+    .actions {
+      display: flex;
+      gap: 8px;
+    }
+    
+    /* 页面切换 */
+    .admin-page {
+      display: none;
+    }
+    
+    .admin-page.active {
+      display: block;
+    }
+    
+    /* 模态框 */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .modal.active {
+      display: flex;
+    }
+    
+    .modal-content {
+      background: white;
+      padding: 30px;
+      border-radius: 16px;
+      max-width: 600px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid var(--border);
+    }
+    
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #6b7280;
+    }
+    
+    /* 响应式 */
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 100%;
+        height: auto;
+        position: relative;
+      }
+      
+      .main-content {
+        margin-left: 0;
+      }
+      
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- 登录页面 -->
+  <div class="login-container" id="login-page">
+    <div class="login-box">
+      <h1>🔐 管理后台登录</h1>
+      <form id="login-form">
+        <div class="form-group">
+          <label>管理员名称</label>
+          <input type="text" id="admin-name" placeholder="输入管理员名称" required />
+        </div>
+        <div class="form-group">
+          <label>密码</label>
+          <input type="password" id="admin-password" placeholder="输入密码" required />
+        </div>
+        <button type="submit" class="btn btn-primary">登录</button>
+      </form>
+    </div>
+  </div>
+  
+  <!-- 管理后台 -->
+  <div class="admin-layout" id="admin-layout">
+    <!-- 侧边栏 -->
+    <aside class="sidebar">
+      <h2>🎯 打卡管理后台</h2>
+      <ul class="nav-menu">
+        <li><a onclick="showPage('dashboard')" class="active" id="nav-dashboard">📊 数据概览</a></li>
+        <li><a onclick="showPage('users')" id="nav-users">👥 用户管理</a></li>
+        <li><a onclick="showPage('checkins')" id="nav-checkins">📍 打卡记录</a></li>
+        <li><a onclick="showPage('checkpoints')" id="nav-checkpoints">🗺️ 打卡点管理</a></li>
+        <li><a onclick="showPage('achievements')" id="nav-achievements">🏆 成就管理</a></li>
+        <li><a onclick="logout()">🚪 退出登录</a></li>
+      </ul>
+    </aside>
+    
+    <!-- 主内容区 -->
+    <main class="main-content">
+      <!-- 数据概览页 -->
+      <div class="admin-page active" id="page-dashboard">
+        <div class="header">
+          <h1>📊 数据概览</h1>
+          <div class="user-info">
+            <span id="admin-display">管理员</span>
+            <button class="logout-btn" onclick="logout()">退出</button>
+          </div>
+        </div>
+        
+        <div class="stats-grid">
+          <div class="stat-card">
+            <h3>总用户数</h3>
+            <div class="value" id="stat-users">-</div>
+          </div>
+          <div class="stat-card info">
+            <h3>今日打卡</h3>
+            <div class="value" id="stat-today">-</div>
+          </div>
+          <div class="stat-card warning">
+            <h3>总打卡次数</h3>
+            <div class="value" id="stat-total">-</div>
+          </div>
+          <div class="stat-card danger">
+            <h3>最高积分</h3>
+            <div class="value" id="stat-max">-</div>
+          </div>
+        </div>
+        
+        <div class="table-container">
+          <div class="table-header">
+            <h3>🏆 TOP 10 排行榜</h3>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>排名</th>
+                <th>用户 ID</th>
+                <th>积分</th>
+                <th>打卡数</th>
+                <th>注册时间</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboard-body">
+              <tr><td colspan="5" style="text-align: center;">加载中...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      <!-- 用户管理页 -->
+      <div class="admin-page" id="page-users">
+        <div class="header">
+          <h1>👥 用户管理</h1>
+        </div>
+        
+        <div class="table-container">
+          <div class="table-header">
+            <h3>所有用户</h3>
+            <button class="btn btn-primary btn-sm" onclick="loadUsers()">🔄 刷新</button>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>用户 ID</th>
+                <th>积分</th>
+                <th>打卡数</th>
+                <th>注册时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="users-body">
+              <tr><td colspan="6" style="text-align: center;">加载中...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      <!-- 打卡记录页 -->
+      <div class="admin-page" id="page-checkins">
+        <div class="header">
+          <h1>📍 打卡记录</h1>
+        </div>
+        
+        <div class="table-container">
+          <div class="table-header">
+            <h3>所有打卡记录</h3>
+            <button class="btn btn-primary btn-sm" onclick="loadCheckins()">🔄 刷新</button>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>用户 ID</th>
+                <th>打卡点</th>
+                <th>积分</th>
+                <th>打卡时间</th>
+              </tr>
+            </thead>
+            <tbody id="checkins-body">
+              <tr><td colspan="5" style="text-align: center;">加载中...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      <!-- 打卡点管理页 -->
+      <div class="admin-page" id="page-checkpoints">
+        <div class="header">
+          <h1>🗺️ 打卡点管理</h1>
+          <button class="btn btn-primary" onclick="openCheckpointModal()">➕ 添加打卡点</button>
+        </div>
+        
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>名称</th>
+                <th>图标</th>
+                <th>积分</th>
+                <th>地址</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="checkpoints-body">
+              <tr><td colspan="6" style="text-align: center;">加载中...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      <!-- 成就管理页 -->
+      <div class="admin-page" id="page-achievements">
+        <div class="header">
+          <h1>🏆 成就管理</h1>
+        </div>
+        
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>成就名称</th>
+                <th>所需积分</th>
+                <th>图标</th>
+                <th>描述</th>
+              </tr>
+            </thead>
+            <tbody id="achievements-body">
+              <tr><td colspan="5" style="text-align: center;">加载中...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+  
+  <!-- 打卡点编辑模态框 -->
+  <div class="modal" id="checkpoint-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="checkpoint-modal-title">添加打卡点</h3>
+        <button class="modal-close" onclick="closeCheckpointModal()">&times;</button>
+      </div>
+      <form id="checkpoint-form">
+        <input type="hidden" id="cp-id" />
+        <div class="form-group">
+          <label>打卡点 ID</label>
+          <input type="number" id="cp-checkpoint-id" required />
+        </div>
+        <div class="form-group">
+          <label>名称</label>
+          <input type="text" id="cp-name" required />
+        </div>
+        <div class="form-group">
+          <label>图标</label>
+          <input type="text" id="cp-icon" placeholder="如：🏢" required />
+        </div>
+        <div class="form-group">
+          <label>积分</label>
+          <input type="number" id="cp-points" required />
+        </div>
+        <div class="form-group">
+          <label>地址</label>
+          <textarea id="cp-address" rows="3" required></textarea>
+        </div>
+        <div class="form-group">
+          <label>时间范围</label>
+          <input type="text" id="cp-time-range" placeholder="如：8:00-9:30" />
+        </div>
+        <div class="form-group">
+          <label>描述</label>
+          <textarea id="cp-description" rows="2"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">保存</button>
+      </form>
+    </div>
+  </div>
+  
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // Supabase 配置
+    const SUPABASE_URL = 'https://ussvekkgyntubivhfext.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzc3Zla2tneW50dWJpdmhmZXh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTEwODQwMiwiZXhwIjoyMDkwNjg0NDAyfQ.i1fbQC96UGnToKL6fa7GTfaMtt0s_TGpNNR0xb3ufR0';
+    
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    
+    // 管理员凭据（简易版，实际应使用数据库存储）
+    const ADMIN_CREDENTIALS = {
+      name: 'admin',
+      password: 'admin123'
+    };
+    
+    let currentUser = null;
+    
+    // 初始化
+    window.addEventListener('DOMContentLoaded', () => {
+      checkLogin();
+    });
+    
+    // 检查登录状态
+    function checkLogin() {
+      const logged = localStorage.getItem('admin_logged');
+      if (logged === 'true') {
+        currentUser = localStorage.getItem('admin_name');
+        showAdminLayout();
+      } else {
+        document.getElementById('login-page').style.display = 'flex';
+        document.getElementById('admin-layout').classList.remove('active');
+      }
+    }
+    
+    // 登录表单提交
+    document.getElementById('login-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = document.getElementById('admin-name').value;
+      const password = document.getElementById('admin-password').value;
+      
+      if (name === ADMIN_CREDENTIALS.name && password === ADMIN_CREDENTIALS.password) {
+        localStorage.setItem('admin_logged', 'true');
+        localStorage.setItem('admin_name', name);
+        currentUser = name;
+        showAdminLayout();
+      } else {
+        alert('用户名或密码错误！\n默认：admin / admin123');
+      }
+    });
+    
+    // 显示管理后台
+    function showAdminLayout() {
+      document.getElementById('login-page').style.display = 'none';
+      document.getElementById('admin-layout').classList.add('active');
+      document.getElementById('admin-display').textContent = currentUser;
+      loadDashboard();
+    }
+    
+    // 退出登录
+    function logout() {
+      if (confirm('确定要退出登录吗？')) {
+        localStorage.removeItem('admin_logged');
+        localStorage.removeItem('admin_name');
+        location.reload();
+      }
+    }
+    
+    // 页面切换
+    function showPage(pageName) {
+      // 隐藏所有页面
+      document.querySelectorAll('.admin-page').forEach(page => {
+        page.classList.remove('active');
+      });
+      
+      // 移除导航激活状态
+      document.querySelectorAll('.nav-menu a').forEach(link => {
+        link.classList.remove('active');
+      });
+      
+      // 显示目标页面
+      document.getElementById('page-' + pageName).classList.add('active');
+      document.getElementById('nav-' + pageName).classList.add('active');
+      
+      // 加载数据
+      if (pageName === 'dashboard') loadDashboard();
+      if (pageName === 'users') loadUsers();
+      if (pageName === 'checkins') loadCheckins();
+      if (pageName === 'checkpoints') loadCheckpoints();
+      if (pageName === 'achievements') loadAchievements();
+    }
+    
+    // 加载仪表板
+    async function loadDashboard() {
+      try {
+        // 加载统计
+        const { data: users } = await supabase.from('users').select('id, points');
+        const { data: checkins } = await supabase.from('checkins').select('id, checked_at');
+        
+        const today = new Date().toISOString().split('T')[0];
+        const todayCheckins = checkins.filter(c => c.checked_at.startsWith(today));
+        
+        const maxPoints = Math.max(...users.map(u => u.points), 0);
+        
+        document.getElementById('stat-users').textContent = users.length;
+        document.getElementById('stat-today').textContent = todayCheckins.length;
+        document.getElementById('stat-total').textContent = checkins.length;
+        document.getElementById('stat-max').textContent = maxPoints;
+        
+        // 加载排行榜
+        const { data: leaderboard } = await supabase
+          .from('users')
+          .select('*')
+          .order('points', { ascending: false })
+          .limit(10);
+        
+        const tbody = document.getElementById('leaderboard-body');
+        if (leaderboard && leaderboard.length > 0) {
+          tbody.innerHTML = leaderboard.map((u, i) => `
+            <tr>
+              <td><strong>#${i + 1}</strong></td>
+              <td><code>${u.alipay_user_id}</code></td>
+              <td><strong>${u.points}</strong></td>
+              <td>-</td>
+              <td>${new Date(u.created_at).toLocaleDateString('zh-CN')}</td>
+            </tr>
+          `).join('');
+        } else {
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">暂无数据</td></tr>';
+        }
+      } catch (err) {
+        console.error('加载仪表板失败:', err);
+        alert('加载数据失败：' + err.message);
+      }
+    }
+    
+    // 加载用户列表
+    async function loadUsers() {
+      try {
+        const { data: users } = await supabase
+          .from('users')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        const tbody = document.getElementById('users-body');
+        if (users && users.length > 0) {
+          // 获取每个用户的打卡数
+          const userIds = users.map(u => u.alipay_user_id);
+          const { data: checkins } = await supabase
+            .from('checkins')
+            .select('alipay_user_id')
+            .in('alipay_user_id', userIds);
+          
+          const checkinCount = {};
+          checkins.forEach(c => {
+            checkinCount[c.alipay_user_id] = (checkinCount[c.alipay_user_id] || 0) + 1;
+          });
+          
+          tbody.innerHTML = users.map((u, i) => `
+            <tr>
+              <td>${i + 1}</td>
+              <td><code>${u.alipay_user_id}</code></td>
+              <td><strong>${u.points}</strong></td>
+              <td>${checkinCount[u.alipay_user_id] || 0}</td>
+              <td>${new Date(u.created_at).toLocaleDateString('zh-CN')}</td>
+              <td>
+                <button class="btn btn-danger btn-sm" onclick="deleteUser('${u.alipay_user_id}')">删除</button>
+              </td>
+            </tr>
+          `).join('');
+        } else {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">暂无用户</td></tr>';
+        }
+      } catch (err) {
+        console.error('加载用户失败:', err);
+        alert('加载用户失败：' + err.message);
+      }
+    }
+    
+    // 删除用户
+    async function deleteUser(userId) {
+      if (!confirm(`确定要删除用户 ${userId} 吗？\n这将删除该用户的所有数据！`)) return;
+      
+      try {
+        // 先删除打卡记录
+        await supabase.from('checkins').delete().eq('alipay_user_id', userId);
+        // 再删除用户
+        await supabase.from('users').delete().eq('alipay_user_id', userId);
+        
+        alert('用户已删除');
+        loadUsers();
+      } catch (err) {
+        alert('删除失败：' + err.message);
+      }
+    }
+    
+    // 加载打卡记录
+    async function loadCheckins() {
+      try {
+        const { data: checkins } = await supabase
+          .from('checkins')
+          .select('*')
+          .order('checked_at', { ascending: false })
+          .limit(100);
+        
+        const tbody = document.getElementById('checkins-body');
+        if (checkins && checkins.length > 0) {
+          tbody.innerHTML = checkins.map((c, i) => `
+            <tr>
+              <td>${i + 1}</td>
+              <td><code>${c.alipay_user_id}</code></td>
+              <td>打卡点 ${c.checkpoint_id}</td>
+              <td>${c.points}</td>
+              <td>${new Date(c.checked_at).toLocaleString('zh-CN')}</td>
+            </tr>
+          `).join('');
+        } else {
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">暂无打卡记录</td></tr>';
+        }
+      } catch (err) {
+        console.error('加载打卡记录失败:', err);
+        alert('加载打卡记录失败：' + err.message);
+      }
+    }
+    
+    // 加载打卡点
+    async function loadCheckpoints() {
+      try {
+        const { data: checkpoints } = await supabase
+          .from('checkpoints')
+          .select('*')
+          .order('checkpoint_id');
+        
+        const tbody = document.getElementById('checkpoints-body');
+        if (checkpoints && checkpoints.length > 0) {
+          tbody.innerHTML = checkpoints.map(cp => `
+            <tr>
+              <td>${cp.checkpoint_id}</td>
+              <td>${cp.name}</td>
+              <td>${cp.icon}</td>
+              <td>${cp.points}</td>
+              <td>${cp.address || '-'}</td>
+              <td>
+                <button class="btn btn-warning btn-sm" onclick="editCheckpoint(${cp.checkpoint_id})">编辑</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteCheckpoint(${cp.checkpoint_id})">删除</button>
+              </td>
+            </tr>
+          `).join('');
+        } else {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">暂无打卡点</td></tr>';
+        }
+      } catch (err) {
+        console.error('加载打卡点失败:', err);
+        alert('加载打卡点失败：' + err.message);
+      }
+    }
+    
+    // 打开打卡点模态框
+    function openCheckpointModal() {
+      document.getElementById('checkpoint-modal').classList.add('active');
+      document.getElementById('checkpoint-form').reset();
+      document.getElementById('checkpoint-modal-title').textContent = '添加打卡点';
+    }
+    
+    // 关闭打卡点模态框
+    function closeCheckpointModal() {
+      document.getElementById('checkpoint-modal').classList.remove('active');
+    }
+    
+    // 编辑打卡点
+    async function editCheckpoint(id) {
+      try {
+        const { data: cp } = await supabase
+          .from('checkpoints')
+          .select('*')
+          .eq('checkpoint_id', id)
+          .single();
+        
+        if (!cp) return;
+        
+        document.getElementById('cp-checkpoint-id').value = cp.checkpoint_id;
+        document.getElementById('cp-name').value = cp.name;
+        document.getElementById('cp-icon').value = cp.icon;
+        document.getElementById('cp-points').value = cp.points;
+        document.getElementById('cp-address').value = cp.address || '';
+        document.getElementById('cp-time-range').value = cp.time_range || '';
+        document.getElementById('cp-description').value = cp.description || '';
+        
+        document.getElementById('checkpoint-modal-title').textContent = '编辑打卡点';
+        document.getElementById('checkpoint-modal').classList.add('active');
+      } catch (err) {
+        alert('加载打卡点失败：' + err.message);
+      }
+    }
+    
+    // 删除打卡点
+    async function deleteCheckpoint(id) {
+      if (!confirm('确定要删除这个打卡点吗？')) return;
+      
+      try {
+        await supabase.from('checkpoints').delete().eq('checkpoint_id', id);
+        alert('打卡点已删除');
+        loadCheckpoints();
+      } catch (err) {
+        alert('删除失败：' + err.message);
+      }
+    }
+    
+    // 保存打卡点
+    document.getElementById('checkpoint-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const checkpointData = {
+        checkpoint_id: parseInt(document.getElementById('cp-checkpoint-id').value),
+        name: document.getElementById('cp-name').value,
+        icon: document.getElementById('cp-icon').value,
+        points: parseInt(document.getElementById('cp-points').value),
+        address: document.getElementById('cp-address').value,
+        time_range: document.getElementById('cp-time-range').value,
+        description: document.getElementById('cp-description').value
+      };
+      
+      try {
+        await supabase
+          .from('checkpoints')
+          .upsert(checkpointData, { onConflict: 'checkpoint_id' });
+        
+        alert('打卡点已保存');
+        closeCheckpointModal();
+        loadCheckpoints();
+      } catch (err) {
+        alert('保存失败：' + err.message);
+      }
+    });
+    
+    // 加载成就
+    async function loadAchievements() {
+      try {
+        const { data: achievements } = await supabase
+          .from('achievements')
+          .select('*')
+          .order('required_points');
+        
+        const tbody = document.getElementById('achievements-body');
+        if (achievements && achievements.length > 0) {
+          tbody.innerHTML = achievements.map(a => `
+            <tr>
+              <td>${a.achievement_id}</td>
+              <td>${a.name}</td>
+              <td>${a.required_points}</td>
+              <td>${a.icon}</td>
+              <td>${a.description || '-'}</td>
+            </tr>
+          `).join('');
+        } else {
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">暂无成就</td></tr>';
+        }
+      } catch (err) {
+        console.error('加载成就失败:', err);
+        alert('加载成就失败：' + err.message);
+      }
+    }
+  </script>
+</body>
+</html>
