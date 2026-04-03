@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>检查表结构</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    .box { background: white; padding: 20px; border-radius: 8px; margin: 10px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    pre { background: #1e293b; color: #10b981; padding: 15px; border-radius: 8px; overflow: auto; max-height: 300px; }
+    button { background: #0ea5e9; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin: 5px; }
+    .success { background: #dcfce7; }
+    .error { background: #fef2f2; }
+  </style>
+</head>
+<body>
+  <h1>🔍 Supabase 表结构检查</h1>
+  
+  <div class="box">
+    <h3>检查数据库表结构</h3>
+    <button onclick="checkTables()">🔍 检查所有表</button>
+    <button onclick="checkUsers()">👥 检查 users 表</button>
+    <button onclick="checkCheckins()">📍 检查 checkins 表</button>
+    <div id="result"></div>
+  </div>
+  
+  <div class="box">
+    <h3>日志</h3>
+    <pre id="log">等待操作...</pre>
+  </div>
+  
+  <script>
+    var API_URL = 'https://ussvekkgyntubivhfext.supabase.co/rest/v1';
+    var API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzc3Zla2tneW50dWJpdmhmZXh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTEwODQwMiwiZXhwIjoyMDkwNjg0NDAyfQ.i1fbQC96UGnToKL6fa7GTfaMtt0s_TGpNNR0xb3ufR0';
+    
+    function log(msg) {
+      document.getElementById('log').innerHTML += '\n[' + new Date().toLocaleTimeString() + '] ' + msg;
+      console.log(msg);
+    }
+    
+    function request(endpoint) {
+      log('请求：' + endpoint);
+      return fetch(API_URL + endpoint, {
+        headers: {
+          'apikey': API_KEY,
+          'Authorization': 'Bearer ' + API_KEY,
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(function(res) {
+        log('HTTP ' + res.status + ' ' + res.statusText);
+        if (!res.ok) {
+          return res.text().then(function(text) {
+            throw new Error('HTTP ' + res.status + ': ' + text);
+          });
+        }
+        return res.json();
+      });
+    }
+    
+    function checkTables() {
+      var resultEl = document.getElementById('result');
+      resultEl.innerHTML = '<p>🔄 正在检查...</p>';
+      log('=== 开始检查表结构 ===');
+      
+      // 检查 users 表结构
+      request('/users?select=*&limit=1')
+        .then(function(data) {
+          log('✅ users 表查询成功');
+          if (data && data.length > 0) {
+            log('users 表字段：' + Object.keys(data[0]).join(', '));
+          }
+          return request('/checkins?select=*&limit=1');
+        })
+        .then(function(data) {
+          log('✅ checkins 表查询成功');
+          if (data && data.length > 0) {
+            log('checkins 表字段：' + Object.keys(data[0]).join(', '));
+          }
+          
+          var html = '<div class="success">';
+          html += '<h4>✅ 表结构正常</h4>';
+          html += '<p><b>users 表字段:</b> ' + (data ? Object.keys(data[0]).join(', ') : '未知') + '</p>';
+          html += '<p><b>checkins 表字段:</b> ' + (data ? Object.keys(data[0]).join(', ') : '未知') + '</p>';
+          html += '</div>';
+          resultEl.innerHTML = html;
+        })
+        .catch(function(err) {
+          log('❌ 错误：' + err.message);
+          resultEl.innerHTML = '<div class="error"><h4>❌ 错误</h4><p>' + err.message + '</p></div>';
+        });
+    }
+    
+    function checkUsers() {
+      var resultEl = document.getElementById('result');
+      resultEl.innerHTML = '<p>🔄 查询 users 表...</p>';
+      
+      request('/users?select=*&limit=5')
+        .then(function(data) {
+          log('获取到 ' + data.length + ' 条用户数据');
+          var html = '<div class="success"><h4>✅ users 表数据</h4>';
+          html += '<p>获取到 <b>' + data.length + '</b> 条记录</p>';
+          if (data.length > 0) {
+            html += '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+          }
+          html += '</div>';
+          resultEl.innerHTML = html;
+        })
+        .catch(function(err) {
+          log('❌ 错误：' + err.message);
+          resultEl.innerHTML = '<div class="error"><h4>❌ users 表查询失败</h4><p>' + err.message + '</p></div>';
+        });
+    }
+    
+    function checkCheckins() {
+      var resultEl = document.getElementById('result');
+      resultEl.innerHTML = '<p>🔄 查询 checkins 表...</p>';
+      
+      request('/checkins?select=*&limit=5')
+        .then(function(data) {
+          log('获取到 ' + data.length + ' 条打卡记录');
+          var html = '<div class="success"><h4>✅ checkins 表数据</h4>';
+          html += '<p>获取到 <b>' + data.length + '</b> 条记录</p>';
+          if (data.length > 0) {
+            html += '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+          }
+          html += '</div>';
+          resultEl.innerHTML = html;
+        })
+        .catch(function(err) {
+          log('❌ 错误：' + err.message);
+          resultEl.innerHTML = '<div class="error"><h4>❌ checkins 表查询失败</h4><p>' + err.message + '</p></div>';
+        });
+    }
+    
+    // 自动检查
+    log('页面加载完成');
+    setTimeout(checkTables, 500);
+  </script>
+</body>
+</html>

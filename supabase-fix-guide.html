@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Supabase SQL 修复指南</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #f0f2f5; }
+    h1 { color: #3ecf8e; }
+    .box { background: white; padding: 25px; border-radius: 10px; margin: 15px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .step { background: #1f2937; color: #10b981; padding: 20px; border-radius: 8px; margin: 15px 0; }
+    .success { background: #dcfce7; border-left: 4px solid #10b981; }
+    .tip { background: #dbeafe; border-left: 4px solid #0ea5e9; }
+    pre { background: #1e293b; color: #10b981; padding: 20px; border-radius: 8px; overflow: auto; font-size: 14px; line-height: 1.6; }
+    button { background: #3ecf8e; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; margin: 5px; font-size: 14px; font-weight: 500; }
+    button:hover { background: #10b981; }
+    button.secondary { background: #0ea5e9; }
+    code { background: #f3f4f6; padding: 3px 8px; border-radius: 4px; font-size: 13px; }
+    .log { background: #1e293b; color: #10b981; padding: 15px; border-radius: 8px; max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 12px; margin-top: 15px; }
+    a { color: #0ea5e9; }
+  </style>
+</head>
+<body>
+  <h1>🔧 Supabase SQL 修复指南</h1>
+  
+  <div class="box tip">
+    <h3>📋 问题</h3>
+    <p><code>checkins</code> 表缺少 <code>checked_at</code> 字段，导致管理后台无法加载打卡记录。</p>
+  </div>
+  
+  <div class="box step">
+    <h3>🚀 操作步骤</h3>
+    <ol style="margin: 15px 0; padding-left: 20px; line-height: 2;">
+      <li>打开 Supabase Dashboard
+        <br><a href="https://supabase.com/dashboard/project/ussvekkgyntubivhfext/sql" target="_blank">👉 点击这里直接进入 SQL Editor</a></li>
+      <li>点击 <strong>"New Query"</strong> 按钮</li>
+      <li>复制下面的 SQL 代码</li>
+      <li>粘贴到 SQL Editor</li>
+      <li>点击 <strong>"Run"</strong> 按钮执行</li>
+      <li>看到 "Success. No rows returned" 说明执行成功</li>
+    </ol>
+  </div>
+  
+  <div class="box">
+    <h3>💻 SQL 代码</h3>
+    <pre id="sql-code">-- 1. 添加 checked_at 字段到 checkins 表
+ALTER TABLE checkins 
+ADD COLUMN checked_at timestamptz DEFAULT now() NOT NULL;
+
+-- 2. 为现有数据设置 checked_at 值（使用 created_at）
+UPDATE checkins 
+SET checked_at = created_at 
+WHERE checked_at IS NULL;
+
+-- 3. 验证字段已添加
+SELECT column_name, data_type, column_default, is_nullable
+FROM information_schema.columns
+WHERE table_name = 'checkins'
+ORDER BY ordinal_position;</pre>
+    <button onclick="copySQL()">📋 复制 SQL</button>
+    <button class="secondary" onclick="openSupabase()">🌐 打开 Supabase</button>
+    <p id="copy-msg" style="display: none; color: #10b981; margin-top: 10px;">✅ 已复制到剪贴板！</p>
+  </div>
+  
+  <div class="box success">
+    <h3>✅ SQL 说明</h3>
+    <p><strong>第 1 条：</strong>添加 <code>checked_at</code> 字段，类型为时间戳（带时区），默认值为当前时间</p>
+    <p><strong>第 2 条：</strong>为现有数据填充 <code>checked_at</code> 值（使用 <code>created_at</code>）</p>
+    <p><strong>第 3 条：</strong>验证字段是否成功添加</p>
+  </div>
+  
+  <div class="box">
+    <h3>🔍 验证修复</h3>
+    <p>执行 SQL 后，点击下面按钮验证：</p>
+    <button onclick="checkTables()">检查表结构</button>
+    <button class="secondary" onclick="location.href='admin-v2.html'">打开管理后台</button>
+    <div id="check-result"></div>
+  </div>
+  
+  <div class="box">
+    <h3>📋 执行日志</h3>
+    <pre class="log" id="log">等待操作...</pre>
+  </div>
+  
+  <script>
+    var API_URL = 'https://ussvekkgyntubivhfext.supabase.co/rest/v1';
+    var API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzc3Zla2tneW50dWJpdmhmZXh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTEwODQwMiwiZXhwIjoyMDkwNjg0NDAyfQ.i1fbQC96UGnToKL6fa7GTfaMtt0s_TGpNNR0xb3ufR0';
+    
+    function log(msg) {
+      document.getElementById('log').innerHTML += '\n[' + new Date().toLocaleTimeString() + '] ' + msg;
+      console.log(msg);
+    }
+    
+    function copySQL() {
+      var sql = `-- 1. 添加 checked_at 字段到 checkins 表
+ALTER TABLE checkins 
+ADD COLUMN checked_at timestamptz DEFAULT now() NOT NULL;
+
+-- 2. 为现有数据设置 checked_at 值
+UPDATE checkins 
+SET checked_at = created_at 
+WHERE checked_at IS NULL;
+
+-- 3. 验证字段已添加（可选）
+SELECT column_name, data_type, column_default, is_nullable
+FROM information_schema.columns
+WHERE table_name = 'checkins'
+ORDER BY ordinal_position;`;
+      
+      navigator.clipboard.writeText(sql).then(function() {
+        document.getElementById('copy-msg').style.display = 'block';
+        log('✅ SQL 已复制到剪贴板');
+        setTimeout(function() {
+          document.getElementById('copy-msg').style.display = 'none';
+        }, 3000);
+      }).catch(function(err) {
+        log('❌ 复制失败：' + err.message);
+      });
+    }
+    
+    function openSupabase() {
+      window.open('https://supabase.com/dashboard/project/ussvekkgyntubivhfext/sql', '_blank');
+      log('🌐 已打开 Supabase SQL Editor（新标签页）');
+    }
+    
+    function checkTables() {
+      var resultEl = document.getElementById('check-result');
+      resultEl.innerHTML = '<p>🔄 正在检查...</p>';
+      log('=== 开始检查表结构 ===');
+      
+      fetch(API_URL + '/checkins?select=*&limit=1', {
+        headers: {
+          'apikey': API_KEY,
+          'Authorization': 'Bearer ' + API_KEY,
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(function(res) {
+        log('HTTP 状态：' + res.status + ' ' + res.statusText);
+        if (!res.ok) {
+          return res.text().then(function(text) {
+            throw new Error('HTTP ' + res.status + ': ' + text);
+          });
+        }
+        return res.json();
+      })
+      .then(function(data) {
+        log('✅ checkins 表查询成功！');
+        if (data && data.length > 0) {
+          var fields = Object.keys(data[0]);
+          log('字段列表：' + fields.join(', '));
+          
+          var hasCheckedAt = fields.indexOf('checked_at') !== -1;
+          var hasCreatedAt = fields.indexOf('created_at') !== -1;
+          var hasUserId = fields.indexOf('alipay_user_id') !== -1;
+          var hasCheckpointId = fields.indexOf('checkpoint_id') !== -1;
+          var hasPoints = fields.indexOf('points') !== -1;
+          
+          var html = '<div style="background: ' + (hasCheckedAt ? '#dcfce7' : '#fef2f2') + '; padding: 15px; border-radius: 8px; margin-top: 10px;">';
+          
+          if (hasCheckedAt) {
+            html += '<h4 style="color: #10b981;">✅ 修复成功！</h4>';
+            html += '<p><code>checked_at</code> 字段已成功添加</p>';
+            html += '<p><strong>所有字段：</strong>' + fields.join(', ') + '</p>';
+            html += '<p>🎉 现在可以正常使用管理后台了！</p>';
+            html += '<button onclick="location.href=\'admin-v2.html\'">📊 打开管理后台</button>';
+          } else {
+            html += '<h4 style="color: #dc2626;">❌ 字段仍未添加</h4>';
+            html += '<p>缺少 <code>checked_at</code> 字段</p>';
+            html += '<p>当前字段：' + fields.join(', ') + '</p>';
+            html += '<p>请先在 Supabase 执行上面的 SQL</p>';
+          }
+          
+          html += '</div>';
+          resultEl.innerHTML = html;
+        }
+      })
+      .catch(function(err) {
+        log('❌ 错误：' + err.message);
+        resultEl.innerHTML = '<div style="background: #fef2f2; padding: 15px; border-radius: 8px; margin-top: 10px;">';
+        resultEl.innerHTML += '<h4 style="color: #dc2626;">❌ 查询失败</h4>';
+        resultEl.innerHTML += '<p>' + err.message + '</p>';
+        resultEl.innerHTML += '<p>如果看到 HTTP 406 或相关错误，说明字段还未添加</p>';
+        resultEl.innerHTML += '<p>请先在 Supabase 执行 SQL 添加字段</p>';
+        resultEl.innerHTML += '</div>';
+      });
+    }
+    
+    log('页面加载完成');
+    log('请按以下步骤操作：');
+    log('1. 点击"复制 SQL"复制 SQL 代码');
+    log('2. 点击"打开 Supabase"在新标签页打开 SQL Editor');
+    log('3. 粘贴 SQL 并点击 Run 执行');
+    log('4. 回到这个页面，点击"检查表结构"验证');
+  </script>
+</body>
+</html>

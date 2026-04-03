@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>测试页面</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    .box { background: #e0f2fe; padding: 20px; border-radius: 8px; margin: 10px 0; }
+    .success { background: #dcfce7; }
+    .error { background: #fef2f2; }
+    button { background: #0ea5e9; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin: 5px; }
+    pre { background: #1e293b; color: #10b981; padding: 15px; border-radius: 8px; overflow: auto; max-height: 300px; }
+  </style>
+</head>
+<body>
+  <h1>🧪 管理后台测试</h1>
+  
+  <div class="box">
+    <h3>1. 页面加载测试</h3>
+    <p>✅ 如果你能看到这个页面，说明 HTTP 服务器正常</p>
+  </div>
+  
+  <div class="box">
+    <h3>2. Supabase API 测试</h3>
+    <button onclick="testAPI()">🔗 测试 API 连接</button>
+    <div id="api-result"></div>
+  </div>
+  
+  <div class="box">
+    <h3>3. 直接访问管理后台</h3>
+    <button onclick="location.href='admin-native.html'">📊 打开 admin-native.html</button>
+    <button onclick="location.href='login.html'">🔐 打开 login.html</button>
+    <button onclick="location.href='index.html'">🏠 打开 index.html</button>
+  </div>
+  
+  <div class="box">
+    <h3>📋 调试日志</h3>
+    <pre id="log">等待操作...</pre>
+  </div>
+  
+  <script>
+    var API_URL = 'https://ussvekkgyntubivhfext.supabase.co/rest/v1';
+    var API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzc3Zla2tneW50dWJpdmhmZXh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTEwODQwMiwiZXhwIjoyMDkwNjg0NDAyfQ.i1fbQC96UGnToKL6fa7GTfaMtt0s_TGpNNR0xb3ufR0';
+    
+    function log(msg) {
+      var time = new Date().toLocaleTimeString();
+      document.getElementById('log').innerHTML += '[' + time + '] ' + msg + '\n';
+      console.log(msg);
+    }
+    
+    log('页面加载完成');
+    log('测试时间：' + new Date().toLocaleString());
+    
+    function testAPI() {
+      log('开始测试 Supabase API...');
+      var resultEl = document.getElementById('api-result');
+      resultEl.innerHTML = '<p>🔄 正在连接...</p>';
+      
+      fetch(API_URL + '/users?select=id,alipay_user_id,points&limit=5', {
+        headers: {
+          'apikey': API_KEY,
+          'Authorization': 'Bearer ' + API_KEY,
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(function(res) {
+        log('HTTP 状态：' + res.status + ' ' + res.statusText);
+        if (!res.ok) {
+          throw new Error('HTTP ' + res.status);
+        }
+        return res.json();
+      })
+      .then(function(data) {
+        log('✅ API 连接成功！');
+        log('获取到 ' + data.length + ' 条用户数据');
+        
+        var html = '<div class="success"><h4>✅ 成功！</h4>';
+        html += '<p>获取到 <b>' + data.length + '</b> 个用户</p>';
+        
+        if (data.length > 0) {
+          html += '<p>示例数据：</p><ul>';
+          for (var i = 0; i < Math.min(data.length, 3); i++) {
+            html += '<li>用户 ' + (i+1) + ': ' + (data[i].alipay_user_id || data[i].id) + ' - 积分：' + (data[i].points || 0) + '</li>';
+          }
+          html += '</ul>';
+        }
+        
+        html += '</div>';
+        resultEl.innerHTML = html;
+        
+        log('可以安全打开管理后台了');
+      })
+      .catch(function(err) {
+        log('❌ 错误：' + err.message);
+        resultEl.innerHTML = '<div class="error"><h4>❌ 失败</h4><p>' + err.message + '</p></div>';
+      });
+    }
+    
+    // 自动测试
+    setTimeout(testAPI, 1000);
+  </script>
+</body>
+</html>

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>修复 checkins 表</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    .box { background: white; padding: 20px; border-radius: 8px; margin: 10px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    pre { background: #1e293b; color: #10b981; padding: 15px; border-radius: 8px; overflow: auto; max-height: 300px; }
+    button { background: #0ea5e9; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin: 5px; }
+    .success { background: #dcfce7; padding: 15px; border-radius: 8px; margin: 10px 0; }
+    .error { background: #fef2f2; padding: 15px; border-radius: 8px; margin: 10px 0; }
+    .info { background: #dbeafe; padding: 15px; border-radius: 8px; margin: 10px 0; }
+    code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>🔧 修复 checkins 表</h1>
+  
+  <div class="box info">
+    <h3>📋 问题诊断</h3>
+    <p>checkins 表缺少 <code>checked_at</code> 字段，导致管理后台无法加载打卡记录。</p>
+    <p><strong>解决方案：</strong>在 Supabase 后台添加该字段</p>
+  </div>
+  
+  <div class="box">
+    <h3>📝 方法 1：使用 Supabase 界面（推荐）</h3>
+    <ol style="margin: 15px 0; padding-left: 20px;">
+      <li>打开 <a href="https://supabase.com/dashboard" target="_blank">Supabase Dashboard</a></li>
+      <li>进入 <strong>Table Editor</strong></li>
+      <li>选择 <code>checkins</code> 表</li>
+      <li>点击 <strong>Add column</strong></li>
+      <li>填写：
+        <ul style="margin: 10px 0; padding-left: 20px;">
+          <li><strong>Name:</strong> <code>checked_at</code></li>
+          <li><strong>Type:</strong> <code>timestamptz</code></li>
+          <li><strong>Default:</strong> <code>now()</code></li>
+          <li><strong>Nullable:</strong> 不勾选</li>
+        </ul>
+      </li>
+      <li>点击 <strong>Save</strong></li>
+    </ol>
+  </div>
+  
+  <div class="box">
+    <h3>💻 方法 2：使用 SQL（更快）</h3>
+    <p>在 Supabase 的 <strong>SQL Editor</strong> 中运行以下 SQL：</p>
+    <pre>ALTER TABLE checkins 
+ADD COLUMN checked_at timestamptz DEFAULT now() NOT NULL;
+
+-- 更新现有数据
+UPDATE checkins 
+SET checked_at = created_at 
+WHERE checked_at IS NULL;</pre>
+    <button onclick="copySQL()">📋 复制 SQL</button>
+    <p id="copy-msg" style="display: none; color: #10b981;">✅ 已复制到剪贴板</p>
+  </div>
+  
+  <div class="box">
+    <h3>✅ 验证修复</h3>
+    <p>添加字段后，点击下面按钮验证：</p>
+    <button onclick="checkTables()">🔍 检查表结构</button>
+    <button onclick="location.href='admin-v2.html'">📊 打开管理后台</button>
+    <div id="check-result"></div>
+  </div>
+  
+  <div class="box">
+    <h3>📋 诊断日志</h3>
+    <pre id="log">等待操作...</pre>
+  </div>
+  
+  <script>
+    var API_URL = 'https://ussvekkgyntubivhfext.supabase.co/rest/v1';
+    var API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzc3Zla2tneW50dWJpdmhmZXh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTEwODQwMiwiZXhwIjoyMDkwNjg0NDAyfQ.i1fbQC96UGnToKL6fa7GTfaMtt0s_TGpNNR0xb3ufR0';
+    
+    function log(msg) {
+      document.getElementById('log').innerHTML += '\n[' + new Date().toLocaleTimeString() + '] ' + msg;
+      console.log(msg);
+    }
+    
+    function checkTables() {
+      var resultEl = document.getElementById('check-result');
+      resultEl.innerHTML = '<p>🔄 正在检查...</p>';
+      log('=== 开始检查表结构 ===');
+      
+      fetch(API_URL + '/checkins?select=*&limit=1', {
+        headers: {
+          'apikey': API_KEY,
+          'Authorization': 'Bearer ' + API_KEY
+        }
+      })
+      .then(function(res) {
+        log('HTTP 状态：' + res.status);
+        if (!res.ok) {
+          return res.text().then(function(text) {
+            throw new Error('HTTP ' + res.status + ': ' + text);
+          });
+        }
+        return res.json();
+      })
+      .then(function(data) {
+        log('✅ checkins 表查询成功');
+        if (data && data.length > 0) {
+          var fields = Object.keys(data[0]);
+          log('字段列表：' + fields.join(', '));
+          
+          var hasCheckedAt = fields.indexOf('checked_at') !== -1;
+          var html = '<div class="' + (hasCheckedAt ? 'success' : 'error') + '">';
+          
+          if (hasCheckedAt) {
+            html += '<h4>✅ 字段已添加成功！</h4>';
+            html += '<p><code>checked_at</code> 字段存在</p>';
+            html += '<p>所有字段：' + fields.join(', ') + '</p>';
+            html += '<p>🎉 现在可以打开管理后台了！</p>';
+            html += '<button onclick="location.href=\'admin-v2.html\'">📊 打开管理后台</button>';
+          } else {
+            html += '<h4>❌ 字段仍未添加</h4>';
+            html += '<p>缺少 <code>checked_at</code> 字段</p>';
+            html += '<p>当前字段：' + fields.join(', ') + '</p>';
+            html += '<p>请先添加字段后再试</p>';
+          }
+          
+          html += '</div>';
+          resultEl.innerHTML = html;
+        }
+      })
+      .catch(function(err) {
+        log('❌ 错误：' + err.message);
+        resultEl.innerHTML = '<div class="error"><h4>❌ 查询失败</h4><p>' + err.message + '</p></div>';
+      });
+    }
+    
+    function copySQL() {
+      var sql = `ALTER TABLE checkins 
+ADD COLUMN checked_at timestamptz DEFAULT now() NOT NULL;
+
+UPDATE checkins 
+SET checked_at = created_at 
+WHERE checked_at IS NULL;`;
+      
+      navigator.clipboard.writeText(sql).then(function() {
+        document.getElementById('copy-msg').style.display = 'block';
+        log('SQL 已复制到剪贴板');
+        setTimeout(function() {
+          document.getElementById('copy-msg').style.display = 'none';
+        }, 2000);
+      });
+    }
+    
+    log('页面加载完成');
+    log('点击"检查表结构"验证字段是否已添加');
+  </script>
+</body>
+</html>

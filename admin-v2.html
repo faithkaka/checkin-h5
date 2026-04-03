@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>管理后台 - 重庆打卡</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif; padding: 0; background: #f0f2f5; padding-bottom: 30px; }
+    header { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 20px 15px; text-align: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    header h1 { font-size: 20px; margin-bottom: 5px; }
+    header .subtitle { font-size: 13px; opacity: 0.9; }
+    .status { background: #dbeafe; color: #1e40af; padding: 12px 15px; font-size: 14px; margin: 10px; border-radius: 8px; }
+    .container { padding: 0 10px; }
+    .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 10px; }
+    .stat { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 15px 10px; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(102,126,234,0.3); }
+    .stat h3 { font-size: 13px; opacity: 0.9; margin-bottom: 8px; font-weight: 500; }
+    .stat .num { font-size: 28px; font-weight: bold; }
+    .box { background: white; padding: 15px; margin: 10px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .box h2 { font-size: 16px; color: #333; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+    .box h2 .icon { margin-right: 8px; }
+    .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 400px; }
+    th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid #e5e5e5; }
+    th { background: #f9fafb; font-weight: 600; color: #666; font-size: 12px; white-space: nowrap; }
+    td { font-size: 12px; }
+    .rank { display: inline-block; width: 24px; height: 24px; line-height: 24px; text-align: center; border-radius: 50%; background: #f3f4f6; font-size: 12px; font-weight: bold; color: #666; }
+    .rank-1 { background: linear-gradient(135deg, #fbbf24, #d97706); color: white; }
+    .rank-2 { background: linear-gradient(135deg, #9ca3af, #6b7280); color: white; }
+    .rank-3 { background: linear-gradient(135deg, #b45309, #92400e); color: white; }
+    .points { color: #10b981; font-weight: bold; font-size: 14px; }
+    .code { background: #f3f4f6; padding: 4px 8px; border-radius: 4px; font-size: 11px; display: inline-block; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .loading { text-align: center; padding: 30px; color: #999; font-size: 14px; }
+    .spinner { border: 3px solid #e5e5e5; border-top-color: #10b981; border-radius: 50%; width: 32px; height: 32px; animation: spin 1s linear infinite; margin: 0 auto 10px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error { background: #fef2f2; color: #dc2626; padding: 15px; border-radius: 8px; margin: 10px; font-size: 13px; border-left: 4px solid #dc2626; }
+    .log { background: #1e293b; color: #10b981; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 11px; max-height: 150px; overflow-y: auto; margin: 10px; -webkit-overflow-scrolling: touch; }
+    .btn-group { display: flex; gap: 10px; margin: 15px 10px; }
+    .btn { flex: 1; padding: 14px 20px; border: none; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 500; text-align: center; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); -webkit-tap-highlight-color: transparent; }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary { background: linear-gradient(135deg, #10b981, #059669); color: white; }
+    .btn-secondary { background: linear-gradient(135deg, #667eea, #5b66ce); color: white; }
+    .empty { text-align: center; padding: 40px 20px; color: #999; font-size: 14px; }
+    .card { background: white; border-radius: 12px; margin: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .card-header { background: #f9fafb; padding: 12px 15px; border-bottom: 1px solid #e5e5e5; font-weight: 600; color: #666; font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
+    .card-body { padding: 0; }
+    .record-item { padding: 12px 15px; border-bottom: 1px solid #e5e5e5; display: flex; justify-content: space-between; align-items: center; }
+    .record-item:last-child { border-bottom: none; }
+    .record-info { flex: 1; }
+    .record-time { font-size: 12px; color: #999; margin-bottom: 4px; }
+    .record-point { font-size: 13px; color: #666; }
+    .record-score { font-size: 16px; font-weight: bold; color: #10b981; }
+    @media (max-width: 480px) {
+      .stats { gap: 8px; }
+      .stat { padding: 12px 8px; }
+      .stat .num { font-size: 24px; }
+      .box { padding: 12px; }
+      table { font-size: 12px; }
+      th, td { padding: 8px 5px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🎯 重庆打卡管理后台</h1>
+    <div class="subtitle" id="header-time">--:--:--</div>
+  </header>
+  
+  <div class="status" id="status">
+    🔄 正在加载数据...
+  </div>
+  
+  <div class="log" id="log">初始化中...</div>
+  
+  <div class="container">
+    <div class="stats" id="stats" style="display: none;">
+      <div class="stat">
+        <h3>👥 总用户数</h3>
+        <div class="num" id="user-count">0</div>
+      </div>
+      <div class="stat">
+        <h3>✅ 今日打卡</h3>
+        <div class="num" id="today-count">0</div>
+      </div>
+      <div class="stat">
+        <h3>📊 总打卡数</h3>
+        <div class="num" id="total-count">0</div>
+      </div>
+      <div class="stat">
+        <h3>🏆 最高积分</h3>
+        <div class="num" id="max-points">0</div>
+      </div>
+    </div>
+    
+    <div class="card" id="leaderboard-card" style="display: none;">
+      <div class="card-header">
+        <span>🏆 TOP 10 排行榜</span>
+      </div>
+      <div class="card-body">
+        <div class="table-wrapper">
+          <table id="leaderboard-table">
+            <thead>
+              <tr><th>排名</th><th>用户</th><th>积分</th><th>时间</th></tr>
+            </thead>
+            <tbody id="leaderboard-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    
+    <div class="box" id="checkins-box" style="display: none;">
+      <h2><span class="icon">📍</span>最近打卡</h2>
+      <div id="checkins-list"></div>
+    </div>
+    
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="loadData()">🔄 刷新</button>
+      <button class="btn btn-secondary" onclick="location.href='login.html'">🔑 退出</button>
+    </div>
+  </div>
+  
+  <script>
+    var API_URL = 'https://ussvekkgyntubivhfext.supabase.co/rest/v1';
+    var API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzc3Zla2tneW50dWJpdmhmZXh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTEwODQwMiwiZXhwIjoyMDkwNjg0NDAyfQ.i1fbQC96UGnToKL6fa7GTfaMtt0s_TGpNNR0xb3ufR0';
+    var logs = [];
+    var refreshTimer = null;
+    
+    function log(msg) {
+      var time = new Date().toLocaleTimeString();
+      logs.unshift('[' + time + '] ' + msg);
+      if (logs.length > 30) logs.pop();
+      document.getElementById('log').innerHTML = logs.join('<br>');
+      console.log(msg);
+    }
+    
+    function updateStatus(msg, isError) {
+      var el = document.getElementById('status');
+      el.textContent = (isError ? '❌ ' : '') + msg;
+      if (isError) el.style.background = '#fef2f2';
+      else el.style.background = '#dbeafe';
+    }
+    
+    function updateTime() {
+      var now = new Date();
+      var hours = now.getHours().toString().padStart(2, '0');
+      var minutes = now.getMinutes().toString().padStart(2, '0');
+      var seconds = now.getSeconds().toString().padStart(2, '0');
+      document.getElementById('header-time').textContent = hours + ':' + minutes + ':' + seconds;
+    }
+    
+    function loadData() {
+      log('=== 开始加载数据 ===');
+      updateStatus('正在加载用户数据...');
+      
+      fetch(API_URL + '/users?select=*&order=points.desc', {
+        headers: {
+          'apikey': API_KEY,
+          'Authorization': 'Bearer ' + API_KEY,
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(function(res) {
+        log('HTTP: ' + res.status);
+        if (!res.ok) {
+          return res.text().then(function(text) {
+            throw new Error('HTTP ' + res.status + ': ' + text.substring(0, 100));
+          });
+        }
+        return res.json();
+      })
+      .then(function(users) {
+        log('👥 用户：' + users.length);
+        
+        if (users.length === 0) {
+          updateStatus('⚠️ 暂无数据，请先完成打卡');
+          document.getElementById('stats').style.display = 'grid';
+          return;
+        }
+        
+        var maxPoints = 0;
+        for (var i = 0; i < users.length; i++) {
+          if ((users[i].points || 0) > maxPoints) {
+            maxPoints = users[i].points || 0;
+          }
+        }
+        
+        document.getElementById('stats').style.display = 'grid';
+        document.getElementById('user-count').textContent = users.length;
+        document.getElementById('max-points').textContent = maxPoints;
+        log('🏆 最高分：' + maxPoints);
+        
+        updateStatus('加载打卡记录...');
+        return loadCheckins(users);
+      })
+      .catch(function(err) {
+        log('❌ ' + err.message);
+        updateStatus('加载失败：' + err.message.substring(0, 50), true);
+      });
+    }
+    
+    function loadCheckins(users) {
+      log('📍 查询打卡...');
+      
+      fetch(API_URL + '/checkins?select=*&order=checked_at.desc&limit=50', {
+        headers: {
+          'apikey': API_KEY,
+          'Authorization': 'Bearer ' + API_KEY
+        }
+      })
+      .then(function(res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      })
+      .then(function(checkins) {
+        log('📊 打卡：' + checkins.length);
+        
+        var today = new Date().toISOString().split('T')[0];
+        var todayCount = 0;
+        for (var i = 0; i < checkins.length; i++) {
+          if (checkins[i].checked_at && checkins[i].checked_at.startsWith(today)) {
+            todayCount++;
+          }
+        }
+        
+        document.getElementById('today-count').textContent = todayCount;
+        document.getElementById('total-count').textContent = checkins.length;
+        log('✅ 今日：' + todayCount);
+        
+        var timeStr = new Date().toLocaleTimeString('zh-CN', {hour: '2-digit', minute:'2-digit'});
+        updateStatus('✅ 已更新 ' + timeStr);
+        
+        showLeaderboard(users);
+        showCheckinsList(checkins);
+      })
+      .catch(function(err) {
+        log('❌ 打卡：' + err.message);
+        document.getElementById('today-count').textContent = '-';
+        document.getElementById('total-count').textContent = checkins ? checkins.length : '-';
+        updateStatus('部分失败：' + err.message.substring(0, 30), true);
+        showLeaderboard(users);
+      });
+    }
+    
+    function showLeaderboard(users) {
+      log('🏆 显示排行榜');
+      document.getElementById('leaderboard-card').style.display = 'block';
+      
+      var tbody = document.getElementById('leaderboard-body');
+      var html = '';
+      
+      users.sort(function(a, b) { return (b.points || 0) - (a.points || 0); });
+      
+      for (var i = 0; i < Math.min(users.length, 10); i++) {
+        var u = users[i];
+        var uid = u.alipay_user_id || ('user_' + u.id);
+        var shortUid = uid.length > 20 ? uid.substring(0, 20) + '...' : uid;
+        var rankClass = i < 3 ? 'rank-' + (i+1) : '';
+        var date = u.created_at ? new Date(u.created_at).toLocaleDateString('zh-CN') : '-';
+        
+        html += '<tr>' +
+          '<td><span class="rank ' + rankClass + '">' + (i+1) + '</span></td>' +
+          '<td><span class="code" title="' + uid + '">' + shortUid + '</span></td>' +
+          '<td><span class="points">' + (u.points || 0) + '</span></td>' +
+          '<td style="color:#999;font-size:11px">' + date + '</td>' +
+        '</tr>';
+      }
+      
+      tbody.innerHTML = html;
+    }
+    
+    function showCheckinsList(checkins) {
+      log('📍 显示记录');
+      document.getElementById('checkins-box').style.display = 'block';
+      
+      var list = document.getElementById('checkins-list');
+      var html = '';
+      
+      for (var i = 0; i < Math.min(checkins.length, 10); i++) {
+        var c = checkins[i];
+        var uid = c.alipay_user_id || '未知';
+        var shortUid = uid.length > 15 ? uid.substring(0, 15) + '...' : uid;
+        var date = c.checked_at ? new Date(c.checked_at).toLocaleString('zh-CN') : '-';
+        var time = c.checked_at ? new Date(c.checked_at).toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'}) : '-';
+        
+        html += '<div class="record-item">' +
+          '<div class="record-info">' +
+            '<div class="record-time">📍 打卡点 ' + c.checkpoint_id + ' · ' + time + '</div>' +
+            '<div class="record-point">' + shortUid + '</div>' +
+          '</div>' +
+          '<div class="record-score">+' + (c.points || 0) + '分</div>' +
+        '</div>';
+      }
+      
+      if (checkins.length === 0) {
+        html = '<div class="empty">暂无打卡记录</div>';
+      }
+      
+      list.innerHTML = html;
+    }
+    
+    // 自动刷新
+    function startAutoRefresh() {
+      if (refreshTimer) clearInterval(refreshTimer);
+      refreshTimer = setInterval(loadData, 10000);
+      log('⏰ 自动刷新：10 秒');
+    }
+    
+    // 初始化
+    log('🚀 页面加载');
+    updateTime();
+    setInterval(updateTime, 1000);
+    setTimeout(loadData, 500);
+    setTimeout(startAutoRefresh, 2000);
+  </script>
+</body>
+</html>

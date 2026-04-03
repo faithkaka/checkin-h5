@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理后台 - 重庆打卡</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, sans-serif; background: #f0f2f5; }
+    .header { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 20px; text-align: center; }
+    .header h1 { font-size: 20px; margin-bottom: 10px; }
+    .logout-btn { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
+    .content { padding: 15px; max-width: 1000px; margin: 0 auto; }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
+    .stat { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); text-align: center; }
+    .stat h3 { font-size: 13px; color: #666; margin-bottom: 8px; }
+    .stat .num { font-size: 28px; font-weight: bold; color: #10b981; }
+    .section { background: white; border-radius: 10px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .section h2 { font-size: 16px; margin-bottom: 15px; color: #333; display: flex; justify-content: space-between; align-items: center; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    thead { background: #f9fafb; }
+    th, td { padding: 10px; text-align: left; border-bottom: 1px solid #e5e5e5; }
+    th { font-weight: 600; color: #666; }
+    .code { background: #f3f4f6; padding: 3px 6px; border-radius: 4px; font-size: 11px; display: inline-block; max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
+    .loading { text-align: center; padding: 30px; color: #999; }
+    .spinner { border: 3px solid #e5e5e5; border-top-color: #10b981; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto 15px; display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .debug { background: #1f2937; color: #10b981; padding: 15px; border-radius: 8px; margin: 15px 0; font-family: monospace; font-size: 11px; max-height: 250px; overflow-y: auto; line-height: 1.6; }
+    .btn { background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    .btn:hover { background: #059669; }
+    .error { background: #fef2f2; color: #dc2626; padding: 15px; border-radius: 8px; margin: 15px 0; }
+    .empty { text-align: center; padding: 40px; color: #999; font-size: 14px; }
+    .status-bar { background: #dbeafe; color: #1e40af; padding: 10px 15px; border-radius: 8px; margin-bottom: 15px; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
+    .status-bar button { margin-left: 10px; }
+    .realtime { display: inline-block; width: 8px; height: 8px; background: #10b981; border-radius: 50%; margin-right: 8px; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🎯 重庆打卡管理后台</h1>
+    <button class="logout-btn" onclick="logout()">退出</button>
+  </div>
+  
+  <div class="content">
+    <div class="status-bar">
+      <span><span class="realtime"></span><span id="last-update">等待更新...</span></span>
+      <div>
+        <button class="btn" onclick="loadAll()">🔄 立即刷新</button>
+        <button class="btn" onclick="toggleAutoRefresh()" id="auto-btn">⏸️ 停止自动刷新</button>
+      </div>
+    </div>
+    
+    <div class="debug" id="debug-log">初始化中...</div>
+    
+    <div id="dashboard-section">
+      <div class="stats">
+        <div class="stat">
+          <h3>👥 总用户数</h3>
+          <div class="num" id="stat-users">-</div>
+        </div>
+        <div class="stat">
+          <h3>✅ 今日打卡</h3>
+          <div class="num" id="stat-today">-</div>
+        </div>
+        <div class="stat">
+          <h3>📊 总打卡数</h3>
+          <div class="num" id="stat-total">-</div>
+        </div>
+        <div class="stat">
+          <h3>🏆 最高积分</h3>
+          <div class="num" id="stat-max">-</div>
+        </div>
+      </div>
+      
+      <div class="section">
+        <h2>
+          🏆 TOP 10 排行榜
+          <button class="btn" onclick="loadUsers()">🔄 刷新</button>
+        </h2>
+        <div class="loading" id="loading"><span class="spinner"></span> 加载中...</div>
+        <div class="error" id="error" style="display:none;"></div>
+        <div class="empty" id="empty" style="display:none;">暂无数据，请先完成打卡</div>
+        <table id="table" style="display:none;">
+          <thead>
+            <tr><th>排名</th><th>用户 ID</th><th>积分</th><th>注册时间</th></tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      
+      <div class="section">
+        <h2>📍 最近打卡记录</h2>
+        <div class="loading" id="checkins-loading"><span class="spinner"></span> 加载中...</div>
+        <table id="checkins-table" style="display:none;">
+          <thead>
+            <tr><th>时间</th><th>用户</th><th>打卡点</th><th>积分</th></tr>
+          </thead>
+          <tbody id="checkins-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onerror="loadBackup()"></script>
+  <script>
+    var SUPABASE_URL = 'https://ussvekkgyntubivhfext.supabase.co';
+    var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzc3Zla2tneW50dWJpdmhmZXh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTEwODQwMiwiZXhwIjoyMDkwNjg0NDAyfQ.i1fbQC96UGnToKL6fa7GTfaMtt0s_TGpNNR0xb3ufR0';
+    var debugLogs = [];
+    var supabase = null;
+    var autoRefresh = true;
+    var refreshInterval = null;
+    
+    function debug(msg, type) {
+      var time = new Date().toLocaleTimeString();
+      var icon = type === 'error' ? '❌' : (type === 'success' ? '✅' : 'ℹ️');
+      debugLogs.unshift('[' + time + '] ' + icon + ' ' + msg);
+      if (debugLogs.length > 50) debugLogs.pop();
+      document.getElementById('debug-log').innerHTML = debugLogs.join('<br>');
+      console.log(msg);
+    }
+    
+    function loadBackup() {
+      debug('主 CDN 失败，尝试备用...', 'error');
+      var script = document.createElement('script');
+      script.src = 'https://unpkg.com/@supabase/supabase-js@2';
+      script.onerror = function() {
+        debug('备用 CDN 也失败，请检查网络或使用手机热点', 'error');
+      };
+      document.head.appendChild(script);
+    }
+    
+    window.onload = function() {
+      debug('页面加载完成');
+      updateLastUpdate();
+      
+      setTimeout(function() {
+        if (window.supabase && window.supabase.createClient) {
+          debug('✅ Supabase SDK 加载成功', 'success');
+          initSupabase();
+        } else {
+          debug('⚠️ Supabase SDK 未加载，继续等待...', 'error');
+          setTimeout(arguments.callee, 1000);
+        }
+      }, 500);
+    };
+    
+    function initSupabase() {
+      try {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        debug('✅ Supabase 客户端创建成功', 'success');
+        loadAll();
+        startAutoRefresh();
+      } catch (err) {
+        debug('❌ 初始化失败：' + err.message, 'error');
+      }
+    }
+    
+    function startAutoRefresh() {
+      if (refreshInterval) clearInterval(refreshInterval);
+      refreshInterval = setInterval(function() {
+        if (autoRefresh) {
+          debug('🔄 自动刷新数据...');
+          loadAll();
+        }
+      }, 5000); // 5 秒刷新一次
+    }
+    
+    function toggleAutoRefresh() {
+      autoRefresh = !autoRefresh;
+      document.getElementById('auto-btn').textContent = autoRefresh ? '⏸️ 停止自动刷新' : '▶️ 开始自动刷新';
+      debug('自动刷新：' + (autoRefresh ? '开启' : '关闭'));
+    }
+    
+    function updateLastUpdate() {
+      var now = new Date();
+      document.getElementById('last-update').textContent = '最后更新：' + now.toLocaleTimeString();
+    }
+    
+    function loadAll() {
+      debug('开始加载所有数据...', 'info');
+      loadUsers();
+      loadCheckins();
+      updateLastUpdate();
+    }
+    
+    function loadUsers() {
+      if (!supabase) {
+        document.getElementById('error').textContent = '❌ Supabase 未初始化';
+        document.getElementById('error').style.display = 'block';
+        return;
+      }
+      
+      debug('查询用户数据...');
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('error').style.display = 'none';
+      document.getElementById('empty').style.display = 'none';
+      document.getElementById('table').style.display = 'none';
+      
+      supabase
+        .from('users')
+        .select('id, alipay_user_id, points, created_at')
+        .order('points', { ascending: false })
+        .limit(100)
+        .then(function(result) {
+          if (result.error) {
+            debug('❌ 查询失败：' + result.error.message, 'error');
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('error').textContent = '❌ ' + result.error.message;
+            document.getElementById('error').style.display = 'block';
+            return;
+          }
+          
+          var users = result.data || [];
+          debug('✅ 获取到 ' + users.length + ' 个用户', 'success');
+          
+          if (users.length === 0) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('empty').style.display = 'block';
+            document.getElementById('stat-users').textContent = '0';
+            document.getElementById('stat-today').textContent = '0';
+            document.getElementById('stat-total').textContent = '0';
+            document.getElementById('stat-max').textContent = '0';
+            return;
+          }
+          
+          // 计算统计
+          var maxPoints = 0;
+          for (var i = 0; i < users.length; i++) {
+            if ((users[i].points || 0) > maxPoints) {
+              maxPoints = users[i].points || 0;
+            }
+          }
+          
+          document.getElementById('stat-users').textContent = users.length;
+          document.getElementById('stat-max').textContent = maxPoints;
+          
+          // 查询打卡记录
+          debug('查询打卡记录...');
+          loadCheckinsData(users);
+        })
+        .catch(function(err) {
+          debug('❌ 严重错误：' + err.message, 'error');
+          document.getElementById('loading').style.display = 'none';
+          document.getElementById('error').textContent = '❌ ' + err.message;
+          document.getElementById('error').style.display = 'block';
+        });
+    }
+    
+    function loadCheckinsData(users) {
+      supabase
+        .from('checkins')
+        .select('checked_at')
+        .limit(1000)
+        .then(function(result) {
+          if (result.error) {
+            debug('⚠️ 打卡记录查询失败：' + result.error.message, 'error');
+            document.getElementById('stat-today').textContent = '0';
+            document.getElementById('stat-total').textContent = '0';
+          } else {
+            var checkins = result.data || [];
+            debug('✅ 获取到 ' + checkins.length + ' 条打卡记录', 'success');
+            document.getElementById('stat-total').textContent = checkins.length;
+            
+            var today = new Date().toISOString().split('T')[0];
+            var todayCount = 0;
+            for (var i = 0; i < checkins.length; i++) {
+              if (checkins[i].checked_at && checkins[i].checked_at.startsWith(today)) {
+                todayCount++;
+              }
+            }
+            debug('今日打卡数：' + todayCount);
+            document.getElementById('stat-today').textContent = todayCount;
+          }
+          
+          // 显示排行榜
+          showLeaderboard(users);
+        })
+        .catch(function(err) {
+          debug('⚠️ 打卡记录异常：' + err.message, 'error');
+          document.getElementById('stat-today').textContent = '0';
+          document.getElementById('stat-total').textContent = '0';
+          showLeaderboard(users);
+        });
+    }
+    
+    function showLeaderboard(users) {
+      var tbody = document.getElementById('tbody');
+      var rows = '';
+      for (var i = 0; i < Math.min(users.length, 10); i++) {
+        var u = users[i];
+        var uid = u.alipay_user_id || ('user_' + u.id);
+        var shortUid = uid.length > 30 ? uid.substring(0, 30) + '...' : uid;
+        var date = u.created_at ? new Date(u.created_at).toLocaleDateString('zh-CN') : '-';
+        rows += '<tr>' +
+          '<td><b>#' + (i+1) + '</b></td>' +
+          '<td><span class="code" title="' + uid + '">' + shortUid + '</span></td>' +
+          '<td><b style="color:#10b981;font-size:14px">' + (u.points||0) + '</b></td>' +
+          '<td>' + date + '</td>' +
+        '</tr>';
+      }
+      tbody.innerHTML = rows;
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('table').style.display = 'table';
+      debug('✅ 排行榜显示完成', 'success');
+    }
+    
+    function loadCheckins() {
+      debug('加载最近打卡记录...');
+      document.getElementById('checkins-loading').style.display = 'block';
+      document.getElementById('checkins-table').style.display = 'none';
+      
+      supabase
+        .from('checkins')
+        .select('alipay_user_id, checkpoint_id, points, checked_at')
+        .order('checked_at', { ascending: false })
+        .limit(20)
+        .then(function(result) {
+          if (result.error) {
+            document.getElementById('checkins-loading').innerHTML = '❌ ' + result.error.message;
+            return;
+          }
+          
+          var data = result.data || [];
+          document.getElementById('checkins-loading').style.display = 'none';
+          
+          if (data.length === 0) {
+            document.getElementById('checkins-table').style.display = 'table';
+            document.getElementById('checkins-body').innerHTML = '<tr><td colspan="4" class="empty">暂无打卡记录</td></tr>';
+            return;
+          }
+          
+          var rows = '';
+          for (var i = 0; i < data.length; i++) {
+            var c = data[i];
+            var uid = c.alipay_user_id || '未知';
+            var shortUid = uid.length > 20 ? uid.substring(0, 20) + '...' : uid;
+            var date = c.checked_at ? new Date(c.checked_at).toLocaleString('zh-CN') : '-';
+            rows += '<tr>' +
+              '<td>' + date + '</td>' +
+              '<td><span class="code">' + shortUid + '</span></td>' +
+              '<td>打卡点 ' + c.checkpoint_id + '</td>' +
+              '<td>' + (c.points || 0) + '</td>' +
+            '</tr>';
+          }
+          document.getElementById('checkins-body').innerHTML = rows;
+          document.getElementById('checkins-table').style.display = 'table';
+          debug('✅ 打卡记录显示完成', 'success');
+        })
+        .catch(function(err) {
+          document.getElementById('checkins-loading').innerHTML = '❌ ' + err.message;
+          debug('❌ 打卡记录加载失败：' + err.message, 'error');
+        });
+    }
+    
+    function logout() {
+      if (confirm('确定退出？')) {
+        if (refreshInterval) clearInterval(refreshInterval);
+        location.href = 'login.html';
+      }
+    }
+  </script>
+</body>
+</html>
