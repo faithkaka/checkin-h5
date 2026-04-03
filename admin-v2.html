@@ -19,7 +19,6 @@
     .stat .num { font-size: 28px; font-weight: bold; }
     .box { background: white; padding: 15px; margin: 10px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
     .box h2 { font-size: 16px; color: #333; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
-    .box h2 .icon { margin-right: 8px; }
     .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 400px; }
     th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid #e5e5e5; }
@@ -35,15 +34,13 @@
     .spinner { border: 3px solid #e5e5e5; border-top-color: #10b981; border-radius: 50%; width: 32px; height: 32px; animation: spin 1s linear infinite; margin: 0 auto 10px; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .error { background: #fef2f2; color: #dc2626; padding: 15px; border-radius: 8px; margin: 10px; font-size: 13px; border-left: 4px solid #dc2626; }
-    .log { background: #1e293b; color: #10b981; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 11px; max-height: 150px; overflow-y: auto; margin: 10px; -webkit-overflow-scrolling: touch; }
     .btn-group { display: flex; gap: 10px; margin: 15px 10px; }
     .btn { flex: 1; padding: 14px 20px; border: none; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 500; text-align: center; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); -webkit-tap-highlight-color: transparent; }
     .btn:active { transform: scale(0.98); }
     .btn-primary { background: linear-gradient(135deg, #10b981, #059669); color: white; }
     .btn-secondary { background: linear-gradient(135deg, #667eea, #5b66ce); color: white; }
-    .empty { text-align: center; padding: 40px 20px; color: #999; font-size: 14px; }
     .card { background: white; border-radius: 12px; margin: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-    .card-header { background: #f9fafb; padding: 12px 15px; border-bottom: 1px solid #e5e5e5; font-weight: 600; color: #666; font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
+    .card-header { background: #f9fafb; padding: 12px 15px; border-bottom: 1px solid #e5e5e5; font-weight: 600; color: #666; font-size: 14px; }
     .card-body { padding: 0; }
     .record-item { padding: 12px 15px; border-bottom: 1px solid #e5e5e5; display: flex; justify-content: space-between; align-items: center; }
     .record-item:last-child { border-bottom: none; }
@@ -51,6 +48,7 @@
     .record-time { font-size: 12px; color: #999; margin-bottom: 4px; }
     .record-point { font-size: 13px; color: #666; }
     .record-score { font-size: 16px; font-weight: bold; color: #10b981; }
+    .empty { text-align: center; padding: 40px 20px; color: #999; font-size: 14px; }
     @media (max-width: 480px) {
       .stats { gap: 8px; }
       .stat { padding: 12px 8px; }
@@ -70,8 +68,6 @@
   <div class="status" id="status">
     🔄 正在加载数据...
   </div>
-  
-  <div class="log" id="log">初始化中...</div>
   
   <div class="container">
     <div class="stats" id="stats" style="display: none;">
@@ -95,7 +91,7 @@
     
     <div class="card" id="leaderboard-card" style="display: none;">
       <div class="card-header">
-        <span>🏆 TOP 10 排行榜</span>
+        🏆 TOP 10 排行榜
       </div>
       <div class="card-body">
         <div class="table-wrapper">
@@ -110,7 +106,7 @@
     </div>
     
     <div class="box" id="checkins-box" style="display: none;">
-      <h2><span class="icon">📍</span>最近打卡</h2>
+      <h2>📍 最近打卡</h2>
       <div id="checkins-list"></div>
     </div>
     
@@ -121,6 +117,7 @@
   </div>
   
   <script>
+    // 使用原生 fetch，不依赖 Supabase SDK
     var API_URL = 'https://ussvekkgyntubivhfext.supabase.co/rest/v1';
     var API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzc3Zla2tneW50dWJpdmhmZXh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTEwODQwMiwiZXhwIjoyMDkwNjg0NDAyfQ.i1fbQC96UGnToKL6fa7GTfaMtt0s_TGpNNR0xb3ufR0';
     var logs = [];
@@ -130,15 +127,6 @@
       var time = new Date().toLocaleTimeString();
       logs.unshift('[' + time + '] ' + msg);
       if (logs.length > 30) logs.pop();
-      document.getElementById('log').innerHTML = logs.join('<br>');
-      console.log(msg);
-    }
-    
-    function updateStatus(msg, isError) {
-      var el = document.getElementById('status');
-      el.textContent = (isError ? '❌ ' : '') + msg;
-      if (isError) el.style.background = '#fef2f2';
-      else el.style.background = '#dbeafe';
     }
     
     function updateTime() {
@@ -149,10 +137,18 @@
       document.getElementById('header-time').textContent = hours + ':' + minutes + ':' + seconds;
     }
     
+    function updateStatus(msg, isError) {
+      var el = document.getElementById('status');
+      el.textContent = (isError ? '❌ ' : '') + msg;
+      if (isError) el.style.background = '#fef2f2';
+      else el.style.background = '#dbeafe';
+    }
+    
     function loadData() {
       log('=== 开始加载数据 ===');
       updateStatus('正在加载用户数据...');
       
+      // 查询用户
       fetch(API_URL + '/users?select=*&order=points.desc', {
         headers: {
           'apikey': API_KEY,
@@ -299,7 +295,6 @@
       list.innerHTML = html;
     }
     
-    // 自动刷新
     function startAutoRefresh() {
       if (refreshTimer) clearInterval(refreshTimer);
       refreshTimer = setInterval(loadData, 10000);
@@ -307,7 +302,7 @@
     }
     
     // 初始化
-    log('🚀 页面加载');
+    log('🚀 管理后台加载');
     updateTime();
     setInterval(updateTime, 1000);
     setTimeout(loadData, 500);
