@@ -523,6 +523,85 @@ const CheckpointManager = {
   }
 };
 
+// ==================== 弹窗管理 ====================
+const ModalManager = {
+  // 显示打卡成功弹窗
+  showCheckinSuccess(points) {
+    const modal = document.getElementById('checkin-success-modal');
+    const rewardPoints = modal.querySelector('.reward-points');
+    rewardPoints.textContent = `+${points}`;
+    
+    // 检查是否需要显示成就提示
+    const achievementTip = document.getElementById('achievement-tip');
+    const tipDesc = document.getElementById('tip-desc');
+    
+    const newAchievement = AppState.achievements.find(a => 
+      a.achieved && !a.notified
+    );
+    
+    if (newAchievement) {
+      achievementTip.style.display = 'block';
+      const descriptions = {
+        1: '🌶️ 已达成「山城萌新」成就',
+        2: '🚝 已达成「雾都探索者」成就',
+        3: '🌉 已达成「巴渝达人」成就',
+        4: '🏆 已达成「重庆通」成就'
+      };
+      tipDesc.textContent = descriptions[newAchievement.stage];
+      newAchievement.notified = true;
+    } else {
+      achievementTip.style.display = 'none';
+    }
+    
+    modal.classList.add('show');
+    
+    document.getElementById('close-modal-btn').onclick = () => {
+      modal.classList.remove('show');
+    };
+  },
+  
+  // 显示兑奖信息
+  showRedeemInfo(description) {
+    const modal = document.getElementById('redeem-modal');
+    document.getElementById('redeem-desc').textContent = description;
+    modal.classList.add('show');
+    
+    document.getElementById('close-redeem-modal-btn').onclick = () => {
+      modal.classList.remove('show');
+    };
+  },
+  
+  // 显示兑奖确认
+  showRedeemConfirm(stage, achievementName) {
+    const modal = document.getElementById('redeem-confirm-modal');
+    
+    // 生成 QR 码
+    const qrCode = document.getElementById('qr-code');
+    qrCode.innerHTML = `
+      <div style="text-align: center;">
+        <div style="font-size: 80px;">📱</div>
+        <p style="color: #999; font-size: 12px; margin-top: 10px;">
+          兑奖码：${stage}-${Date.now().toString(36).toUpperCase()}
+        </p>
+      </div>
+    `;
+    
+    document.getElementById('redeem-achievement').textContent = achievementName;
+    modal.classList.add('show');
+    
+    // 确认按钮
+    document.getElementById('confirm-redeem-btn').onclick = () => {
+      PrizeManager.confirmRedeem(stage);
+      modal.classList.remove('show');
+    };
+    
+    // 取消按钮
+    document.getElementById('cancel-redeem-btn').onclick = () => {
+      modal.classList.remove('show');
+    };
+  }
+};
+
 // ==================== 奖品管理 ====================
 const PrizeManager = {
   init() {
