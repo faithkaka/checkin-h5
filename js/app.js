@@ -672,10 +672,8 @@ const PrizeManager = {
 };
 
 // ==================== 分享管理 ====================
-// ==================== 分享管理 - 参考设计版 ====================
+// ==================== 分享管理 - 简化版 ====================
 const ShareManager = {
-  currentIndex: 0,
-  
   // 15 张标志性图片
   landmarkImages: [
     { id: 'jfbei_1', checkpointId: 1, url: 'https://images.unsplash.com/photo-1599689018248-b3e9e089e8c2?w=600', desc: '🏢 解放碑' },
@@ -737,57 +735,23 @@ const ShareManager = {
     if (ptsEl) ptsEl.textContent = AppState.points;
     this.renderPhotoCards();
     this.renderShareText();
-    this.renderLandmarkGrid();
+    this.updateSelectionHint();
   },
   
-  // 渲染卡片式图片墙
+  // 渲染所有 15 张卡片
   renderPhotoCards() {
     const slider = document.getElementById('photo-slider-card');
-    const emptyDiv = document.getElementById('photo-empty');
+    if (!slider) return;
     
-    if (!slider || !emptyDiv) return;
-    
-    if (AppState.selectedImages.length === 0) {
-      emptyDiv.style.display = 'block';
-      slider.style.display = 'none';
-      return;
-    }
-    
-    emptyDiv.style.display = 'none';
-    slider.style.display = 'flex';
-    
-    slider.innerHTML = AppState.selectedImages.map((imgId, index) => {
-      const imgData = this.landmarkImages.find(img => img.id === imgId);
+    slider.innerHTML = this.landmarkImages.map((img, index) => {
+      const isSelected = AppState.selectedImages.includes(img.id);
       return `
-        <div class="photo-card" data-index="${index}">
-          <img src="${imgData ? imgData.url : ''}" alt="${imgData ? imgData.desc : '景点图片'}" />
-          <button class="delete-btn" onclick="ShareManager.removePhoto(${index})">×</button>
+        <div class="photo-card ${isSelected ? 'selected-card' : ''}" data-imgid="${img.id}" onclick="ShareManager.toggleSelect('${img.id}')">
+          <img src="${img.url}" alt="${img.desc}" />
+          <div class="checkmark">✓</div>
         </div>
       `;
     }).join('');
-    
-    // 自动滚动到最后一张
-    setTimeout(() => {
-      slider.scrollLeft = slider.scrollWidth;
-    }, 100);
-  },
-  
-  // 渲染 15 张图片网格
-  renderLandmarkGrid() {
-    const grid = document.getElementById('landmark-images-grid');
-    if (!grid) return;
-    
-    let html = '';
-    this.landmarkImages.forEach(img => {
-      const isSelected = AppState.selectedImages.includes(img.id);
-      html += `
-        <div class="landmark-img-item ${isSelected ? 'selected' : ''}" onclick="ShareManager.toggleSelect('${img.id}')">
-          <img src="${img.url}" alt="${img.desc}" />
-          <div class="checkmark">${isSelected ? '✓' : ''}</div>
-        </div>
-      `;
-    });
-    grid.innerHTML = html;
   },
   
   // 切换选择
@@ -807,16 +771,23 @@ const ShareManager = {
     }
     
     this.renderPhotoCards();
-    this.renderLandmarkGrid();
     this.saveShareData();
+    this.updateSelectionHint();
   },
   
-  // 移除照片
-  removePhoto(index) {
-    AppState.selectedImages.splice(index, 1);
-    this.renderPhotoCards();
-    this.renderLandmarkGrid();
-    this.saveShareData();
+  // 更新选择提示
+  updateSelectionHint() {
+    let hintEl = document.querySelector('.select-hint');
+    if (!hintEl) {
+      // 创建提示元素
+      hintEl = document.createElement('div');
+      hintEl.className = 'select-hint';
+      const container = document.getElementById('photo-slider-card').parentNode;
+      container.insertBefore(hintEl, container.firstChild);
+    }
+    
+    const count = AppState.selectedImages.length;
+    hintEl.innerHTML = `已选择 <span class="count">${count}</span>/3 张`;
   },
   
   // 渲染随机文案
@@ -835,7 +806,7 @@ const ShareManager = {
     el.innerHTML = `<p>${text}</p>`;
   },
   
-  // 刷新文案（换一个）
+  // 刷新文案
   refreshText() {
     const newIndex = Math.floor(Math.random() * this.shareTexts.length);
     AppState.currentShareTextIndex = newIndex;
@@ -843,6 +814,12 @@ const ShareManager = {
   },
   
   bindShareEvents() {
+    // 换一个按钮
+    const refreshBtn = document.getElementById('refresh-text-btn');
+    if (refreshBtn) {
+      refreshBtn.onclick = () => this.refreshText();
+    }
+    
     // 去分享按钮
     const shareBtn = document.getElementById('share-main-btn');
     if (shareBtn) {
@@ -857,118 +834,7 @@ const ShareManager = {
       };
     }
   }
-};// ==================== 初始化 ====================
-document.addEventListener('DOMContentLoaded', async () => {
-  console.log('🚀 重庆打卡活动初始化...');
-  console.log('='.repeat(50));
-  
-  try {
-    await SupabaseManager.init();
-  } catch(e) {
-    console.error('❌ SupabaseManager:', e);
-  }
-  
-  PageManager.bindNavEvents();
-  CheckpointManager.renderMap();
-  console.log('✅ 地图标记渲染完成');
-  
-  PrizeManager.updatePrizeCards();
-  console.log('✅ PrizeManager 完成');
-  
-  ShareManager.init();
-  console.log('✅ ShareManager 完成');
-  
-  CheckpointManager.handleCheckinFromURL();
-  PageManager.updateAllDisplays();
-  
-  console.log('='.repeat(50));
-  console.log('🎉 初始化完成！');
-  console.log('👤 用户 ID:', AppState.userId);
-  console.log('📊 当前积分:', AppState.points);
-  console.log('📍 已打卡:', AppState.checkedCheckpoints.length, '个点');
-  console.log('='.repeat(50));
-});
-
-
-// ==================== 弹窗管理 ====================
-const ModalManager = {
-  // 显示打卡成功弹窗
-  showCheckinSuccess(points) {
-    const modal = document.getElementById('checkin-success-modal');
-    const rewardPoints = modal.querySelector('.reward-points');
-    rewardPoints.textContent = `+${points}`;
-    
-    // 检查是否需要显示成就提示
-    const achievementTip = document.getElementById('achievement-tip');
-    const tipDesc = document.getElementById('tip-desc');
-    
-    const newAchievement = AppState.achievements.find(a => 
-      a.achieved && !a.notified
-    );
-    
-    if (newAchievement) {
-      achievementTip.style.display = 'block';
-      const descriptions = {
-        1: '🌶️ 已达成「山城萌新」成就',
-        2: '🚝 已达成「雾都探索者」成就',
-        3: '🌉 已达成「巴渝达人」成就',
-        4: '🏆 已达成「重庆通」成就'
-      };
-      tipDesc.textContent = descriptions[newAchievement.stage];
-      newAchievement.notified = true;
-    } else {
-      achievementTip.style.display = 'none';
-    }
-    
-    modal.classList.add('show');
-    
-    document.getElementById('close-modal-btn').onclick = () => {
-      modal.classList.remove('show');
-    };
-  },
-  
-  // 显示兑奖信息
-  showRedeemInfo(description) {
-    const modal = document.getElementById('redeem-modal');
-    document.getElementById('redeem-desc').textContent = description;
-    modal.classList.add('show');
-    
-    document.getElementById('close-redeem-modal-btn').onclick = () => {
-      modal.classList.remove('show');
-    };
-  },
-  
-  // 显示兑奖确认
-  showRedeemConfirm(stage, achievementName) {
-    const modal = document.getElementById('redeem-confirm-modal');
-    
-    // 生成 QR 码（这里用简单的占位符，实际可以用 QR 码库）
-    const qrCode = document.getElementById('qr-code');
-    qrCode.innerHTML = `
-      <div style="text-align: center;">
-        <div style="font-size: 80px;">📱</div>
-        <p style="color: #999; font-size: 12px; margin-top: 10px;">
-          兑奖码：${stage}-${Date.now().toString(36).toUpperCase()}
-        </p>
-      </div>
-    `;
-    
-    document.getElementById('redeem-achievement').textContent = achievementName;
-    modal.classList.add('show');
-    
-    // 确认按钮
-    document.getElementById('confirm-redeem-btn').onclick = () => {
-      PrizeManager.confirmRedeem(stage);
-      modal.classList.remove('show');
-    };
-    
-    // 取消按钮
-    document.getElementById('cancel-redeem-btn').onclick = () => {
-      modal.classList.remove('show');
-    };
-  }
 };
-
 // ==================== 初始化 ====================
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('🚀 开始初始化...');

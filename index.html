@@ -240,14 +240,10 @@
         <div class="share-container">
           <h2>📸 分享图片</h2>
           
-          <!-- 图片墙 - 横向滑动卡片 -->
+          <!-- 图片墙 - 横向滑动卡片（15 张） -->
           <div class="photo-wall-container">
             <div class="photo-slider-card" id="photo-slider-card">
-              <!-- 用户选择的图片卡片 -->
-            </div>
-            <div class="photo-empty" id="photo-empty">
-              <span>📷</span>
-              <p>从下方选择景点标志性图片<br>最多可选 3 张</p>
+              <!-- 15 张标志性图片卡片 -->
             </div>
           </div>
           
@@ -255,20 +251,12 @@
           <div class="share-text-section">
             <div class="share-text-header">
               <span class="share-text-title">分享文案</span>
-              <button class="refresh-btn" id="refresh-text-btn" onclick="ShareManager.refreshText()">
+              <button class="refresh-btn" id="refresh-text-btn">
                 <span>🔄</span> 换一个
               </button>
             </div>
             <div class="share-text-content" id="share-text-content">
-              <p id="share-text">我在"趣玩重庆一日游"打卡活动中，已经获得 <span id="share-points">0</span> 积分！打卡了重庆地标景点，快来一起探索山城魅力吧！</p>
-            </div>
-          </div>
-          
-          <!-- 15 张标志性图片选择 -->
-          <div class="landmark-section">
-            <h3>🏞️ 选择标志性图片</h3>
-            <div class="landmark-images-grid" id="landmark-images-grid">
-              <!-- 15 张图片将通过 JS 动态添加 -->
+              <p id="share-text">我在"趣玩重庆一日游"打卡活动中，已经获得 <span id="share-points">0</span> 积分！</p>
             </div>
           </div>
           

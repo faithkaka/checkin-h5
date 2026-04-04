@@ -1,4 +1,4 @@
-/* 分享页 - 仿参考设计 */
+/* 分享页 - 简化版 */
 .share-container {
   padding: 15px;
   background: #f5f7fa;
@@ -33,70 +33,53 @@
 }
 
 .photo-card {
-  flex: 0 0 280px;
+  flex: 0 0 200px;
   scroll-snap-align: center;
   aspect-ratio: 3/4;
-  border-radius: 16px;
+  border-radius: 12px;
   overflow: hidden;
   position: relative;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   background: #fff;
   border: 3px solid #e5e7eb;
   transition: all 0.3s;
+  cursor: pointer;
 }
 
 .photo-card.selected-card {
-  border-color: #4d94ff;
-  box-shadow: 0 8px 24px rgba(77, 148, 255, 0.3);
+  border-color: #10b981;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
 .photo-card img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  pointer-events: none;
 }
 
-.photo-card .delete-btn {
+.photo-card .checkmark {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 36px;
-  height: 36px;
-  background: rgba(0, 0, 0, 0.6);
-  border: none;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  background: #10b981;
+  color: white;
   border-radius: 50%;
-  color: #fff;
-  font-size: 22px;
-  cursor: pointer;
+  border: 2px solid #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10;
-  transition: all 0.2s;
+  font-size: 18px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+  pointer-events: none;
 }
 
-.photo-card .delete-btn:active {
-  background: rgba(239, 68, 68, 0.9);
-}
-
-.photo-empty {
-  padding: 60px 20px;
-  text-align: center;
-  color: #999;
-  background: #fff;
-  border-radius: 16px;
-  margin: 10px 15px;
-}
-
-.photo-empty span {
-  font-size: 64px;
-  display: block;
-  margin-bottom: 15px;
-}
-
-.photo-empty p {
-  font-size: 14px;
-  line-height: 1.6;
+.photo-card.selected-card .checkmark {
+  opacity: 1;
 }
 
 /* 分享文案区域 */
@@ -135,16 +118,6 @@
   transition: all 0.2s;
 }
 
-.refresh-btn span {
-  display: inline-block;
-  animation: rotate 0.5s linear infinite;
-}
-
-@keyframes rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
 .refresh-btn:active {
   transform: scale(0.95);
 }
@@ -173,74 +146,21 @@
   border-radius: 2px;
 }
 
-/* 15 张图片选择网格 */
-.landmark-section {
-  margin-bottom: 20px;
-}
-
-.landmark-section h3 {
-  font-size: 15px;
-  color: #333;
-  margin-bottom: 12px;
+/* 提示标签 */
+.select-hint {
   text-align: center;
+  font-size: 13px;
+  color: #666;
+  margin: 10px 0 15px;
+  padding: 8px 15px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.select-hint .count {
+  color: #10b981;
   font-weight: 600;
-}
-
-.landmark-images-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  background: #fff;
-  padding: 12px;
-  border-radius: 16px;
-}
-
-.landmark-img-item {
-  aspect-ratio: 4/3;
-  border-radius: 10px;
-  overflow: hidden;
-  border: 2px solid #e5e7eb;
-  cursor: pointer;
-  position: relative;
-  transition: all 0.2s;
-  background: #fff;
-}
-
-.landmark-img-item:active {
-  transform: scale(0.95);
-}
-
-.landmark-img-item.selected {
-  border-color: #10b981;
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
-}
-
-.landmark-img-item img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.landmark-img-item .checkmark {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 26px;
-  height: 26px;
-  background: #10b981;
-  color: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 15px;
-  opacity: 0;
-  transition: opacity 0.2s;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
-}
-
-.landmark-img-item.selected .checkmark {
-  opacity: 1;
 }
 
 /* 去分享按钮 */
