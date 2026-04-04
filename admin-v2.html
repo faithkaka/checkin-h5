@@ -17,8 +17,10 @@
     .stat { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 15px 10px; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(102,126,234,0.3); }
     .stat h3 { font-size: 13px; opacity: 0.9; margin-bottom: 8px; font-weight: 500; }
     .stat .num { font-size: 28px; font-weight: bold; }
+    .stat.prize { background: linear-gradient(135deg, #f59e0b, #d97706); }
+    .stat.wait { background: linear-gradient(135deg, #10b981, #059669); }
     .box { background: white; padding: 15px; margin: 10px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-    .box h2 { font-size: 16px; color: #333; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+    .box h2 { font-size: 16px; color: #333; margin-bottom: 12px; }
     .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 400px; }
     th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid #e5e5e5; }
@@ -48,7 +50,12 @@
     .record-time { font-size: 12px; color: #999; margin-bottom: 4px; }
     .record-point { font-size: 13px; color: #666; }
     .record-score { font-size: 16px; font-weight: bold; color: #10b981; }
+    .badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; }
+    .badge-wait { background: #fef3c7; color: #d97706; }
+    .badge-ok { background: #dcfce7; color: #10b981; }
     .empty { text-align: center; padding: 40px 20px; color: #999; font-size: 14px; }
+    h2.section-title { color: #667eea; margin: 15px 10px 10px; font-size: 16px; }
+    h2.section-title.prize { color: #f59e0b; }
     @media (max-width: 480px) {
       .stats { gap: 8px; }
       .stat { padding: 12px 8px; }
@@ -70,6 +77,7 @@
   </div>
   
   <div class="container">
+    <h2 class="section-title">📊 基础数据</h2>
     <div class="stats" id="stats" style="display: none;">
       <div class="stat">
         <h3>👥 总用户数</h3>
@@ -89,6 +97,18 @@
       </div>
     </div>
     
+    <h2 class="section-title prize">🎁 兑奖统计</h2>
+    <div class="stats" id="prize-stats" style="display: none;">
+      <div class="stat prize">
+        <h3>🎉 已兑奖</h3>
+        <div class="num" id="redeemed-count">0</div>
+      </div>
+      <div class="stat wait">
+        <h3>⏳ 待兑奖</h3>
+        <div class="num" id="waiting-count">0</div>
+      </div>
+    </div>
+    
     <div class="card" id="leaderboard-card" style="display: none;">
       <div class="card-header">
         🏆 TOP 10 排行榜
@@ -97,7 +117,7 @@
         <div class="table-wrapper">
           <table id="leaderboard-table">
             <thead>
-              <tr><th>排名</th><th>用户</th><th>积分</th><th>时间</th></tr>
+              <tr><th>排名</th><th>用户</th><th>积分</th><th>兑奖</th><th>时间</th></tr>
             </thead>
             <tbody id="leaderboard-body"></tbody>
           </table>
@@ -117,131 +137,126 @@
   </div>
   
   <script>
-    // 使用原生 fetch，不依赖 Supabase SDK
     var API_URL = 'https://ussvekkgyntubivhfext.supabase.co/rest/v1';
     var API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzc3Zla2tneW50dWJpdmhmZXh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTEwODQwMiwiZXhwIjoyMDkwNjg0NDAyfQ.i1fbQC96UGnToKL6fa7GTfaMtt0s_TGpNNR0xb3ufR0';
-    var logs = [];
-    var refreshTimer = null;
-    
-    function log(msg) {
-      var time = new Date().toLocaleTimeString();
-      logs.unshift('[' + time + '] ' + msg);
-      if (logs.length > 30) logs.pop();
-    }
     
     function updateTime() {
       var now = new Date();
-      var hours = now.getHours().toString().padStart(2, '0');
-      var minutes = now.getMinutes().toString().padStart(2, '0');
-      var seconds = now.getSeconds().toString().padStart(2, '0');
-      document.getElementById('header-time').textContent = hours + ':' + minutes + ':' + seconds;
+      document.getElementById('header-time').textContent = 
+        now.getHours().toString().padStart(2, '0') + ':' +
+        now.getMinutes().toString().padStart(2, '0') + ':' +
+        now.getSeconds().toString().padStart(2, '0');
     }
     
     function updateStatus(msg, isError) {
       var el = document.getElementById('status');
       el.textContent = (isError ? '❌ ' : '') + msg;
-      if (isError) el.style.background = '#fef2f2';
-      else el.style.background = '#dbeafe';
+      el.style.background = isError ? '#fef2f2' : '#dbeafe';
     }
     
     function loadData() {
-      log('=== 开始加载数据 ===');
+      console.log('=== 开始加载 ===');
       updateStatus('正在加载用户数据...');
       
-      // 查询用户
+      // 1. 查询用户
       fetch(API_URL + '/users?select=*&order=points.desc', {
-        headers: {
-          'apikey': API_KEY,
-          'Authorization': 'Bearer ' + API_KEY,
-          'Content-Type': 'application/json'
-        }
-      })
-      .then(function(res) {
-        log('HTTP: ' + res.status);
-        if (!res.ok) {
-          return res.text().then(function(text) {
-            throw new Error('HTTP ' + res.status + ': ' + text.substring(0, 100));
-          });
-        }
-        return res.json();
-      })
-      .then(function(users) {
-        log('👥 用户：' + users.length);
-        
-        if (users.length === 0) {
-          updateStatus('⚠️ 暂无数据，请先完成打卡');
-          document.getElementById('stats').style.display = 'grid';
-          return;
-        }
-        
-        var maxPoints = 0;
-        for (var i = 0; i < users.length; i++) {
-          if ((users[i].points || 0) > maxPoints) {
-            maxPoints = users[i].points || 0;
-          }
-        }
-        
-        document.getElementById('stats').style.display = 'grid';
-        document.getElementById('user-count').textContent = users.length;
-        document.getElementById('max-points').textContent = maxPoints;
-        log('🏆 最高分：' + maxPoints);
-        
-        updateStatus('加载打卡记录...');
-        return loadCheckins(users);
-      })
-      .catch(function(err) {
-        log('❌ ' + err.message);
-        updateStatus('加载失败：' + err.message.substring(0, 50), true);
-      });
-    }
-    
-    function loadCheckins(users) {
-      log('📍 查询打卡...');
-      
-      fetch(API_URL + '/checkins?select=*&order=checked_at.desc&limit=50', {
         headers: {
           'apikey': API_KEY,
           'Authorization': 'Bearer ' + API_KEY
         }
       })
       .then(function(res) {
+        console.log('用户 HTTP:', res.status);
         if (!res.ok) throw new Error('HTTP ' + res.status);
         return res.json();
       })
-      .then(function(checkins) {
-        log('📊 打卡：' + checkins.length);
+      .then(function(users) {
+        console.log('👥 用户:', users.length);
         
-        var today = new Date().toISOString().split('T')[0];
-        var todayCount = 0;
-        for (var i = 0; i < checkins.length; i++) {
-          if (checkins[i].checked_at && checkins[i].checked_at.startsWith(today)) {
-            todayCount++;
-          }
+        if (users.length === 0) {
+          updateStatus('⚠️ 暂无数据');
+          document.getElementById('stats').style.display = 'grid';
+          return;
         }
         
-        document.getElementById('today-count').textContent = todayCount;
-        document.getElementById('total-count').textContent = checkins.length;
-        log('✅ 今日：' + todayCount);
+        // 统计
+        var maxPoints = Math.max.apply(null, users.map(function(u) { return u.points || 0; }));
+        document.getElementById('stats').style.display = 'grid';
+        document.getElementById('user-count').textContent = users.length;
+        document.getElementById('max-points').textContent = maxPoints;
         
-        var timeStr = new Date().toLocaleTimeString('zh-CN', {hour: '2-digit', minute:'2-digit'});
-        updateStatus('✅ 已更新 ' + timeStr);
-        
-        showLeaderboard(users);
-        showCheckinsList(checkins);
+        // 2. 查询打卡
+        return fetch(API_URL + '/checkins?select=checked_at&order=checked_at.desc&limit=500', {
+          headers: {
+            'apikey': API_KEY,
+            'Authorization': 'Bearer ' + API_KEY
+          }
+        })
+        .then(function(res) {
+          if (!res.ok) return [];
+          return res.json();
+        })
+        .then(function(checkins) {
+          console.log('📍 打卡:', checkins.length);
+          
+          var today = new Date().toISOString().split('T')[0];
+          var todayCount = checkins.filter(function(c) {
+            return c.checked_at && c.checked_at.startsWith(today);
+          }).length;
+          
+          document.getElementById('today-count').textContent = todayCount;
+          document.getElementById('total-count').textContent = checkins.length;
+          
+          // 3. 查询兑奖（可选）
+          fetch(API_URL + '/user_achievements?select=alipay_user_id&status=eq.redeemed', {
+            headers: {
+              'apikey': API_KEY,
+              'Authorization': 'Bearer ' + API_KEY
+            }
+          })
+          .then(function(res) {
+            if (!res.ok) return [];
+            return res.json();
+          })
+          .then(function(redeemed) {
+            console.log('🎁 已兑奖:', redeemed ? redeemed.length : 0);
+            
+            document.getElementById('prize-stats').style.display = 'grid';
+            document.getElementById('redeemed-count').textContent = redeemed ? redeemed.length : 0;
+            
+            var redeemedIds = {};
+            if (redeemed) {
+              redeemed.forEach(function(r) {
+                redeemedIds[r.alipay_user_id] = true;
+              });
+            }
+            
+            var waiting = users.filter(function(u) {
+              return (u.points || 0) >= 30 && !redeemedIds[u.alipay_user_id];
+            }).length;
+            document.getElementById('waiting-count').textContent = waiting;
+            console.log('⏳ 待兑奖:', waiting);
+            
+            updateStatus('✅ 已更新 ' + new Date().toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit'}));
+            showLeaderboard(users, redeemedIds);
+          })
+          .catch(function(err) {
+            console.log('⚠️ 兑奖查询失败:', err.message);
+            document.getElementById('prize-stats').style.display = 'grid';
+            document.getElementById('redeemed-count').textContent = '0';
+            document.getElementById('waiting-count').textContent = '0';
+            showLeaderboard(users, {});
+          });
+        });
       })
       .catch(function(err) {
-        log('❌ 打卡：' + err.message);
-        document.getElementById('today-count').textContent = '-';
-        document.getElementById('total-count').textContent = checkins ? checkins.length : '-';
-        updateStatus('部分失败：' + err.message.substring(0, 30), true);
-        showLeaderboard(users);
+        console.error('❌ 加载失败:', err.message);
+        updateStatus('加载失败：' + err.message.substring(0, 50), true);
       });
     }
     
-    function showLeaderboard(users) {
-      log('🏆 显示排行榜');
+    function showLeaderboard(users, redeemedIds) {
       document.getElementById('leaderboard-card').style.display = 'block';
-      
       var tbody = document.getElementById('leaderboard-body');
       var html = '';
       
@@ -254,10 +269,20 @@
         var rankClass = i < 3 ? 'rank-' + (i+1) : '';
         var date = u.created_at ? new Date(u.created_at).toLocaleDateString('zh-CN') : '-';
         
+        var prizeBadge;
+        if ((u.points || 0) >= 30) {
+          prizeBadge = redeemedIds[u.alipay_user_id] ?
+            '<span class="badge badge-ok">✅</span>' :
+            '<span class="badge badge-wait">⏳</span>';
+        } else {
+          prizeBadge = '<span style="color:#999">-</span>';
+        }
+        
         html += '<tr>' +
           '<td><span class="rank ' + rankClass + '">' + (i+1) + '</span></td>' +
-          '<td><span class="code" title="' + uid + '">' + shortUid + '</span></td>' +
+          '<td><span class="code">' + shortUid + '</span></td>' +
           '<td><span class="points">' + (u.points || 0) + '</span></td>' +
+          '<td>' + prizeBadge + '</td>' +
           '<td style="color:#999;font-size:11px">' + date + '</td>' +
         '</tr>';
       }
@@ -265,48 +290,53 @@
       tbody.innerHTML = html;
     }
     
-    function showCheckinsList(checkins) {
-      log('📍 显示记录');
-      document.getElementById('checkins-box').style.display = 'block';
-      
-      var list = document.getElementById('checkins-list');
-      var html = '';
-      
-      for (var i = 0; i < Math.min(checkins.length, 10); i++) {
-        var c = checkins[i];
-        var uid = c.alipay_user_id || '未知';
-        var shortUid = uid.length > 15 ? uid.substring(0, 15) + '...' : uid;
-        var date = c.checked_at ? new Date(c.checked_at).toLocaleString('zh-CN') : '-';
-        var time = c.checked_at ? new Date(c.checked_at).toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'}) : '-';
+    function showCheckinsList() {
+      fetch(API_URL + '/checkins?select=alipay_user_id,checkpoint_id,points,checked_at&order=checked_at.desc&limit=10', {
+        headers: {
+          'apikey': API_KEY,
+          'Authorization': 'Bearer ' + API_KEY
+        }
+      })
+      .then(function(res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      })
+      .then(function(checkins) {
+        document.getElementById('checkins-box').style.display = 'block';
+        var list = document.getElementById('checkins-list');
+        var html = '';
         
-        html += '<div class="record-item">' +
-          '<div class="record-info">' +
-            '<div class="record-time">📍 打卡点 ' + c.checkpoint_id + ' · ' + time + '</div>' +
-            '<div class="record-point">' + shortUid + '</div>' +
-          '</div>' +
-          '<div class="record-score">+' + (c.points || 0) + '分</div>' +
-        '</div>';
-      }
-      
-      if (checkins.length === 0) {
-        html = '<div class="empty">暂无打卡记录</div>';
-      }
-      
-      list.innerHTML = html;
-    }
-    
-    function startAutoRefresh() {
-      if (refreshTimer) clearInterval(refreshTimer);
-      refreshTimer = setInterval(loadData, 10000);
-      log('⏰ 自动刷新：10 秒');
+        if (checkins.length === 0) {
+          html = '<div class="empty">暂无打卡记录</div>';
+        } else {
+          checkins.forEach(function(c) {
+            var uid = c.alipay_user_id || '未知';
+            var shortUid = uid.length > 15 ? uid.substring(0, 15) + '...' : uid;
+            var time = c.checked_at ? new Date(c.checked_at).toLocaleString('zh-CN') : '-';
+            
+            html += '<div class="record-item">' +
+              '<div class="record-info">' +
+                '<div class="record-time">📍 点' + c.checkpoint_id + ' · ' + time + '</div>' +
+                '<div class="record-point">' + shortUid + '</div>' +
+              '</div>' +
+              '<div class="record-score">+' + (c.points || 0) + '分</div>' +
+            '</div>';
+          });
+        }
+        
+        list.innerHTML = html;
+      })
+      .catch(function(err) {
+        console.error('❌ 打卡记录加载失败:', err.message);
+      });
     }
     
     // 初始化
-    log('🚀 管理后台加载');
     updateTime();
     setInterval(updateTime, 1000);
     setTimeout(loadData, 500);
-    setTimeout(startAutoRefresh, 2000);
+    setTimeout(showCheckinsList, 1000);
+    setInterval(loadData, 10000);
   </script>
 </body>
 </html>
