@@ -239,27 +239,37 @@
         <div class="share-container">
           <h2>📸 精彩瞬间</h2>
           <div class="share-content" id="share-content">
-            <!-- 照片墙 -->
-            <div class="photo-wall" id="photo-wall">
-              <div class="photo-slider" id="photo-slider">
-                <!-- 景点标志性图片将通过 JS 动态添加 -->
+            <!-- 已选择的照片 -->
+            <div class="selected-photos" id="selected-photos">
+              <div class="photo-slider" id="photo-slider" style="display:none;">
+                <!-- 用户选择的图片 -->
               </div>
-              <div class="photo-indicators" id="photo-indicators">
+              <div class="photo-indicators" id="photo-indicators" style="display:none;">
                 <!-- 指示器 -->
               </div>
-              <div class="photo-placeholder" id="photo-placeholder">
-                <span>📷</span>
-                <p>从下方选择景点标志性图片<br>每个景点最多选择 3 张</p>
-                <button class="add-photo-btn" id="add-photo-btn">📸 选择图片</button>
+              <div class="selected-count" id="selected-count">
+                已选择 <span class="count-num">0</span>/3 张图片
               </div>
             </div>
             
+            <!-- 分享文案 -->
             <div class="share-copy" id="share-copy">
-              <p id="share-text">我在"趣玩重庆一日游"打卡活动中，已经获得 <span id="share-points">0</span> 积分！打卡了重庆地标景点，快来一起探索山城魅力吧！</p>
+              <p id="share-text">我在"趣玩重庆一日游"打卡活动中，已经获得 <span id="share-points">0</span> 积分！</p>
+              <button class="edit-text-btn" id="edit-share-text-btn">✏️ 编辑文案</button>
             </div>
+            
+            <!-- 景点图片选择区 -->
+            <div class="landmark-section">
+              <h3>🏞️ 选择景点图片（可选 1-3 张）</h3>
+              <div class="checkpoint-groups" id="checkpoint-groups">
+                <!-- 按景点分组的图片将通过 JS 动态添加 -->
+              </div>
+            </div>
+            
+            <!-- 操作按钮 -->
             <div class="share-actions">
-              <button class="action-btn" id="save-local-btn">
-                💾 保存到本地
+              <button class="action-btn" id="save-share-btn">
+                💾 保存分享
               </button>
               <button class="action-btn" id="share-channel-btn">
                 📤 分享到其他渠道
