@@ -165,6 +165,10 @@ const CheckpointManager = {
   
   getCheckedCount() {
     return [...AppState.mandatoryCheckpoints, ...AppState.normalCheckpoints].filter(c => c.checked).length;
+  },
+  
+  getCheckedCount() {
+    return [...AppState.mandatoryCheckpoints, ...AppState.normalCheckpoints].filter(c => c.checked).length;
   }
 };
 
@@ -397,21 +401,65 @@ const ShareManager = {
 // ==================== 初始化 ====================
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('🚀 重庆打卡活动初始化...');
+  console.log('%c========================================', 'color:#667eea;font-size:20px');
   
-  await SupabaseManager.init();
-  PageManager.bindNavEvents();
-  CheckpointManager.renderCheckpointList();
-  PrizeManager.updatePrizeCards();
-  PrizeManager.updateVoucherList();
-  await ShareManager.init();
+  try {
+    await SupabaseManager.init();
+    console.log('✅ SupabaseManager 初始化完成');
+  } catch(e) {
+    console.error('❌ SupabaseManager 失败:', e);
+  }
   
-  PageManager.updateAllDisplays();
+  try {
+    PageManager.bindNavEvents();
+    console.log('✅ PageManager.bindNavEvents 完成');
+  } catch(e) {
+    console.error('❌ PageManager.bindNavEvents 失败:', e);
+  }
+  
+  try {
+    CheckpointManager.renderCheckpointList();
+    console.log('✅ CheckpointManager.renderCheckpointList 完成');
+  } catch(e) {
+    console.error('❌ CheckpointManager 失败:', e);
+  }
+  
+  try {
+    PrizeManager.updatePrizeCards();
+    PrizeManager.updateVoucherList();
+    console.log('✅ PrizeManager 完成');
+  } catch(e) {
+    console.error('❌ PrizeManager 失败:', e);
+  }
+  
+  try {
+    await ShareManager.init();
+    console.log('✅ ShareManager 完成');
+  } catch(e) {
+    console.error('❌ ShareManager 失败:', e);
+  }
+  
+  try {
+    PageManager.updateAllDisplays();
+    console.log('✅ PageManager.updateAllDisplays 完成');
+  } catch(e) {
+    console.error('❌ PageManager.updateAllDisplays 失败:', e);
+  }
   
   const urlParams = new URLSearchParams(window.location.search);
   const page = urlParams.get('page') || 'home';
   PageManager.switchPage(page);
   
+  console.log('%c========================================', 'color:#10b981;font-size:20px');
   console.log('✅ 初始化完成！');
   console.log('👤 用户 ID:', AppState.userId);
   console.log('📊 当前积分:', AppState.points);
+  console.log('📍 已打卡:', CheckpointManager.getCheckedCount(), '个点');
+  
+  // 暴露到全局方便调试
+  window.AppDebug = {
+    state: AppState,
+    switchPage: PageManager.switchPage.bind(PageManager)
+  };
+  console.log('💡 调试：使用 window.AppDebug.switchPage("share") 切换页面');
 });

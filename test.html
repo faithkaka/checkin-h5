@@ -1,1 +1,43 @@
-<!DOCTYPE html><html><head><meta charset="UTF-8"><title>测试</title></head><body><h1>✅ 服务器正常</h1><p>如果看到这个页面，说明 HTTP 服务器正常工作</p><p><a href="/index.html">返回打卡首页</a></p></body></html>
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>测试页面</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    .btn { padding: 10px 20px; font-size: 16px; cursor: pointer; margin: 10px; }
+    .page { display: none; padding: 20px; }
+    .page.active { display: block; }
+  </style>
+</head>
+<body>
+  <h1>测试页面</h1>
+  
+  <div id="page1" class="page active">
+    <h2>页面 1</h2>
+    <p>这是首页内容</p>
+  </div>
+  
+  <div id="page2" class="page">
+    <h2>页面 2</h2>
+    <p>这是第二页内容</p>
+  </div>
+  
+  <button class="btn" onclick="switchPage('page1')">去页面 1</button>
+  <button class="btn" onclick="switchPage('page2')">去页面 2</button>
+  
+  <script>
+    console.log('✅ JS 加载成功');
+    
+    function switchPage(pageId) {
+      console.log('切换到:', pageId);
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById(pageId).classList.add('active');
+    }
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('✅ DOMContentLoaded 触发');
+    });
+  </script>
+</body>
+</html>
