@@ -1,144 +1,218 @@
-/* 分享页 */
+/* 分享页 - 仿参考设计 */
 .share-container {
-  padding: 20px;
+  padding: 15px;
+  background: #f5f7fa;
+  min-height: calc(100vh - 60px);
 }
 
 .share-container h2 {
   text-align: center;
   margin-bottom: 20px;
   color: #333;
+  font-size: 18px;
 }
 
-/* 照片墙 - 横向滑动 */
-.photo-wall {
-  position: relative;
+/* 图片墙 - 横向滑动卡片 */
+.photo-wall-container {
   margin-bottom: 20px;
-  background: #f8f9fa;
-  border-radius: 16px;
-  overflow: hidden;
-  min-height: 200px;
+  padding: 10px 5px;
 }
 
-.photo-slider {
+.photo-slider-card {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  scroll-behavior: smooth;
-  padding: 10px;
+  padding: 10px 15px;
 }
 
-.photo-slider::-webkit-scrollbar {
+.photo-slider-card::-webkit-scrollbar {
   display: none;
 }
 
-.photo-slide {
-  flex: 0 0 70%;
+.photo-card {
+  flex: 0 0 280px;
   scroll-snap-align: center;
-  aspect-ratio: 4/3;
-  position: relative;
-  border-radius: 12px;
+  aspect-ratio: 3/4;
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  position: relative;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
   background: #fff;
+  border: 3px solid #e5e7eb;
+  transition: all 0.3s;
 }
 
-.photo-slide img {
+.photo-card.selected-card {
+  border-color: #4d94ff;
+  box-shadow: 0 8px 24px rgba(77, 148, 255, 0.3);
+}
+
+.photo-card img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.photo-slide .photo-delete {
+.photo-card .delete-btn {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 32px;
-  height: 32px;
-  background: rgba(239, 68, 68, 0.9);
+  top: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  background: rgba(0, 0, 0, 0.6);
   border: none;
   border-radius: 50%;
   color: #fff;
-  font-size: 20px;
+  font-size: 22px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 10;
+  transition: all 0.2s;
 }
 
-.photo-indicators {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  padding: 12px;
-  background: #fff;
+.photo-card .delete-btn:active {
+  background: rgba(239, 68, 68, 0.9);
 }
 
-.indicator {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #e5e7eb;
-  transition: all 0.3s;
-}
-
-.indicator.active {
-  background: #10b981;
-  width: 24px;
-  border-radius: 4px;
-}
-
-.photo-placeholder {
+.photo-empty {
   padding: 60px 20px;
   text-align: center;
   color: #999;
+  background: #fff;
+  border-radius: 16px;
+  margin: 10px 15px;
 }
 
-.photo-placeholder span {
+.photo-empty span {
   font-size: 64px;
   display: block;
   margin-bottom: 15px;
 }
 
-.photo-placeholder p {
+.photo-empty p {
   font-size: 14px;
   line-height: 1.6;
 }
 
+/* 分享文案区域 */
+.share-text-section {
+  background: #fff;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.share-text-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.share-text-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+}
+
+.refresh-btn {
+  background: linear-gradient(135deg, #4d94ff, #63a4ff);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+}
+
+.refresh-btn span {
+  display: inline-block;
+  animation: rotate 0.5s linear infinite;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.refresh-btn:active {
+  transform: scale(0.95);
+}
+
+.share-text-content {
+  background: #f5f7fa;
+  border-radius: 12px;
+  padding: 14px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.share-text-content p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #333;
+  margin: 0;
+}
+
+.share-text-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.share-text-content::-webkit-scrollbar-thumb {
+  background: #ddd;
+  border-radius: 2px;
+}
+
 /* 15 张图片选择网格 */
 .landmark-section {
-  margin-top: 25px;
+  margin-bottom: 20px;
 }
 
 .landmark-section h3 {
-  font-size: 16px;
+  font-size: 15px;
   color: #333;
-  margin-bottom: 15px;
+  margin-bottom: 12px;
   text-align: center;
+  font-weight: 600;
 }
 
 .landmark-images-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
+  background: #fff;
+  padding: 12px;
+  border-radius: 16px;
 }
 
 .landmark-img-item {
   aspect-ratio: 4/3;
-  border-radius: 8px;
+  border-radius: 10px;
   overflow: hidden;
   border: 2px solid #e5e7eb;
   cursor: pointer;
   position: relative;
   transition: all 0.2s;
+  background: #fff;
+}
+
+.landmark-img-item:active {
+  transform: scale(0.95);
 }
 
 .landmark-img-item.selected {
   border-color: #10b981;
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
 }
 
 .landmark-img-item img {
@@ -151,54 +225,40 @@
   position: absolute;
   top: 4px;
   right: 4px;
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   background: #10b981;
   color: white;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 15px;
   opacity: 0;
   transition: opacity 0.2s;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
 }
 
 .landmark-img-item.selected .checkmark {
   opacity: 1;
 }
 
-.share-copy {
-  margin-top: 20px;
-  padding: 20px;
-  background: #f0f9ff;
-  border-radius: 12px;
-  border-left: 4px solid #667eea;
-}
-
-.share-copy p {
-  font-size: 14px;
-  line-height: 1.6;
-  color: #333;
-}
-
-.share-actions {
-  margin-top: 20px;
-}
-
-.action-btn {
+/* 去分享按钮 */
+.share-main-btn {
   width: 100%;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #4d94ff, #63a4ff);
   color: white;
   border: none;
-  border-radius: 12px;
-  padding: 14px;
-  font-size: 15px;
+  border-radius: 24px;
+  padding: 16px;
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
+  box-shadow: 0 4px 16px rgba(77, 148, 255, 0.4);
   transition: all 0.3s;
 }
 
-.action-btn:active {
+.share-main-btn:active {
   transform: scale(0.98);
+  box-shadow: 0 2px 8px rgba(77, 148, 255, 0.3);
 }

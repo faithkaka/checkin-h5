@@ -672,11 +672,11 @@ const PrizeManager = {
 };
 
 // ==================== 分享管理 ====================
-// ==================== 分享管理 - 简化版 ====================
+// ==================== 分享管理 - 参考设计版 ====================
 const ShareManager = {
-  currentPhotoIndex: 0,
+  currentIndex: 0,
   
-  // 15 张标志性图片（5 景点 × 3 张）
+  // 15 张标志性图片
   landmarkImages: [
     { id: 'jfbei_1', checkpointId: 1, url: 'https://images.unsplash.com/photo-1599689018248-b3e9e089e8c2?w=600', desc: '🏢 解放碑' },
     { id: 'jfbei_2', checkpointId: 1, url: 'https://images.unsplash.com/photo-1478131333081-31f9a7e96847?w=600', desc: '🏙️ 商业中心' },
@@ -695,7 +695,7 @@ const ShareManager = {
     { id: 'hongya_3', checkpointId: 5, url: 'https://images.unsplash.com/photo-1553913861-c0fddf2166ab?w=600', desc: '🌃 大桥' }
   ],
   
-  // 8 条随机文案
+  // 8 条文案
   shareTexts: [
     '我在"趣玩重庆一日游"打卡活动中，已经获得 {points} 积分！打卡了重庆地标景点，快来一起探索山城魅力吧！',
     '🎉 重庆一日游太好玩了！打卡了 {points} 积分，网红景点都打卡成功！这个周末一起来玩！',
@@ -709,6 +709,7 @@ const ShareManager = {
   
   init() {
     AppState.selectedImages = [];
+    AppState.currentShareTextIndex = null;
     this.loadShareData();
     this.bindShareEvents();
   },
@@ -734,62 +735,44 @@ const ShareManager = {
   updateShareContent() {
     const ptsEl = document.getElementById('share-points');
     if (ptsEl) ptsEl.textContent = AppState.points;
-    this.renderPhotoWall();
+    this.renderPhotoCards();
     this.renderShareText();
     this.renderLandmarkGrid();
   },
   
-  // 渲染已选择的照片墙（横向滑动）
-  renderPhotoWall() {
-    const slider = document.getElementById('photo-slider');
-    const indicators = document.getElementById('photo-indicators');
-    const placeholder = document.getElementById('photo-placeholder');
+  // 渲染卡片式图片墙
+  renderPhotoCards() {
+    const slider = document.getElementById('photo-slider-card');
+    const emptyDiv = document.getElementById('photo-empty');
     
-    if (!slider || !indicators || !placeholder) return;
+    if (!slider || !emptyDiv) return;
     
     if (AppState.selectedImages.length === 0) {
-      placeholder.style.display = 'block';
+      emptyDiv.style.display = 'block';
       slider.style.display = 'none';
-      indicators.style.display = 'none';
       return;
     }
     
-    placeholder.style.display = 'none';
+    emptyDiv.style.display = 'none';
     slider.style.display = 'flex';
-    indicators.style.display = 'flex';
     
     slider.innerHTML = AppState.selectedImages.map((imgId, index) => {
       const imgData = this.landmarkImages.find(img => img.id === imgId);
       return `
-        <div class="photo-slide" data-index="${index}">
+        <div class="photo-card" data-index="${index}">
           <img src="${imgData ? imgData.url : ''}" alt="${imgData ? imgData.desc : '景点图片'}" />
-          <button class="photo-delete" onclick="ShareManager.removePhoto(${index})">×</button>
+          <button class="delete-btn" onclick="ShareManager.removePhoto(${index})">×</button>
         </div>
       `;
     }).join('');
     
-    indicators.innerHTML = AppState.selectedImages.map((_, index) => `
-      <div class="indicator ${index === this.currentPhotoIndex ? 'active' : ''}"></div>
-    `).join('');
-    
-    slider.addEventListener('scroll', () => {
-      const slideWidth = slider.clientWidth;
-      const newIndex = Math.round(slider.scrollLeft / slideWidth);
-      if (newIndex !== this.currentPhotoIndex && newIndex >= 0 && newIndex < AppState.selectedImages.length) {
-        this.currentPhotoIndex = newIndex;
-        this.updateIndicators();
-      }
-    });
+    // 自动滚动到最后一张
+    setTimeout(() => {
+      slider.scrollLeft = slider.scrollWidth;
+    }, 100);
   },
   
-  updateIndicators() {
-    const indicators = document.querySelectorAll('.indicator');
-    indicators.forEach((ind, index) => {
-      ind.classList.toggle('active', index === this.currentPhotoIndex);
-    });
-  },
-  
-  // 渲染 15 张图片选择网格
+  // 渲染 15 张图片网格
   renderLandmarkGrid() {
     const grid = document.getElementById('landmark-images-grid');
     if (!grid) return;
@@ -821,47 +804,60 @@ const ShareManager = {
         return;
       }
       AppState.selectedImages.push(imgId);
-      this.currentPhotoIndex = AppState.selectedImages.length - 1;
     }
     
-    this.renderPhotoWall();
+    this.renderPhotoCards();
     this.renderLandmarkGrid();
     this.saveShareData();
   },
   
-  // 移除已选择的照片
+  // 移除照片
   removePhoto(index) {
     AppState.selectedImages.splice(index, 1);
-    if (this.currentPhotoIndex >= AppState.selectedImages.length) {
-      this.currentPhotoIndex = Math.max(0, AppState.selectedImages.length - 1);
-    }
-    this.renderPhotoWall();
+    this.renderPhotoCards();
     this.renderLandmarkGrid();
     this.saveShareData();
   },
   
   // 渲染随机文案
   renderShareText() {
-    const el = document.getElementById('share-text');
+    const el = document.getElementById('share-text-content');
     if (!el) return;
     
-    const randomText = this.shareTexts[Math.floor(Math.random() * this.shareTexts.length)];
-    const text = randomText.replace('{points}', AppState.points.toString());
-    el.textContent = text;
+    if (AppState.currentShareTextIndex === null || 
+        AppState.currentShareTextIndex >= this.shareTexts.length) {
+      AppState.currentShareTextIndex = Math.floor(Math.random() * this.shareTexts.length);
+    }
+    
+    const text = this.shareTexts[AppState.currentShareTextIndex]
+      .replace('{points}', AppState.points.toString());
+    
+    el.innerHTML = `<p>${text}</p>`;
+  },
+  
+  // 刷新文案（换一个）
+  refreshText() {
+    const newIndex = Math.floor(Math.random() * this.shareTexts.length);
+    AppState.currentShareTextIndex = newIndex;
+    this.renderShareText();
   },
   
   bindShareEvents() {
-    // 分享到朋友圈
-    const shareBtn = document.getElementById('share-channel-btn');
+    // 去分享按钮
+    const shareBtn = document.getElementById('share-main-btn');
     if (shareBtn) {
       shareBtn.onclick = () => {
-        const text = document.getElementById('share-text').textContent;
+        if (AppState.selectedImages.length === 0) {
+          alert('ℹ️ 请至少选择 1 张图片');
+          return;
+        }
+        
+        const text = document.getElementById('share-text-content').textContent;
         alert('📤 长按复制下方文案，然后分享到朋友圈：\n\n' + text);
       };
     }
   }
-};
-// ==================== 初始化 ====================
+};// ==================== 初始化 ====================
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('🚀 重庆打卡活动初始化...');
   console.log('='.repeat(50));
