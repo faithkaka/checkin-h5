@@ -161,6 +161,34 @@ const Utils = {
   }
 };
 
+// ==================== Supabase 管理 ====================
+const SupabaseManager = {
+  supabaseUrl: 'https://ussvekkgyntubivhfext.supabase.co',
+  supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzc3Zla2tneW50dWJpdmhmZXh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTEwODQwMiwiZXhwIjoyMDkwNjg0NDAyfQ.i1fbQC96UGnToKL6fa7GTfaMtt0s_TGpNNR0xb3ufR0',
+  supabase: null,
+  userId: null,
+  
+  async init() {
+    console.log('🚀 SupabaseManager 初始化...');
+    if (typeof supabase !== 'undefined') {
+      this.supabase = supabase.createClient(this.supabaseUrl, this.supabaseKey);
+      window.supabaseClient = this.supabase;
+      await this.getUserId();
+      console.log('✅ Supabase 客户端创建成功');
+    } else {
+      console.warn('⚠️ Supabase SDK 未加载');
+      this.userId = 'local_' + Date.now();
+    }
+    AppState.userId = this.userId;
+    console.log('👤 用户 ID:', this.userId);
+  },
+  
+  async getUserId() {
+    this.userId = 'user_' + Date.now();
+    return this.userId;
+  }
+};
+
 // ==================== 页面管理 ====================
 const PageManager = {
   init() {
