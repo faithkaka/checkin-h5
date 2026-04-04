@@ -72,7 +72,7 @@ const PageManager = {
     const navItem = document.querySelector(`.nav-item[data-page="${pageName}"]`);
     if (navItem) navItem.classList.add('active');
     
-    if (navigator.vibrate) navigator.vibrate(10);
+    // if (navigator.vibrate) navigator.vibrate(10); // 暂时禁用，避免未交互时报错
     
     if (pageName === 'share' && window.ShareManager) {
       setTimeout(() => ShareManager.renderSelectedPhotos(), 100);
@@ -152,7 +152,7 @@ const CheckpointManager = {
     if (cp.checked) {
       AppState.points += cp.points;
       AppState.checkedCheckpoints.push(id);
-      if (navigator.vibrate) navigator.vibrate(50);
+      // if (navigator.vibrate) navigator.vibrate(50);
     } else {
       AppState.points -= cp.points;
       const idx = AppState.checkedCheckpoints.indexOf(id);
