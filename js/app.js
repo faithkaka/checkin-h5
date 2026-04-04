@@ -701,169 +701,33 @@ const PrizeManager = {
 
 // ==================== 分享管理 ====================
 // ==================== 分享管理 - 简化版 ====================
-const ShareManager = {
-  // 15 张标志性图片（所有图片使用可靠的 Unsplash 源）
+// 15 张标志性图片（使用可靠图片源）
   landmarkImages: [
-    { id: 'jfbei_1', checkpointId: 1, url: 'https://images.unsplash.com/photo-1599689018248-b3e9e089e8c2?w=800', desc: '🏢 解放碑步行街' },
-    { id: 'jfbei_2', checkpointId: 1, url: 'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=800', desc: '🏙️ 城市商业中心' },
-    { id: 'jfbei_3', checkpointId: 1, url: 'https://images.unsplash.com/photo-1519508235410-4e1a9881c138?w=800', desc: '🌃 城市夜景' },
-    { id: 'liziba_1', checkpointId: 2, url: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=800', desc: '🚝 轻轨穿楼' },
-    { id: 'liziba_2', checkpointId: 2, url: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800', desc: '🚄 轨道交通' },
-    { id: 'liziba_3', checkpointId: 2, url: 'https://images.unsplash.com/photo-1520639888713-78db11c0a1a3?w=800', desc: '🚇 轻轨站台' },
-    { id: 'eling_1', checkpointId: 3, url: 'https://images.unsplash.com/photo-1560185127-6ed189bf02f4?w=800', desc: '🎨 文创园区' },
-    { id: 'eling_2', checkpointId: 3, url: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=800', desc: '🖼️ 艺术空间' },
-    { id: 'eling_3', checkpointId: 3, url: 'https://images.unsplash.com/photo-1550950158-d0d960dff51b?w=800', desc: '🎭 创业基地' },
-    { id: 'nanshan_1', checkpointId: 4, url: 'https://images.unsplash.com/photo-1506459225024-1428096a4b2e?w=800', desc: '🌳 南山观景台' },
-    { id: 'nanshan_2', checkpointId: 4, url: 'https://images.unsplash.com/photo-1518182170546-0766aaefcd09?w=800', desc: '🌆 城市夜景' },
-    { id: 'nanshan_3', checkpointId: 4, url: 'https://images.unsplash.com/photo-1506459225024-1428096a4b2e?w=800', desc: '🌇 俯瞰全景' },
-    { id: 'hongya_1', checkpointId: 5, url: 'https://images.unsplash.com/photo-1548265047-181289a4168f?w=800', desc: '🌉 洪崖洞' },
-    { id: 'hongya_2', checkpointId: 5, url: 'https://images.unsplash.com/photo-1554672408-730436b60dde?w=800', desc: '🏮 千与千寻' },
-    { id: 'hongya_3', checkpointId: 5, url: 'https://images.unsplash.com/photo-1553913861-c0fddf2166ab?w=800', desc: '🌃 大桥夜景' }
-  ],
-  
-  // 8 条文案
-  shareTexts: [
-    '我在"趣玩重庆一日游"打卡活动中，已经获得 {points} 积分！打卡了重庆地标景点，快来一起探索山城魅力吧！',
-    '🎉 重庆一日游太好玩了！打卡了 {points} 积分，网红景点都打卡成功！这个周末一起来玩！',
-    '🎊 山城重庆之旅完美收官！{points} 积分到手，李子坝轻轨穿楼太震撼了，洪崖洞夜景美到窒息！',
-    '🌟 打卡重庆成功！用双腿丈量这座城市，{points} 积分见证我的山城建功之旅！',
-    '✨ 重庆一日游完美收官！{points} 积分解锁，嘉陵江的夜风、解放碑的繁华、南山的美景，都不虚此行！',
-    '🎈 8D 魔幻城市名不虚传！{points} 积分打卡成功，重庆我还会再来的！',
-    '💫 山城打卡成就达成！{points} 积分收入囊中，重庆的美食美景值得 N 刷！',
-    '🌈 雾都探索完成！{points} 积分到手，重庆的奇妙超出想象！童伴们冲鸭！'
-  ],
-  
-  init() {
-    AppState.selectedImages = [];
-    AppState.currentShareTextIndex = null;
-    this.loadShareData();
-    this.bindShareEvents();
-  },
-  
-  loadShareData() {
-    const saved = localStorage.getItem('share_data');
-    if (saved) {
-      try {
-        const data = JSON.parse(saved);
-        AppState.selectedImages = data.selectedImages || [];
-      } catch(e) {
-        AppState.selectedImages = [];
-      }
-    }
-  },
-  
-  saveShareData() {
-    localStorage.setItem('share_data', JSON.stringify({
-      selectedImages: AppState.selectedImages
-    }));
-  },
-  
-  updateShareContent() {
-    const ptsEl = document.getElementById('share-points');
-    if (ptsEl) ptsEl.textContent = AppState.points;
-    this.renderPhotoCards();
-    this.renderShareText();
-    this.updateSelectionHint();
-  },
-  
-  // 渲染所有 15 张卡片
-  renderPhotoCards() {
-    const slider = document.getElementById('photo-slider-card');
-    if (!slider) return;
+    // 解放碑 - 城市地标
+    { id: 'jfbei_1', checkpointId: 1, url: 'https://picsum.photos/seed/jfbei1/800/600', desc: '🏢 解放碑步行街' },
+    { id: 'jfbei_2', checkpointId: 1, url: 'https://picsum.photos/seed/jfbei2/800/600', desc: '🏙️ 城市商业中心' },
+    { id: 'jfbei_3', checkpointId: 1, url: 'https://picsum.photos/seed/jfbei3/800/600', desc: '🌃 城市夜景' },
     
-    slider.innerHTML = this.landmarkImages.map((img, index) => {
-      const isSelected = AppState.selectedImages.includes(img.id);
-      return `
-        <div class="photo-card ${isSelected ? 'selected-card' : ''}" data-imgid="${img.id}" onclick="ShareManager.toggleSelect('${img.id}')">
-          <img src="${img.url}" alt="${img.desc}" />
-          <div class="checkmark">✓</div>
-        </div>
-      `;
-    }).join('');
-  },
-  
-  // 切换选择
-  toggleSelect(imgId) {
-    const index = AppState.selectedImages.indexOf(imgId);
+    // 李子坝 - 轻轨
+    { id: 'liziba_1', checkpointId: 2, url: 'https://picsum.photos/seed/liziba1/800/600', desc: '🚝 轻轨穿楼' },
+    { id: 'liziba_2', checkpointId: 2, url: 'https://picsum.photos/seed/liziba2/800/600', desc: '🚄 轨道交通' },
+    { id: 'liziba_3', checkpointId: 2, url: 'https://picsum.photos/seed/liziba3/800/600', desc: '🚇 轻轨站台' },
     
-    if (index >= 0) {
-      // 取消选择
-      AppState.selectedImages.splice(index, 1);
-    } else {
-      // 选择新图片
-      if (AppState.selectedImages.length >= 3) {
-        alert('ℹ️ 最多只能选择 3 张图片');
-        return;
-      }
-      AppState.selectedImages.push(imgId);
-    }
+    // 鹅岭二厂 - 文创
+    { id: 'eling_1', checkpointId: 3, url: 'https://picsum.photos/seed/eling1/800/600', desc: '🎨 文创园区' },
+    { id: 'eling_2', checkpointId: 3, url: 'https://picsum.photos/seed/eling2/800/600', desc: '🖼️ 艺术空间' },
+    { id: 'eling_3', checkpointId: 3, url: 'https://picsum.photos/seed/eling3/800/600', desc: '🎭 创意基地' },
     
-    this.renderPhotoCards();
-    this.saveShareData();
-    this.updateSelectionHint();
-  },
-  
-  // 更新选择提示
-  updateSelectionHint() {
-    let hintEl = document.querySelector('.select-hint');
-    if (!hintEl) {
-      // 创建提示元素
-      hintEl = document.createElement('div');
-      hintEl.className = 'select-hint';
-      const container = document.getElementById('photo-slider-card').parentNode;
-      container.insertBefore(hintEl, container.firstChild);
-    }
+    // 南山 - 观景
+    { id: 'nanshan_1', checkpointId: 4, url: 'https://picsum.photos/seed/nanshan1/800/600', desc: '🌳 南山观景台' },
+    { id: 'nanshan_2', checkpointId: 4, url: 'https://picsum.photos/seed/nanshan2/800/600', desc: '🌆 城市夜景' },
+    { id: 'nanshan_3', checkpointId: 4, url: 'https://picsum.photos/seed/nanshan3/800/600', desc: '🌇 俯瞰全景' },
     
-    const count = AppState.selectedImages.length;
-    hintEl.innerHTML = `已选择 <span class="count">${count}</span>/3 张`;
-  },
-  
-  // 渲染随机文案
-  renderShareText() {
-    const el = document.getElementById('share-text-content');
-    if (!el) return;
-    
-    if (AppState.currentShareTextIndex === null || 
-        AppState.currentShareTextIndex >= this.shareTexts.length) {
-      AppState.currentShareTextIndex = Math.floor(Math.random() * this.shareTexts.length);
-    }
-    
-    const text = this.shareTexts[AppState.currentShareTextIndex]
-      .replace('{points}', AppState.points.toString());
-    
-    el.innerHTML = `<p>${text}</p>`;
-  },
-  
-  // 刷新文案
-  refreshText() {
-    const newIndex = Math.floor(Math.random() * this.shareTexts.length);
-    AppState.currentShareTextIndex = newIndex;
-    this.renderShareText();
-  },
-  
-  bindShareEvents() {
-    // 换一个按钮
-    const refreshBtn = document.getElementById('refresh-text-btn');
-    if (refreshBtn) {
-      refreshBtn.onclick = () => this.refreshText();
-    }
-    
-    // 去分享按钮
-    const shareBtn = document.getElementById('share-main-btn');
-    if (shareBtn) {
-      shareBtn.onclick = () => {
-        if (AppState.selectedImages.length === 0) {
-          alert('ℹ️ 请至少选择 1 张图片');
-          return;
-        }
-        
-        const text = document.getElementById('share-text-content').textContent;
-        alert('📤 长按复制下方文案，然后分享到朋友圈：\n\n' + text);
-      };
-    }
-  }
-};
-// ==================== 初始化 ====================
+    // 洪崖洞 - 夜景
+    { id: 'hongya_1', checkpointId: 5, url: 'https://picsum.photos/seed/hongya1/800/600', desc: '🌉 洪崖洞' },
+    { id: 'hongya_2', checkpointId: 5, url: 'https://picsum.photos/seed/hongya2/800/600', desc: '🏮 千与千寻' },
+    { id: 'hongya_3', checkpointId: 5, url: 'https://picsum.photos/seed/hongya3/800/600', desc: '🌃 大桥夜景' }
+  ],// ==================== 初始化 ====================
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('🚀 开始初始化...');
   console.log('='.repeat(50));
