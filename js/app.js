@@ -171,33 +171,71 @@ const PageManager = {
   
   // 切换页面
   switchPage(pageName) {
-    // 隐藏所有页面
-    document.querySelectorAll('.page').forEach(page => {
-      page.classList.remove('active');
-    });
-    
-    // 显示目标页面
+    const currentPage = document.querySelector('.page.active');
     const targetPage = document.getElementById(`${pageName}-page`);
-    if (targetPage) {
-      targetPage.classList.add('active');
+    
+    // 已经是当前页面，不重复切换
+    if (targetPage && targetPage.classList.contains('active')) {
+      return;
     }
+    
+    console.log(`🔄 切换到页面：${pageName}`);
+    
+    // 隐藏当前页面
+    if (currentPage) {
+      currentPage.classList.remove('active');
+    }
+    
+    // 显示目标页面（稍微延迟，营造过渡效果）
+    setTimeout(() => {
+      if (targetPage) {
+        targetPage.classList.add('active');
+        // 滚动到顶部
+        targetPage.scrollTop = 0;
+      }
+    }, 50);
     
     // 更新导航状态
     document.querySelectorAll('.nav-item').forEach(item => {
       item.classList.remove('active');
       if (item.dataset.page === pageName) {
         item.classList.add('active');
+        // 添加点击反馈动画
+        const icon = item.querySelector('.nav-icon');
+        if (icon) {
+          icon.style.animation = 'navBounce 0.4s ease';
+          setTimeout(() => {
+            icon.style.animation = '';
+          }, 400);
+        }
       }
     });
     
+    // 震动反馈（仅支持设备）
+    if (navigator.vibrate) {
+      navigator.vibrate(10);
+    }
+    
     // 页面特定更新
     if (pageName === 'prize') {
-      PrizeManager.updatePrizeCards();
-      PrizeManager.updateVoucherList();
+      setTimeout(() => {
+        PrizeManager.updatePrizeCards();
+        PrizeManager.updateVoucherList();
+      }, 100);
     } else if (pageName === 'share') {
-      ShareManager.updateShareContent();
+      setTimeout(() => {
+        ShareManager.updateShareContent();
+      }, 100);
     } else if (pageName === 'checkpoint') {
-      CheckpointManager.renderCheckpointList();
+      setTimeout(() => {
+        CheckpointManager.renderCheckpointList();
+      }, 100);
+    }
+    
+    // 保存到历史记录（支持前进后退）
+    if (window.history.pushState) {
+      const newUrl = `${window.location.pathname}?page=${pageName}`;
+      window.history.pushState({page: pageName}, '', newUrl);
     }
   },
   
@@ -305,19 +343,127 @@ const CheckpointManager = {
     }
   },
   
-  // 打开高德导航
+  // 打开导航（优化手机版）
   openNavigation(checkpoint) {
+    const ua = navigator.userAgent.toLowerCase();
+    const isMobile = /mobile|android|iphone|ipad/i.test(ua);
+    
+    // 准备导航数据
     const address = encodeURIComponent(checkpoint.address);
     const name = encodeURIComponent(checkpoint.name);
-    const gaodeUrl = `https://uri.amap.com/navigation?to=${address}&toName=${name}`;
+    const lat = ''; // 如果有经纬度可以添加
+    const lng = '';
     
-    // 在新窗口打开高德导航
-    window.open(gaodeUrl, '_blank');
+    // 构建不同地图 App 的导航链接
+    const navLinks = {
+      gaode: `https://uri.amap.com/navigation?to=${address}&toName=${name}`,
+      baidu: `http://api.map.baidu.com/direction?destination=${address}&destination_name=${name}`,
+      tencent: `https://apis.map.qq.com/uri/v1/navigator?addr=${address}&name=${name}`,
+      apple: `http://maps.apple.com/?q=${name}&address=${address}`
+    };
     
-    // 显示提示
+    if (isMobile) {
+      // 手机版：直接唤起地图 App
+      this.showMobileNavigation(navLinks, checkpoint);
+    } else {
+      // 电脑版：打开高德地图网页
+      window.open(navLinks.gaode, '_blank');
+      setTimeout(() => {
+        alert(`🗺️ 已打开高德地图\n\n目的地：${checkpoint.name}\n地址：${checkpoint.address}\n\n📱 请在手机上继续导航`);
+      }, 300);
+    }
+  },
+  
+  // 手机导航选择器
+  showMobileNavigation(links, checkpoint) {
+    // 创建导航选择弹窗
+    const modalHtml = `
+      <div class="nav-modal-overlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:10000;display:flex;justify-content:center;align-items:center;">
+        <div style="background:white;border-radius:16px;padding:24px;max-width:80%;margin:20px;">
+          <h3 style="margin:0 0 16px 0;font-size:18px;text-align:center;">🗺️ 选择导航方式</h3>
+          <p style="margin:0 0 20px 0;font-size:14px;color:#666;text-align:center;">${checkpoint.name}</p>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <button class="nav-btn-gaode" style="padding:12px 20px;background:#168EEA;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;">📍 高德地图</button>
+            <button class="nav-btn-baidu" style="padding:12px 20px;background:#2E67E8;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;">🔵 百度地图</button>
+            <button class="nav-btn-tencent" style="padding:12px 20px;background:#00B365;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;">💚 腾讯地图</button>
+            ${navigator.platform.includes('iPhone') || navigator.platform.includes('iPad') ? 
+              `<button class="nav-btn-apple" style="padding:12px 20px;background:#5AC8FA;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;">🍎 Apple 地图</button>` : ''}
+            <button class="nav-btn-cancel" style="padding:12px 20px;background:#f5f5f5;color:#333;border:none;border-radius:8px;font-size:16px;cursor:pointer;margin-top:8px;">取消</button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    // 添加到页面
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = modalHtml;
+    document.body.appendChild(tempDiv);
+    
+    // 绑定事件
+    const overlay = tempDiv.querySelector('.nav-modal-overlay');
+    
+    overlay.querySelector('.nav-btn-gaode').onclick = () => {
+      window.open(links.gaode, '_blank');
+      overlay.remove();
+      this.showToast('正在打开高德地图...');
+    };
+    
+    overlay.querySelector('.nav-btn-baidu').onclick = () => {
+      window.open(links.baidu, '_blank');
+      overlay.remove();
+      this.showToast('正在打开百度地图...');
+    };
+    
+    overlay.querySelector('.nav-btn-tencent').onclick = () => {
+      window.open(links.tencent, '_blank');
+      overlay.remove();
+      this.showToast('正在打开腾讯地图...');
+    };
+    
+    const appleBtn = overlay.querySelector('.nav-btn-apple');
+    if (appleBtn) {
+      appleBtn.onclick = () => {
+        window.open(links.apple, '_blank');
+        overlay.remove();
+        this.showToast('正在打开 Apple 地图...');
+      };
+    }
+    
+    overlay.querySelector('.nav-btn-cancel').onclick = () => {
+      overlay.remove();
+    };
+    
+    // 点击背景关闭
+    overlay.onclick = (e) => {
+      if (e.target === overlay) {
+        overlay.remove();
+      }
+    };
+  },
+  
+  // 显示提示消息
+  showToast(message, duration = 2000) {
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 24px;
+      font-size: 14px;
+      z-index: 10001;
+      transition: opacity 0.3s;
+    `;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
     setTimeout(() => {
-      alert(`🗺️ 正在导航到：${checkpoint.name}\n\n地址：${checkpoint.address}\n\n📱 请在手机上打开高德地图 App`);
-    }, 500);
+      toast.style.opacity = '0';
+      setTimeout(() => toast.remove(), 300);
+    }, duration);
   },
   
   // 显示打卡点详情
