@@ -351,89 +351,71 @@ const CheckpointManager = {
     // 准备导航数据
     const address = encodeURIComponent(checkpoint.address);
     const name = encodeURIComponent(checkpoint.name);
-    const lat = ''; // 如果有经纬度可以添加
-    const lng = '';
     
-    // 构建不同地图 App 的导航链接
-    const navLinks = {
-      gaode: `https://uri.amap.com/navigation?to=${address}&toName=${name}`,
-      baidu: `http://api.map.baidu.com/direction?destination=${address}&destination_name=${name}`,
-      tencent: `https://apis.map.qq.com/uri/v1/navigator?addr=${address}&name=${name}`,
-      apple: `http://maps.apple.com/?q=${name}&address=${address}`
-    };
+    // 高德地图导航 URL Schema
+    const gaodeUrl = isMobile 
+      ? `iosamap://navi?sourceApplication=funinChongqing&poiname=${name}&lat=0&lon=0&dev=0`  // iOS
+      : `androidamap://navi?sourceApplication=funinChongqing&poiname=${name}&lat=0&lon=0&dev=0`;  // Android
+    
+    // 备用网页版（如果 App 没安装会跳转到网页）
+    const webUrl = `https://uri.amap.com/navigation?to=${address}&toName=${name}`;
     
     if (isMobile) {
-      // 手机版：直接唤起地图 App
-      this.showMobileNavigation(navLinks, checkpoint);
+      // 手机版：尝试唤起高德地图 App，失败则打开网页版
+      this.openGaodeNavigation(gaodeUrl, webUrl, checkpoint);
     } else {
       // 电脑版：打开高德地图网页
-      window.open(navLinks.gaode, '_blank');
-      setTimeout(() => {
-        alert(`🗺️ 已打开高德地图\n\n目的地：${checkpoint.name}\n地址：${checkpoint.address}\n\n📱 请在手机上继续导航`);
-      }, 300);
+      window.open(webUrl, '_blank');
+      this.showToast('🗺️ 已打开高德地图，请在手机上继续导航');
     }
   },
   
-  // 手机导航选择器
-  showMobileNavigation(links, checkpoint) {
-    // 创建导航选择弹窗
+  // 打开高德地图（优先 App，其次网页）
+  openGaodeNavigation(appUrl, webUrl, checkpoint) {
+    console.log('🗺️ 打开导航：', checkpoint.name);
+    
+    // 先尝试打开 App
+    window.location.href = appUrl;
+    
+    // 1.5 秒后如果没成功，显示提示并提供网页版按钮
+    setTimeout(() => {
+      // 如果用户还在页面（说明 App 没唤起），显示网页版提示
+      this.showGaodeWebOption(webUrl, checkpoint);
+    }, 1500);
+  },
+  
+  // 显示网页版导航选项
+  showGaodeWebOption(webUrl, checkpoint) {
+    // 创建提示弹窗
     const modalHtml = `
       <div class="nav-modal-overlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:10000;display:flex;justify-content:center;align-items:center;">
-        <div style="background:white;border-radius:16px;padding:24px;max-width:80%;margin:20px;">
-          <h3 style="margin:0 0 16px 0;font-size:18px;text-align:center;">🗺️ 选择导航方式</h3>
-          <p style="margin:0 0 20px 0;font-size:14px;color:#666;text-align:center;">${checkpoint.name}</p>
+        <div style="background:white;border-radius:16px;padding:24px;max-width:85%;margin:20px;min-width:280px;">
+          <h3 style="margin:0 0 12px 0;font-size:18px;text-align:center;">🗺️ 正在导航到</h3>
+          <p style="margin:0 0 20px 0;font-size:16px;color:#666;text-align:center;font-weight:600;">${checkpoint.name}</p>
           <div style="display:flex;flex-direction:column;gap:12px;">
-            <button class="nav-btn-gaode" style="padding:12px 20px;background:#168EEA;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;">📍 高德地图</button>
-            <button class="nav-btn-baidu" style="padding:12px 20px;background:#2E67E8;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;">🔵 百度地图</button>
-            <button class="nav-btn-tencent" style="padding:12px 20px;background:#00B365;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;">💚 腾讯地图</button>
-            ${navigator.platform.includes('iPhone') || navigator.platform.includes('iPad') ? 
-              `<button class="nav-btn-apple" style="padding:12px 20px;background:#5AC8FA;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;">🍎 Apple 地图</button>` : ''}
-            <button class="nav-btn-cancel" style="padding:12px 20px;background:#f5f5f5;color:#333;border:none;border-radius:8px;font-size:16px;cursor:pointer;margin-top:8px;">取消</button>
+            <button class="nav-btn-gaode-web" style="padding:14px 20px;background:#168EEA;color:white;border:none;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;">📍 在浏览器中打开高德地图</button>
+            <button class="nav-btn-cancel" style="padding:12px 20px;background:#f5f5f5;color:#666;border:none;border-radius:8px;font-size:15px;cursor:pointer;">取消</button>
           </div>
         </div>
       </div>
     `;
     
-    // 添加到页面
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = modalHtml;
     document.body.appendChild(tempDiv);
     
-    // 绑定事件
     const overlay = tempDiv.querySelector('.nav-modal-overlay');
     
-    overlay.querySelector('.nav-btn-gaode').onclick = () => {
-      window.open(links.gaode, '_blank');
+    overlay.querySelector('.nav-btn-gaode-web').onclick = () => {
+      window.open(webUrl, '_blank');
       overlay.remove();
-      this.showToast('正在打开高德地图...');
+      this.showToast('🗺️ 正在打开高德地图...');
     };
-    
-    overlay.querySelector('.nav-btn-baidu').onclick = () => {
-      window.open(links.baidu, '_blank');
-      overlay.remove();
-      this.showToast('正在打开百度地图...');
-    };
-    
-    overlay.querySelector('.nav-btn-tencent').onclick = () => {
-      window.open(links.tencent, '_blank');
-      overlay.remove();
-      this.showToast('正在打开腾讯地图...');
-    };
-    
-    const appleBtn = overlay.querySelector('.nav-btn-apple');
-    if (appleBtn) {
-      appleBtn.onclick = () => {
-        window.open(links.apple, '_blank');
-        overlay.remove();
-        this.showToast('正在打开 Apple 地图...');
-      };
-    }
     
     overlay.querySelector('.nav-btn-cancel').onclick = () => {
       overlay.remove();
     };
     
-    // 点击背景关闭
     overlay.onclick = (e) => {
       if (e.target === overlay) {
         overlay.remove();
