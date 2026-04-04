@@ -9,25 +9,45 @@ const SupabaseManager = {
   isAlipay: false,
   isReady: false,
   
-  // 初始化（异步）
+  // 初始化（异步，带超时保护）
   async init() {
     console.log('🚀 SupabaseManager 初始化...');
     console.log('='.repeat(50));
     
-    if (typeof supabase !== 'undefined') {
-      this.supabase = supabase.createClient(this.supabaseUrl, this.supabaseKey);
-      console.log('✅ Supabase 客户端创建成功');
-    } else {
-      console.error('❌ Supabase JS SDK 未加载');
+    try {
+      // 检查 Supabase SDK 是否加载
+      if (typeof supabase !== 'undefined') {
+        // 设置超时，防止网络请求卡住
+        const initPromise = (async () => {
+          this.supabase = supabase.createClient(this.supabaseUrl, this.supabaseKey);
+          console.log('✅ Supabase 客户端创建成功');
+          
+          this.detectAlipay();
+          await this.getUserId();
+          this.isReady = true;
+          
+          console.log('🔐 支付宝环境:', this.isAlipay ? '✅ 是' : '❌ 否');
+          console.log('👤 用户 ID:', this.userId);
+          console.log('='.repeat(50));
+        })();
+        
+        // 5 秒超时保护
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Supabase 初始化超时')), 5000);
+        });
+        
+        await Promise.race([initPromise, timeoutPromise]);
+      } else {
+        console.warn('⚠️ Supabase JS SDK 未加载，使用本地存储模式');
+        this.isReady = true;
+        this.userId = 'local_' + Date.now();
+      }
+    } catch (error) {
+      console.error('❌ Supabase 初始化失败:', error.message);
+      console.warn('⚠️ 降级到本地存储模式');
+      this.isReady = true;
+      this.userId = 'local_' + Date.now();
     }
-    
-    this.detectAlipay();
-    await this.getUserId();
-    this.isReady = true;
-    
-    console.log('🔐 支付宝环境:', this.isAlipay ? '✅ 是' : '❌ 否');
-    console.log('👤 用户 ID:', this.userId);
-    console.log('='.repeat(50));
   },
   
   // 检测支付宝环境

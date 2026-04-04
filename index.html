@@ -309,23 +309,47 @@
     </div>
   </div>
 
-  <!-- Supabase JS SDK - 使用国内 CDN 镜像（如果访问失败则使用本地存储） -->
-<script src="https://fastly.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Supabase JS SDK - 使用国内可访问的 CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0"></script>
 <script src="js/supabase-manager.js"></script>
 <script src="js/app.js"></script>
 
-<!-- 隐藏加载动画 -->
+<!-- 隐藏加载动画（增加超时保护，防止 CDN 加载失败导致白屏） -->
 <script>
-  window.addEventListener('load', function() {
-    setTimeout(function() {
+  (function() {
+    var hasHidden = false;
+    
+    function hideLoading() {
+      if (hasHidden) return;
+      hasHidden = true;
+      
       var loading = document.getElementById('loading-screen');
       if (loading) {
         loading.classList.add('hidden');
         setTimeout(function() { loading.style.display = 'none'; }, 500);
       }
-      document.getElementById('app').style.opacity = '1';
-    }, 300);
-  });
+      var app = document.getElementById('app');
+      if (app) app.style.opacity = '1';
+      console.log('✅ 页面加载完成');
+    }
+    
+    // 方式 1: window load 事件
+    if (window.addEventListener) {
+      window.addEventListener('load', hideLoading);
+    }
+    
+    // 方式 2: 超时保护（5 秒后强制显示页面，防止 CDN 失败导致白屏）
+    setTimeout(function() {
+      hideLoading();
+    }, 5000);
+    
+    // 方式 3: DOMContentLoaded（如果 JS 加载慢）
+    if (document.addEventListener) {
+      document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(hideLoading, 1000);
+      });
+    }
+  })();
 </script>
 </body>
 </html>
