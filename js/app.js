@@ -1,39 +1,48 @@
-// ==================== 应用状态管理 ====================
+// 打卡活动 H5 - 主逻辑
+// 版本：b4b4350 完整动画导航版 + 新版分享功能（15 张图选 3 张）
+
+// ==================== 数据状态 ====================
 const AppState = {
+  // 当前用户 ID
   userId: null,
-  points: 0,
-  checkedCheckpoints: [],
-  achievements: [],
-  selectedImages: [],
-  customShareText: null,
   
-  // 必打卡点
+  // 用户积分
+  points: 0,
+  
+  // 已打卡点位
+  checkedCheckpoints: [],
+  
+  // 必打卡点配置（5 个核心打卡点）
   mandatoryCheckpoints: [
-    { id: 1, name: '解放碑步行街', icon: '🏢', lat: 29.557849, lng: 106.577736, points: 5, checked: false },
-    { id: 2, name: '李子坝轻轨站', icon: '🚝', lat: 29.556876, lng: 106.537612, points: 3, checked: false },
-    { id: 3, name: '鹅岭二厂文创园', icon: '🎨', lat: 29.559523, lng: 106.551849, points: 2, checked: false },
-    { id: 4, name: '南山一棵树观景台', icon: '🌳', lat: 29.554078, lng: 106.592418, points: 3, checked: false },
-    { id: 5, name: '洪崖洞 + 千厮门大桥', icon: '🌉', lat: 29.564864, lng: 106.579963, points: 4, checked: false }
+    { id: 1, name: '解放碑步行街', icon: '🏢', points: 15, checked: false, time: '8:00-9:30', period: '上午', desc: '重庆市渝中区解放碑商业步行街', address: '重庆市渝中区解放碑商业步行街', pos: { left: '18%', top: '32%' } },
+    { id: 2, name: '李子坝轻轨站', icon: '🚝', points: 15, checked: false, time: '9:30-10:30', period: '上午', desc: '轻轨 2 号线穿楼而过的奇观', address: '重庆市渝中区李子坝正站', pos: { left: '78%', top: '38%' } },
+    { id: 3, name: '鹅岭二厂文创园', icon: '🎨', points: 10, checked: false, time: '10:30-12:00', period: '上午', desc: '文艺青年必去的文创园', address: '重庆市渝中区鹅岭正街 1 号', pos: { left: '25%', top: '45%' } },
+    { id: 4, name: '南山一棵树观景台', icon: '🌳', points: 15, checked: false, time: '19:00-20:30', period: '晚上', desc: '俯瞰重庆夜景的最佳位置', address: '重庆市南岸区南山公园路', pos: { left: '65%', top: '70%' } },
+    { id: 5, name: '洪崖洞 + 千厮门大桥', icon: '🌉', points: 15, checked: false, time: '20:30-22:00', period: '晚上', desc: '现实版千与千寻', address: '重庆市渝中区沧白路', pos: { left: '45%', top: '25%' } }
   ],
   
   // 普通打卡点
   normalCheckpoints: [
-    { id: 6, name: '磁器口古镇', icon: '⛩️', lat: 29.579833, lng: 106.450806, points: 1, checked: false },
-    { id: 7, name: '白公馆', icon: '🏛️', lat: 29.572083, lng: 106.432915, points: 1, checked: false },
-    { id: 8, name: '渣滓洞', icon: '⛏️', lat: 29.574871, lng: 106.434875, points: 1, checked: false },
-    { id: 9, name: '四川美术学院', icon: '🎨', lat: 29.558953, lng: 106.552654, points: 1, checked: false },
-    { id: 10, name: '长江索道', icon: '🚠', lat: 29.568776, lng: 106.584738, points: 1, checked: false },
-    { id: 11, name: '朝天门广场', icon: '⛴️', lat: 29.565823, lng: 106.588576, points: 1, checked: false },
-    { id: 12, name: '一棵树夜景', icon: '🌃', lat: 29.554346, lng: 106.592267, points: 1, checked: false }
+    { id: 6, name: '磁器口古镇', icon: '⛩️', points: 5, checked: false, address: '重庆市沙坪坝区磁器口' },
+    { id: 7, name: '白公馆', icon: '🏛️', points: 5, checked: false, address: '重庆市沙坪坝区壮志路' },
+    { id: 8, name: '渣滓洞', icon: '⛏️', points: 5, checked: false, address: '重庆市沙坪坝区渣滓洞' },
+    { id: 9, name: '四川美术学院', icon: '🎨', points: 5, checked: false, address: '重庆市九龙坡区黄桷坪' },
+    { id: 10, name: '长江索道', icon: '🚠', points: 5, checked: false, address: '重庆市渝中区长江滨江路' },
+    { id: 11, name: '朝天门广场', icon: '⛴️', points: 5, checked: false, address: '重庆市渝中区朝千路' },
+    { id: 12, name: '一棵树夜景', icon: '🌃', points: 5, checked: false, address: '重庆市南岸区龙黄公路' }
   ],
   
   // 奖品配置
   prizes: [
-    { id: 1, name: '重庆文创纪念品', points: 5, vouchers: [], icon: '🧸' },
-    { id: 2, name: '网红奶茶券', points: 10, vouchers: [], icon: '🧋' },
-    { id: 3, name: '火锅代金券', points: 20, vouchers: [], icon: '🍲' },
-    { id: 4, name: '神秘大奖', points: 30, vouchers: [], icon: '🎁' }
-  ]
+    { id: 1, name: '重庆文创纪念品', points: 20, vouchers: [], icon: '🧸' },
+    { id: 2, name: '网红奶茶券', points: 40, vouchers: [], icon: '🧋' },
+    { id: 3, name: '火锅代金券', points: 80, vouchers: [], icon: '🍲' },
+    { id: 4, name: '神秘大奖', points: 120, vouchers: [], icon: '🎁' }
+  ],
+  
+  // 已选择的分享图片（最多 3 张）
+  selectedImages: [],
+  customShareText: null
 };
 
 // ==================== Supabase 管理 ====================
@@ -44,14 +53,18 @@ const SupabaseManager = {
   userId: null,
   
   async init() {
+    console.log('🚀 SupabaseManager 初始化...');
     if (typeof supabase !== 'undefined') {
       this.supabase = supabase.createClient(this.supabaseUrl, this.supabaseKey);
       window.supabaseClient = this.supabase;
       await this.getUserId();
+      console.log('✅ Supabase 客户端创建成功');
     } else {
+      console.warn('⚠️ Supabase SDK 未加载');
       this.userId = 'local_' + Date.now();
     }
     AppState.userId = this.userId;
+    console.log('👤 用户 ID:', this.userId);
   },
   
   async getUserId() {
@@ -60,148 +73,144 @@ const SupabaseManager = {
   }
 };
 
-// ==================== 页面管理 ====================
-const PageManager = {
-  switchPage(pageName) {
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+// ==================== 打卡点管理 ====================
+const CheckpointManager = {
+  // 渲染地图标记
+  renderMap() {
+    const mapWrapper = document.getElementById('checkin-map');
+    if (!mapWrapper) return;
     
-    const targetPage = document.getElementById(pageName + '-page');
-    if (targetPage) targetPage.classList.add('active');
+    // 清空旧标记
+    const bgElement = mapWrapper.querySelector('.map-background');
+    const mapImage = mapWrapper.querySelector('.map-image');
+    mapWrapper.innerHTML = '';
+    if (bgElement) mapWrapper.appendChild(bgElement);
+    if (mapImage) mapWrapper.appendChild(mapImage);
     
-    const navItem = document.querySelector(`.nav-item[data-page="${pageName}"]`);
-    if (navItem) navItem.classList.add('active');
-    
-    // if (navigator.vibrate) navigator.vibrate(10); // 暂时禁用，避免未交互时报错
-    
-    if (pageName === 'share' && window.ShareManager) {
-      setTimeout(() => ShareManager.renderSelectedPhotos(), 100);
+    // 添加打卡点标记
+    AppState.mandatoryCheckpoints.forEach((cp, index) => {
+      const marker = document.createElement('div');
+      marker.className = `checkpoint-marker ${cp.checked ? 'checked' : ''}`;
+      marker.style.left = cp.pos.left;
+      marker.style.top = cp.pos.top;
+      marker.textContent = cp.checked ? '✅' : cp.icon;
+      marker.title = `${cp.name}\n📍 ${cp.address}`;
+      marker.style.animationDelay = `${index * 0.3}s`;
+      
+      marker.addEventListener('click', () => {
+        this.openNavigation(cp);
+      });
+      
+      mapWrapper.appendChild(marker);
+    });
+  },
+  
+  // 打开导航
+  openNavigation(checkpoint) {
+    if (!navigator.geolocation) {
+      alert('您的设备不支持地理位置功能');
+      return;
     }
     
-    if (window.history.pushState) {
-      window.history.pushState({page: pageName}, '', `?page=${pageName}`);
+    const destName = encodeURIComponent(checkpoint.name);
+    const destAddress = encodeURIComponent(checkpoint.address);
+    const navUrl = `https://uri.amap.com/navigation?to=${destAddress}&toName=${destName}&from=0&dev=0`;
+    
+    // 手机版直接跳转，电脑版打开新窗口
+    if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+      window.location.href = navUrl;
+    } else {
+      window.open(navUrl, '_blank');
     }
   },
   
+  // 处理 URL 打卡参数
+  handleCheckinFromURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const checkinId = urlParams.get('checkin');
+    if (!checkinId) return;
+    
+    const index = parseInt(checkinId) - 1;
+    if (index >= 0 && index < AppState.mandatoryCheckpoints.length) {
+      const cp = AppState.mandatoryCheckpoints[index];
+      if (!cp.checked) {
+        cp.checked = true;
+        AppState.points += cp.points;
+        AppState.checkedCheckpoints.push(cp.id);
+        this.renderMap();
+        PageManager.updateAllDisplays();
+      }
+    }
+  }
+};
+
+// ==================== 页面管理 ====================
+const PageManager = {
+  // 切换页面
+  switchPage(pageName) {
+    const pages = document.querySelectorAll('.page');
+    const navItems = document.querySelectorAll('.nav-item');
+    
+    pages.forEach(p => {
+      p.classList.remove('active');
+      if (p.id === `${pageName}-page`) {
+        p.classList.add('active');
+      }
+    });
+    
+    navItems.forEach(item => {
+      item.classList.remove('active');
+      if (item.dataset.page === pageName) {
+        item.classList.add('active');
+      }
+    });
+    
+    // 页面特定更新
+    if (pageName === 'prize') {
+      setTimeout(() => PrizeManager.updatePrizeCards(), 100);
+    } else if (pageName === 'share') {
+      setTimeout(() => ShareManager.updateShareContent(), 100);
+    }
+    
+    // 更新 URL
+    if (window.history.pushState) {
+      window.history.pushState({ page: pageName }, '', `${window.location.pathname}?page=${pageName}`);
+    }
+  },
+  
+  // 绑定导航事件
   bindNavEvents() {
     document.querySelectorAll('.nav-item').forEach(item => {
       item.addEventListener('click', () => {
         this.switchPage(item.dataset.page);
       });
     });
+    
+    // 处理浏览器前进/后退
+    window.addEventListener('popstate', (event) => {
+      if (event.state && event.state.page) {
+        this.switchPage(event.state.page);
+      }
+    });
   },
   
+  // 更新所有显示
   updateAllDisplays() {
     const totalPoints = document.getElementById('total-points');
     if (totalPoints) totalPoints.textContent = AppState.points;
-  }
-};
-
-// ==================== 打卡点管理 ====================
-const CheckpointManager = {
-  // 渲染首页地图标记
-  renderMapMarkers() {
-    const mapContainer = document.getElementById('checkin-map');
-    if (!mapContainer) return;
-    
-    // 清除旧标记
-    mapContainer.querySelectorAll('.checkpoint-marker').forEach(m => m.remove());
-    
-    // 添加必打卡点标记
-    AppState.mandatoryCheckpoints.forEach((cp, idx) => {
-      const marker = document.createElement('div');
-      marker.className = `checkpoint-marker ${cp.checked ? 'checked' : ''} mandatory`;
-      marker.innerHTML = cp.icon;
-      marker.style.left = `${20 + idx * 15}%`;
-      marker.style.top = `${30 + (idx % 3) * 20}%`;
-      marker.onclick = () => this.toggleCheckin(cp.id, 'mandatory');
-      marker.title = cp.name;
-      mapContainer.appendChild(marker);
-    });
-  },
-  
-  // 渲染打卡点列表
-  renderCheckpointList() {
-    const list = document.getElementById('checkpoint-list');
-    if (!list) return;
-    
-    let html = '<h3>必打卡点</h3>';
-    AppState.mandatoryCheckpoints.forEach(cp => {
-      html += `
-        <div class="checkpoint-item ${cp.checked ? 'checked' : ''}" data-id="${cp.id}">
-          <div class="checkpoint-info">
-            <div class="checkpoint-icon">${cp.icon}</div>
-            <div class="checkpoint-details">
-              <div class="checkpoint-name">${cp.name}</div>
-              <div class="checkpoint-points">${cp.points} 积分</div>
-            </div>
-          </div>
-          <button class="checkin-btn ${cp.checked ? 'checked' : ''}" onclick="CheckpointManager.toggleCheckin(${cp.id}, 'mandatory')">
-            ${cp.checked ? '✅' : '📍'}
-          </button>
-        </div>
-      `;
-    });
-    
-    html += '<h3 style="margin-top:20px;">普通打卡点</h3>';
-    AppState.normalCheckpoints.forEach(cp => {
-      html += `
-        <div class="checkpoint-item ${cp.checked ? 'checked' : ''}" data-id="${cp.id}">
-          <div class="checkpoint-info">
-            <div class="checkpoint-icon">${cp.icon}</div>
-            <div class="checkpoint-details">
-              <div class="checkpoint-name">${cp.name}</div>
-              <div class="checkpoint-points">${cp.points} 积分</div>
-            </div>
-          </div>
-          <button class="checkin-btn ${cp.checked ? 'checked' : ''}" onclick="CheckpointManager.toggleCheckin(${cp.id}, 'normal')">
-            ${cp.checked ? '✅' : '📍'}
-          </button>
-        </div>
-      `;
-    });
-    
-    list.innerHTML = html;
-  },
-  
-  toggleCheckin(id, type) {
-    const checkpoints = type === 'mandatory' ? AppState.mandatoryCheckpoints : AppState.normalCheckpoints;
-    const cp = checkpoints.find(c => c.id === id);
-    if (!cp) return;
-    
-    cp.checked = !cp.checked;
-    
-    if (cp.checked) {
-      AppState.points += cp.points;
-      AppState.checkedCheckpoints.push(id);
-      // if (navigator.vibrate) navigator.vibrate(50);
-    } else {
-      AppState.points -= cp.points;
-      const idx = AppState.checkedCheckpoints.indexOf(id);
-      if (idx > -1) AppState.checkedCheckpoints.splice(idx, 1);
-    }
-    
-    this.renderCheckpointList();
-    PageManager.updateAllDisplays();
-  },
-  
-  getCheckedCount() {
-    return [...AppState.mandatoryCheckpoints, ...AppState.normalCheckpoints].filter(c => c.checked).length;
-  },
-  
-  getCheckedCount() {
-    return [...AppState.mandatoryCheckpoints, ...AppState.normalCheckpoints].filter(c => c.checked).length;
+    CheckpointManager.renderMap();
   }
 };
 
 // ==================== 奖品管理 ====================
 const PrizeManager = {
   updatePrizeCards() {
-    const cards = document.querySelectorAll('.prize-card');
-    cards.forEach((card, idx) => {
-      const prize = AppState.prizes[idx];
-      if (!prize) return;
+    AppState.prizes.forEach((prize, index) => {
+      const card = document.getElementById(`prize-card-${index + 1}`);
+      if (!card) return;
       
+      const canRedeem = AppState.points >= prize.points;
+      const btn = card.querySelector('.redeem-btn');
       const ptsEl = card.querySelector('.prize-points');
       const nameEl = card.querySelector('.prize-name');
       const iconEl = card.querySelector('.prize-icon');
@@ -209,24 +218,23 @@ const PrizeManager = {
       if (ptsEl) ptsEl.textContent = `${prize.points} 积分`;
       if (nameEl) nameEl.textContent = prize.name;
       if (iconEl) iconEl.textContent = prize.icon;
+      
+      if (btn) {
+        btn.disabled = !canRedeem;
+        btn.textContent = canRedeem ? '立即兑奖' : '积分不足';
+      }
     });
-  },
-  
-  updateVoucherList() {
-    const list = document.getElementById('voucher-list');
-    if (!list) return;
-    list.innerHTML = '<p class="empty-tip">暂无可用兑奖券</p>';
   }
 };
 
-// ==================== 分享管理 ====================
+// ==================== 分享管理 - 新版（15 张图选 3 张） ====================
 const ShareManager = {
   checkpoints: [
-    { id: 1, name: '解放碑步行街', icon: '🏢' },
-    { id: 2, name: '李子坝轻轨站', icon: '🚝' },
-    { id: 3, name: '鹅岭二厂文创园', icon: '🎨' },
-    { id: 4, name: '南山一棵树观景台', icon: '🌳' },
-    { id: 5, name: '洪崖洞 + 千厮门大桥', icon: '🌉' }
+    { id: 1, name: '解放碑', icon: '🏢' },
+    { id: 2, name: '李子坝', icon: '🚝' },
+    { id: 3, name: '二厂', icon: '🎨' },
+    { id: 4, name: '南山', icon: '🌳' },
+    { id: 5, name: '洪崖洞', icon: '🌉' }
   ],
   
   defaultImages: [
@@ -258,13 +266,8 @@ const ShareManager = {
     '🌈 雾都探索完成！{points} 积分到手！'
   ],
   
-  async init() {
-    AppState.selectedImages = [];
-    AppState.customShareText = null;
+  init() {
     this.loadShareData();
-    this.renderSelectedPhotos();
-    this.renderLandmarkImages();
-    this.renderShareText();
     this.bindShareEvents();
   },
   
@@ -286,11 +289,20 @@ const ShareManager = {
     }));
   },
   
+  // 更新分享内容
+  updateShareContent() {
+    const ptsEl = document.getElementById('share-points');
+    if (ptsEl) ptsEl.textContent = AppState.points;
+    this.renderSelectedPhotos();
+    this.renderLandmarkImages();
+    this.renderShareText();
+  },
+  
+  // 渲染已选择的照片（顶部）
   renderSelectedPhotos() {
     const slider = document.getElementById('photo-slider');
     const indicators = document.getElementById('photo-indicators');
     const countEl = document.getElementById('selected-count');
-    
     if (!slider || !countEl) return;
     
     countEl.innerHTML = `已选择 <span class="count-num">${AppState.selectedImages.length}</span>/3 张图片`;
@@ -321,6 +333,7 @@ const ShareManager = {
     }
   },
   
+  // 渲染 15 张景点图片（底部选择区）
   renderLandmarkImages() {
     const container = document.getElementById('checkpoint-groups');
     if (!container) return;
@@ -347,9 +360,9 @@ const ShareManager = {
     container.innerHTML = html;
   },
   
+  // 切换图片选择
   toggleImage(imageId) {
     const index = AppState.selectedImages.indexOf(imageId);
-    
     if (index >= 0) {
       AppState.selectedImages.splice(index, 1);
     } else {
@@ -359,12 +372,12 @@ const ShareManager = {
       }
       AppState.selectedImages.push(imageId);
     }
-    
     this.renderSelectedPhotos();
     this.renderLandmarkImages();
     this.saveShareData();
   },
   
+  // 移除图片
   removePhoto(index) {
     AppState.selectedImages.splice(index, 1);
     this.renderSelectedPhotos();
@@ -372,24 +385,29 @@ const ShareManager = {
     this.saveShareData();
   },
   
+  // 渲染分享文案
   renderShareText() {
     const el = document.getElementById('share-text');
     if (!el) return;
-    
     let text = AppState.customShareText;
     if (!text) {
       const random = this.defaultTexts[Math.floor(Math.random() * this.defaultTexts.length)];
-      text = random.replace('{points}', AppState.points);
+      text = random.replace('{points}', AppState.points.toString());
     }
     el.textContent = text;
   },
   
+  // 绑定事件
   bindShareEvents() {
     const editBtn = document.getElementById('edit-share-text-btn');
     if (editBtn) {
       editBtn.onclick = () => {
         const text = prompt('请输入分享文案：', AppState.customShareText || '');
-        if (text !== null) this.setCustomText(text || null);
+        if (text !== null) {
+          AppState.customShareText = text || null;
+          this.renderShareText();
+          this.saveShareData();
+        }
       };
     }
     
@@ -411,79 +429,46 @@ const ShareManager = {
         alert('📤 复制下方文案，分享到微信/朋友圈！\n\n' + document.getElementById('share-text').textContent);
       };
     }
-  },
-  
-  setCustomText(text) {
-    AppState.customShareText = text;
-    this.renderShareText();
-    this.saveShareData();
   }
 };
 
 // ==================== 初始化 ====================
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('🚀 重庆打卡活动初始化...');
-  console.log('%c========================================', 'color:#667eea;font-size:20px');
+  console.log('='.repeat(50));
   
+  // 1. 初始化 Supabase
   try {
     await SupabaseManager.init();
-    console.log('✅ SupabaseManager 初始化完成');
   } catch(e) {
-    console.error('❌ SupabaseManager 失败:', e);
+    console.error('❌ SupabaseManager:', e);
   }
   
-  try {
-    PageManager.bindNavEvents();
-    console.log('✅ PageManager.bindNavEvents 完成');
-  } catch(e) {
-    console.error('❌ PageManager.bindNavEvents 失败:', e);
-  }
+  // 2. 绑定导航
+  PageManager.bindNavEvents();
   
-  try {
-    CheckpointManager.renderMapMarkers();
-    console.log('✅ CheckpointManager.renderMapMarkers 完成');
-    CheckpointManager.renderCheckpointList();
-    console.log('✅ CheckpointManager.renderCheckpointList 完成');
-  } catch(e) {
-    console.error('❌ CheckpointManager 失败:', e);
-  }
+  // 3. 渲染地图
+  CheckpointManager.renderMap();
+  console.log('✅ 地图标记渲染完成');
   
-  try {
-    PrizeManager.updatePrizeCards();
-    PrizeManager.updateVoucherList();
-    console.log('✅ PrizeManager 完成');
-  } catch(e) {
-    console.error('❌ PrizeManager 失败:', e);
-  }
+  // 4. 初始化奖品
+  PrizeManager.updatePrizeCards();
+  console.log('✅ PrizeManager 完成');
   
-  try {
-    await ShareManager.init();
-    console.log('✅ ShareManager 完成');
-  } catch(e) {
-    console.error('❌ ShareManager 失败:', e);
-  }
+  // 5. 初始化分享
+  ShareManager.init();
+  console.log('✅ ShareManager 完成');
   
-  try {
-    PageManager.updateAllDisplays();
-    console.log('✅ PageManager.updateAllDisplays 完成');
-  } catch(e) {
-    console.error('❌ PageManager.updateAllDisplays 失败:', e);
-  }
+  // 6. 处理 URL 打卡
+  CheckpointManager.handleCheckinFromURL();
   
-  const urlParams = new URLSearchParams(window.location.search);
-  const page = urlParams.get('page') || 'home';
-  PageManager.switchPage(page);
+  // 7. 更新显示
+  PageManager.updateAllDisplays();
   
-  console.log('%c========================================', 'color:#10b981;font-size:20px');
-  console.log('✅ 初始化完成！');
+  console.log('='.repeat(50));
+  console.log('🎉 初始化完成！');
   console.log('👤 用户 ID:', AppState.userId);
   console.log('📊 当前积分:', AppState.points);
-  console.log('📍 已打卡:', CheckpointManager.getCheckedCount(), '个点');
-  
-  // 暴露到全局方便调试
-  window.AppDebug = {
-    state: AppState,
-    switchPage: PageManager.switchPage.bind(PageManager)
-  };
-  console.log('💡 调试：使用 window.AppDebug.switchPage("share") 切换页面');
+  console.log('📍 已打卡:', AppState.checkedCheckpoints.length, '个点');
+  console.log('='.repeat(50));
 });
