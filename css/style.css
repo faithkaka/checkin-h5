@@ -35,9 +35,24 @@ body {
   padding: 20px;
   overflow-y: auto;
   height: calc(100vh - 60px);
-  opacity: 0;
-  transform: translateX(20px);
-  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.page.active {
+  display: block;
+  animation: slideIn 0.3s ease forwards;
+}
+
+/* 首页特殊处理 - 移除 padding 让地图全屏 */
+#home-page.page {
+  padding: 0;
+  height: calc(100vh - 60px);
+  overflow: hidden;
+}
+
+#home-page .map-container {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
 }
 
 .page.active {

@@ -99,6 +99,28 @@ const PageManager = {
 
 // ==================== 打卡点管理 ====================
 const CheckpointManager = {
+  // 渲染首页地图标记
+  renderMapMarkers() {
+    const mapContainer = document.getElementById('checkin-map');
+    if (!mapContainer) return;
+    
+    // 清除旧标记
+    mapContainer.querySelectorAll('.checkpoint-marker').forEach(m => m.remove());
+    
+    // 添加必打卡点标记
+    AppState.mandatoryCheckpoints.forEach((cp, idx) => {
+      const marker = document.createElement('div');
+      marker.className = `checkpoint-marker ${cp.checked ? 'checked' : ''} mandatory`;
+      marker.innerHTML = cp.icon;
+      marker.style.left = `${20 + idx * 15}%`;
+      marker.style.top = `${30 + (idx % 3) * 20}%`;
+      marker.onclick = () => this.toggleCheckin(cp.id, 'mandatory');
+      marker.title = cp.name;
+      mapContainer.appendChild(marker);
+    });
+  },
+  
+  // 渲染打卡点列表
   renderCheckpointList() {
     const list = document.getElementById('checkpoint-list');
     if (!list) return;
@@ -418,6 +440,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   
   try {
+    CheckpointManager.renderMapMarkers();
+    console.log('✅ CheckpointManager.renderMapMarkers 完成');
     CheckpointManager.renderCheckpointList();
     console.log('✅ CheckpointManager.renderCheckpointList 完成');
   } catch(e) {
