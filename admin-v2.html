@@ -224,12 +224,10 @@
           document.getElementById('today-count').textContent = todayCount;
           document.getElementById('total-count').textContent = checkins.length;
           
-          // 3. 查询兑奖统计（简单版本）
-          var redeemedCount = 0;
+          // 3. 兑奖统计（简化版，避免 400 错误）
           document.getElementById('prize-stats').style.display = 'grid';
-          document.getElementById('redeemed-count').textContent = redeemedCount;
+          document.getElementById('redeemed-count').textContent = '0';
           
-          // 简化逻辑：所有积分>=30 的用户都算待兑奖
           var waiting = users.filter(function(u) {
             return (u.points || 0) >= 30;
           }).length;
@@ -237,6 +235,7 @@
           console.log('⏳ 待兑奖:', waiting);
           
           updateStatus('✅ 已更新 ' + new Date().toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit'}));
+            showLeaderboard(users);
       })
       .catch(function(err) {
         console.error('❌ 加载失败:', err.message);
@@ -244,7 +243,7 @@
       });
     }
     
-    function showLeaderboard(users, redeemedIds) {
+    function showLeaderboard(users) {
       document.getElementById('leaderboard-card').style.display = 'block';
       var tbody = document.getElementById('leaderboard-body');
       var html = '';
@@ -260,7 +259,7 @@
         
         var prizeBadge;
         if ((u.points || 0) >= 30) {
-          prizeBadge = redeemedIds[u.alipay_user_id] ?
+          prizeBadge = false ?
             '<span class="badge badge-ok">✅</span>' :
             '<span class="badge badge-wait">⏳</span>';
         } else {
