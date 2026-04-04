@@ -3,16 +3,7 @@
 -- 用于重庆打卡活动项目
 -- ============================================
 
--- 1. 创建分享资源表（存储图片和文案配置）
-CREATE TABLE IF NOT EXISTS public.share_resources (
-  id SERIAL PRIMARY KEY,
-  type VARCHAR(50) UNIQUE NOT NULL, -- 'share' 表示分享资源
-  data JSONB NOT NULL, -- 存储图片和文案数据
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
-);
-
--- 2. 插入默认分享资源数据
+-- 1. 插入默认分享资源数据（表已存在则直接插入）
 INSERT INTO public.share_resources (type, data) VALUES ('share', '{
   "images": [
     {"id": "jfbei_1", "checkpointId": 1, "url": "https://images.unsplash.com/photo-1599689018248-b3e9e089e8c2?w=600", "desc": "🏢 解放碑"},
