@@ -674,37 +674,29 @@ const PrizeManager = {
 // ==================== 分享管理 ====================
 const ShareManager = {
   currentPhotoIndex: 0,
+  landmarkImages: [], // 从 Supabase 动态加载
+  shareTexts: [],
   
-  // 预设 15 张标志性景点图片（5 个景点 × 3 张/景点）
-  landmarkImages: [
-    // 解放碑步行街 - 3 张
-    { id: 'jfbei_1', checkpointId: 1, url: 'https://images.unsplash.com/photo-1599689018248-b3e9e089e8c2?w=600', desc: '🏢 解放碑步行街 - 重庆地标建筑' },
-    { id: 'jfbei_2', checkpointId: 1, url: 'https://images.unsplash.com/photo-1478131333081-31f9a7e96847?w=600', desc: '🏙️ 解放碑 - 繁华商业中心' },
-    { id: 'jfbei_3', checkpointId: 1, url: 'https://images.unsplash.com/photo-1519508235410-4e1a9881c138?w=600', desc: '🌃 解放碑夜景' },
-    
-    // 李子坝轻轨站 - 3 张
-    { id: 'liziba_1', checkpointId: 2, url: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=600', desc: '🚝 李子坝轻轨穿楼' },
-    { id: 'liziba_2', checkpointId: 2, url: 'https://images.unsplash.com/photo-1444703686981-a3abbc4d4fe3?w=600', desc: '🚄 轻轨 2 号线奇观' },
-    { id: 'liziba_3', checkpointId: 2, url: 'https://images.unsplash.com/photo-1520639888713-78db11c0a1a3?w=600', desc: '🚇 李子坝站台' },
-    
-    // 鹅岭二厂文创园 - 3 张
-    { id: 'eling_1', checkpointId: 3, url: 'https://images.unsplash.com/photo-1560185127-6ed189bf02f4?w=600', desc: '🎨 鹅岭二厂文创园' },
-    { id: 'eling_2', checkpointId: 3, url: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=600', desc: '🖼️ 文艺青年聚集地' },
-    { id: 'eling_3', checkpointId: 3, url: 'https://images.unsplash.com/photo-1550950158-d0d960dff51b?w=600', desc: '🎭 电影取景地' },
-    
-    // 南山一棵树观景台 - 3 张
-    { id: 'nanshan_1', checkpointId: 4, url: 'https://images.unsplash.com/photo-1506459225024-1428096a4b2e?w=600', desc: '🌳 南山一棵树观景台' },
-    { id: 'nanshan_2', checkpointId: 4, url: 'https://images.unsplash.com/photo-1518182170546-0766aaefcd09?w=600', desc: '🌆 重庆夜景最佳观景台' },
-    { id: 'nanshan_3', checkpointId: 4, url: 'https://images.unsplash.com/photo-1506459225024-1428096a4b2e?w=600', desc: '🌇 俯瞰重庆全景' },
-    
-    // 洪崖洞 + 千厮门大桥 - 3 张
-    { id: 'hongya_1', checkpointId: 5, url: 'https://images.unsplash.com/photo-1548265047-181289a4168f?w=600', desc: '🌉 洪崖洞夜景' },
-    { id: 'hongya_2', checkpointId: 5, url: 'https://images.unsplash.com/photo-1554672408-730436b60dde?w=600', desc: '🏮 千与千寻现实版' },
-    { id: 'hongya_3', checkpointId: 5, url: 'https://images.unsplash.com/photo-1553913861-c0fddf2166ab?w=600', desc: '🌃 洪崖洞 + 千厮门大桥' }
+  // 默认图片（当 Supabase 加载失败时使用）
+  defaultImages: [
+    { id: 'jfbei_1', checkpointId: 1, url: 'https://images.unsplash.com/photo-1599689018248-b3e9e089e8c2?w=600', desc: '🏢 解放碑' },
+    { id: 'jfbei_2', checkpointId: 1, url: 'https://images.unsplash.com/photo-1478131333081-31f9a7e96847?w=600', desc: '🏙️ 商业中心' },
+    { id: 'jfbei_3', checkpointId: 1, url: 'https://images.unsplash.com/photo-1519508235410-4e1a9881c138?w=600', desc: '🌃 夜景' },
+    { id: 'liziba_1', checkpointId: 2, url: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=600', desc: '🚝 轻轨穿楼' },
+    { id: 'liziba_2', checkpointId: 2, url: 'https://images.unsplash.com/photo-1444703686981-a3abbc4d4fe3?w=600', desc: '🚄 轻轨' },
+    { id: 'liziba_3', checkpointId: 2, url: 'https://images.unsplash.com/photo-1520639888713-78db11c0a1a3?w=600', desc: '🚇 站台' },
+    { id: 'eling_1', checkpointId: 3, url: 'https://images.unsplash.com/photo-1560185127-6ed189bf02f4?w=600', desc: '🎨 二厂' },
+    { id: 'eling_2', checkpointId: 3, url: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=600', desc: '🖼️ 文艺' },
+    { id: 'eling_3', checkpointId: 3, url: 'https://images.unsplash.com/photo-1550950158-d0d960dff51b?w=600', desc: '🎭 电影' },
+    { id: 'nanshan_1', checkpointId: 4, url: 'https://images.unsplash.com/photo-1506459225024-1428096a4b2e?w=600', desc: '🌳 观景台' },
+    { id: 'nanshan_2', checkpointId: 4, url: 'https://images.unsplash.com/photo-1518182170546-0766aaefcd09?w=600', desc: '🌆 夜景' },
+    { id: 'nanshan_3', checkpointId: 4, url: 'https://images.unsplash.com/photo-1506459225024-1428096a4b2e?w=600', desc: '🌇 全景' },
+    { id: 'hongya_1', checkpointId: 5, url: 'https://images.unsplash.com/photo-1548265047-181289a4168f?w=600', desc: '🌉 洪崖洞' },
+    { id: 'hongya_2', checkpointId: 5, url: 'https://images.unsplash.com/photo-1554672408-730436b60dde?w=600', desc: '🏮 千与千寻' },
+    { id: 'hongya_3', checkpointId: 5, url: 'https://images.unsplash.com/photo-1553913861-c0fddf2166ab?w=600', desc: '🌃 大桥' }
   ],
   
-  // 预设分享文案
-  shareTexts: [
+  defaultTexts: [
     '我在"趣玩重庆一日游"打卡活动中，已经获得 {points} 积分！打卡了重庆地标景点，快来一起探索山城魅力吧！',
     '🎉 重庆一日游太好玩了！打卡了 {points} 积分，网红景点都打卡成功！这个周末一起来玩！',
     '🎊 山城重庆之旅完美收官！{points} 积分到手，李子坝轻轨穿楼太震撼了，洪崖洞夜景美到窒息！',
@@ -715,28 +707,56 @@ const ShareManager = {
     '🌈 雾都探索完成！{points} 积分到手，重庆的奇妙超出想象！童伴们冲鸭！'
   ],
   
-  init() {
-    AppState.selectedImages = []; // 用户选择的图片
-    AppState.customShareText = null; // 自定义文案
-    this.loadShareData(); // 从 localStorage 加载
+  async init() {
+    AppState.selectedImages = [];
+    AppState.customShareText = null;
+    
+    // 从 Supabase 加载分享资源
+    await this.loadShareResources();
+    
+    // 从 localStorage 加载用户选择
+    this.loadShareData();
     this.bindShareEvents();
+  },
+  
+  // 从 Supabase 加载分享资源（图片和文案）
+  async loadShareResources() {
+    try {
+      const client = window.AlipayUserManager ? AlipayUserManager.supabase : null;
+      if (!client) {
+        console.warn('⚠️ Supabase 客户端未初始化，使用默认图片');
+        this.landmarkImages = this.defaultImages.slice();
+        this.shareTexts = this.defaultTexts.slice();
+        return;
+      }
+      
+      console.log('🔄 从 Supabase 加载分享资源...');
+      const { data, error } = await client.from('share_resources').select('data').eq('type', 'share').single();
+      
+      if (error) {
+        console.error('❌ 加载分享资源失败:', error);
+        this.landmarkImages = this.defaultImages.slice();
+        this.shareTexts = this.defaultTexts.slice();
+        return;
+      }
+      
+      if (data && data.data) {
+        this.landmarkImages = data.data.images || this.defaultImages.slice();
+        this.shareTexts = data.data.texts || this.defaultTexts.slice();
+        console.log('✅ 分享资源加载成功，图片:', this.landmarkImages.length, '张，文案:', this.shareTexts.length, '条');
+      } else {
+        this.landmarkImages = this.defaultImages.slice();
+        this.shareTexts = this.defaultTexts.slice();
+      }
+    } catch (e) {
+      console.error('❌ 加载分享资源异常:', e);
+      this.landmarkImages = this.defaultImages.slice();
+      this.shareTexts = this.defaultTexts.slice();
+    }
   },
   
   // 加载保存的分享数据
   loadShareData() {
-    const savedData = localStorage.getItem('share_data');
-    if (savedData) {
-      try {
-        const data = JSON.parse(savedData);
-        AppState.selectedImages = data.selectedImages || [];
-        AppState.customShareText = data.customShareText || null;
-        this.currentPhotoIndex = data.currentPhotoIndex || 0;
-      } catch(e) {
-        console.error('❌ 加载分享数据失败:', e);
-        AppState.selectedImages = [];
-      }
-    }
-  },
   
   // 保存分享数据
   saveShareData() {
@@ -1280,6 +1300,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     AppState.userId = 'error_' + Date.now();
   }
   
+  // 等待 Supabase 客户端就绪
+  await new Promise(resolve => setTimeout(resolve, 100));
+  
   console.log('-'.repeat(50));
   
   // 2. 初始化页面管理
@@ -1300,9 +1323,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log('✅ PrizeManager 完成');
   } catch(e) { console.error('❌ PrizeManager:', e); }
   
-  // 5. 初始化分享管理
+  // 5. 初始化分享管理（异步，需要等待 Supabase）
   try {
-    ShareManager.init();
+    await ShareManager.init();
     console.log('✅ ShareManager 完成');
   } catch(e) { console.error('❌ ShareManager:', e); }
   
