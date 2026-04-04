@@ -675,15 +675,102 @@ const PrizeManager = {
 const ShareManager = {
   currentPhotoIndex: 0,
   
+  // 预设 15 张标志性景点图片（5 个景点 × 3 张/景点）
+  landmarkImages: [
+    // 解放碑步行街 - 3 张
+    { id: 'jfbei_1', checkpointId: 1, url: 'https://images.unsplash.com/photo-1599689018248-b3e9e089e8c2?w=600', desc: '🏢 解放碑步行街 - 重庆地标建筑' },
+    { id: 'jfbei_2', checkpointId: 1, url: 'https://images.unsplash.com/photo-1478131333081-31f9a7e96847?w=600', desc: '🏙️ 解放碑 - 繁华商业中心' },
+    { id: 'jfbei_3', checkpointId: 1, url: 'https://images.unsplash.com/photo-1519508235410-4e1a9881c138?w=600', desc: '🌃 解放碑夜景' },
+    
+    // 李子坝轻轨站 - 3 张
+    { id: 'liziba_1', checkpointId: 2, url: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=600', desc: '🚝 李子坝轻轨穿楼' },
+    { id: 'liziba_2', checkpointId: 2, url: 'https://images.unsplash.com/photo-1444703686981-a3abbc4d4fe3?w=600', desc: '🚄 轻轨 2 号线奇观' },
+    { id: 'liziba_3', checkpointId: 2, url: 'https://images.unsplash.com/photo-1520639888713-78db11c0a1a3?w=600', desc: '🚇 李子坝站台' },
+    
+    // 鹅岭二厂文创园 - 3 张
+    { id: 'eling_1', checkpointId: 3, url: 'https://images.unsplash.com/photo-1560185127-6ed189bf02f4?w=600', desc: '🎨 鹅岭二厂文创园' },
+    { id: 'eling_2', checkpointId: 3, url: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=600', desc: '🖼️ 文艺青年聚集地' },
+    { id: 'eling_3', checkpointId: 3, url: 'https://images.unsplash.com/photo-1550950158-d0d960dff51b?w=600', desc: '🎭 电影取景地' },
+    
+    // 南山一棵树观景台 - 3 张
+    { id: 'nanshan_1', checkpointId: 4, url: 'https://images.unsplash.com/photo-1506459225024-1428096a4b2e?w=600', desc: '🌳 南山一棵树观景台' },
+    { id: 'nanshan_2', checkpointId: 4, url: 'https://images.unsplash.com/photo-1518182170546-0766aaefcd09?w=600', desc: '🌆 重庆夜景最佳观景台' },
+    { id: 'nanshan_3', checkpointId: 4, url: 'https://images.unsplash.com/photo-1506459225024-1428096a4b2e?w=600', desc: '🌇 俯瞰重庆全景' },
+    
+    // 洪崖洞 + 千厮门大桥 - 3 张
+    { id: 'hongya_1', checkpointId: 5, url: 'https://images.unsplash.com/photo-1548265047-181289a4168f?w=600', desc: '🌉 洪崖洞夜景' },
+    { id: 'hongya_2', checkpointId: 5, url: 'https://images.unsplash.com/photo-1554672408-730436b60dde?w=600', desc: '🏮 千与千寻现实版' },
+    { id: 'hongya_3', checkpointId: 5, url: 'https://images.unsplash.com/photo-1553913861-c0fddf2166ab?w=600', desc: '🌃 洪崖洞 + 千厮门大桥' }
+  ],
+  
+  // 预设分享文案
+  shareTexts: [
+    '我在"趣玩重庆一日游"打卡活动中，已经获得 {points} 积分！打卡了重庆地标景点，快来一起探索山城魅力吧！',
+    '🎉 重庆一日游太好玩了！打卡了 {points} 积分，网红景点都打卡成功！这个周末一起来玩！',
+    '🎊 山城重庆之旅完美收官！{points} 积分到手，李子坝轻轨穿楼太震撼了，洪崖洞夜景美到窒息！',
+    '🌟 打卡重庆成功！用双腿丈量这座城市，{points} 积分见证我的山城建功之旅！',
+    '✨ 重庆一日游完美收官！{points} 积分解锁，嘉陵江的夜风、解放碑的繁华、南山的美景，都不虚此行！',
+    '🎈 8D 魔幻城市名不虚传！{points} 积分打卡成功，重庆我还会再来的！',
+    '💫 山城打卡成就达成！{points} 积分收入囊中，重庆的美食美景值得 N 刷！',
+    '🌈 雾都探索完成！{points} 积分到手，重庆的奇妙超出想象！童伴们冲鸭！'
+  ],
+  
   init() {
-    AppState.photos = [];
+    AppState.selectedImages = []; // 用户选择的图片
+    AppState.customShareText = null; // 自定义文案
+    this.loadShareData(); // 从 localStorage 加载
     this.bindShareEvents();
+  },
+  
+  // 加载保存的分享数据
+  loadShareData() {
+    const savedData = localStorage.getItem('share_data');
+    if (savedData) {
+      try {
+        const data = JSON.parse(savedData);
+        AppState.selectedImages = data.selectedImages || [];
+        AppState.customShareText = data.customShareText || null;
+        this.currentPhotoIndex = data.currentPhotoIndex || 0;
+      } catch(e) {
+        console.error('❌ 加载分享数据失败:', e);
+        AppState.selectedImages = [];
+      }
+    }
+  },
+  
+  // 保存分享数据
+  saveShareData() {
+    const data = {
+      selectedImages: AppState.selectedImages,
+      customShareText: AppState.customShareText,
+      currentPhotoIndex: this.currentPhotoIndex
+    };
+    localStorage.setItem('share_data', JSON.stringify(data));
   },
   
   // 更新分享内容
   updateShareContent() {
     document.getElementById('share-points').textContent = AppState.points;
     this.renderPhotoWall();
+    this.renderShareText();
+    this.saveShareData();
+  },
+  
+  // 渲染分享文案
+  renderShareText() {
+    const shareTextEl = document.getElementById('share-text');
+    if (!shareTextEl) return;
+    
+    let text;
+    if (AppState.customShareText) {
+      text = AppState.customShareText;
+    } else {
+      // 随机选择一段文案
+      const randomText = this.shareTexts[Math.floor(Math.random() * this.shareTexts.length)];
+      text = randomText.replace('{points}', AppState.points);
+    }
+    
+    shareTextEl.textContent = text;
   },
   
   // 渲染照片墙
@@ -691,13 +778,20 @@ const ShareManager = {
     const slider = document.getElementById('photo-slider');
     const indicators = document.getElementById('photo-indicators');
     const placeholder = document.getElementById('photo-placeholder');
+    const addBtnSection = document.getElementById('add-photo-btn');
     
     if (!slider || !indicators || !placeholder) return;
     
-    if (AppState.photos.length === 0) {
+    if (AppState.selectedImages.length === 0) {
       placeholder.style.display = 'block';
       slider.style.display = 'none';
       indicators.style.display = 'none';
+      // 显示说明文字
+      placeholder.innerHTML = `
+        <div style="text-align:center;padding:20px;">
+          <span style="font-size:14px;color:#666;">📸 从下方选择景点标志性图片<br>每个景点最多选择 3 张</span>
+        </div>
+      `;
       return;
     }
     
@@ -705,16 +799,19 @@ const ShareManager = {
     slider.style.display = 'flex';
     indicators.style.display = 'flex';
     
-    // 渲染照片
-    slider.innerHTML = AppState.photos.map((photo, index) => `
-      <div class="photo-slide" data-index="${index}">
-        <img src="${photo}" alt="打卡照片 ${index + 1}" />
-        <button class="photo-delete" onclick="ShareManager.deletePhoto(${index})">×</button>
-      </div>
-    `).join('');
+    // 渲染已选择的图片
+    slider.innerHTML = AppState.selectedImages.map((imgId, index) => {
+      const imgData = this.landmarkImages.find(img => img.id === imgId);
+      return `
+        <div class="photo-slide" data-index="${index}">
+          <img src="${imgData ? imgData.url : ''}" alt="${imgData ? imgData.desc : '景点图片'}" />
+          <button class="photo-delete" onclick="ShareManager.removePhoto(${index})">×</button>
+        </div>
+      `;
+    }).join('');
     
     // 渲染指示器
-    indicators.innerHTML = AppState.photos.map((_, index) => `
+    indicators.innerHTML = AppState.selectedImages.map((_, index) => `
       <div class="indicator ${index === this.currentPhotoIndex ? 'active' : ''}"></div>
     `).join('');
     
@@ -722,7 +819,7 @@ const ShareManager = {
     slider.addEventListener('scroll', () => {
       const slideWidth = slider.clientWidth;
       const newIndex = Math.round(slider.scrollLeft / slideWidth);
-      if (newIndex !== this.currentPhotoIndex && newIndex >= 0 && newIndex < AppState.photos.length) {
+      if (newIndex !== this.currentPhotoIndex && newIndex >= 0 && newIndex < AppState.selectedImages.length) {
         this.currentPhotoIndex = newIndex;
         this.updateIndicators();
       }
@@ -737,68 +834,242 @@ const ShareManager = {
     });
   },
   
-  // 添加照片
-  addPhoto(file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      AppState.photos.push(e.target.result);
-      this.currentPhotoIndex = AppState.photos.length - 1;
-      this.renderPhotoWall();
-      
-      // 滚动到最后一张照片
-      const slider = document.getElementById('photo-slider');
-      if (slider) {
-        slider.scrollLeft = slider.scrollWidth;
-      }
-    };
-    reader.readAsDataURL(file);
+  // 选择图片
+  selectImage(imageId) {
+    // 检查是否已选择
+    if (AppState.selectedImages.includes(imageId)) {
+      this.removePhoto(AppState.selectedImages.indexOf(imageId));
+      return;
+    }
+    
+    // 获取图片所属的景点 ID
+    const imgData = this.landmarkImages.find(img => img.id === imageId);
+    if (!imgData) return;
+    
+    // 检查该景点已选图片数量（最多 3 张）
+    const checkpointImages = AppState.selectedImages.filter(id => {
+      const img = this.landmarkImages.find(i => i.id === id);
+      return img && img.checkpointId === imgData.checkpointId;
+    });
+    
+    if (checkpointImages.length >= 3) {
+      alert(`ℹ️ ${this.getCheckpointName(imgData.checkpointId)} 最多选择 3 张图片`);
+      return;
+    }
+    
+    // 添加图片
+    AppState.selectedImages.push(imageId);
+    this.currentPhotoIndex = AppState.selectedImages.length - 1;
+    this.renderPhotoWall();
+    this.saveShareData();
+    
+    // 滚动到最后
+    const slider = document.getElementById('photo-slider');
+    if (slider) {
+      slider.scrollLeft = slider.scrollWidth;
+    }
   },
   
-  // 删除照片
-  deletePhoto(index) {
-    const confirm = window.confirm('确定要删除这张照片吗？');
-    if (!confirm) return;
-    
-    AppState.photos.splice(index, 1);
-    if (this.currentPhotoIndex >= AppState.photos.length) {
-      this.currentPhotoIndex = Math.max(0, AppState.photos.length - 1);
+  // 移除图片
+  removePhoto(index) {
+    AppState.selectedImages.splice(index, 1);
+    if (this.currentPhotoIndex >= AppState.selectedImages.length) {
+      this.currentPhotoIndex = Math.max(0, AppState.selectedImages.length - 1);
     }
     this.renderPhotoWall();
+    this.saveShareData();
   },
   
-  // 获取当前照片
-  getCurrentPhoto() {
-    if (AppState.photos.length === 0) return null;
-    return AppState.photos[this.currentPhotoIndex];
+  // 获取景点名称
+  getCheckpointName(checkpointId) {
+   const cp = AppState.mandatoryCheckpoints.find(cp => cp.id === checkpointId);
+    return cp ? cp.name : '未知景点';
+  },
+  
+  // 设置自定义文案
+  setCustomText(text) {
+    AppState.customShareText = text || null;
+    this.renderShareText();
+    this.saveShareData();
+  },
+  
+  // 重置为随机文案
+  resetToRandomText() {
+    AppState.customShareText = null;
+    this.renderShareText();
+    this.saveShareData();
   },
   
   // 绑定分享事件
   bindShareEvents() {
-    // 添加照片按钮
-    const addBtn = document.getElementById('add-photo-btn');
+    // 替换原来的上传按钮为图片选择区域
+    const addBtnSection = document.getElementById('add-photo-btn');
     const photoInput = document.getElementById('photo-input');
     
-    if (addBtn && photoInput) {
-      addBtn.addEventListener('click', () => {
-        photoInput.click();
+    // 移除上传相关按钮（如果没有就不处理）
+    if (addBtnSection) {
+      addBtnSection.parentElement.innerHTML = `
+        <div style="text-align:center;margin-top:20px;">
+          <button class="action-btn" id="manage-images-btn" style="background:#168EEA;">
+            📸 选择景点图片
+          </button>
+          <button class="action-btn" id="edit-text-btn" style="background:#2ecc71;margin-left:10px;">
+            ✏️ 编辑文案
+          </button>
+        </div>
+      `;
+    }
+    
+    // 选择图片按钮
+    document.getElementById('manage-images-btn').addEventListener('click', () => {
+      this.openImageSelector();
+    });
+    
+    // 编辑文案按钮
+    document.getElementById('edit-text-btn').addEventListener('click', () => {
+      this.openTextEditor();
+    });
+    
+    // 滑动手势绑定
+    const slider = document.getElementById('photo-slider');
+    if (slider) {
+      let startX, scrollLeft;
+      
+      slider.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].pageX;
+        scrollLeft = slider.scrollLeft;
       });
       
-      photoInput.addEventListener('change', (e) => {
-        const files = Array.from(e.target.files);
-        files.forEach(file => this.addPhoto(file));
-        photoInput.value = ''; // 重置
+      slider.addEventListener('touchmove', (e) => {
+        const x = e.touches[0].pageX;
+        const walk = (x - startX) * 2;
+        slider.scrollLeft = scrollLeft - walk;
       });
     }
     
     // 保存到本地
-    document.getElementById('save-local-btn').addEventListener('click', () => {
-      this.saveToLocal();
-    });
+    const saveBtn = document.getElementById('save-local-btn');
+    if (saveBtn) {
+      saveBtn.addEventListener('click', () => {
+        this.saveToLocal();
+      });
+    }
     
     // 分享到其他渠道
-    document.getElementById('share-channel-btn').addEventListener('click', () => {
-      this.shareToChannel();
+    const shareBtn = document.getElementById('share-channel-btn');
+    if (shareBtn) {
+      shareBtn.addEventListener('click', () => {
+        this.shareToChannel();
+      });
+    }
+  },
+  
+  // 打开图片选择器
+  openImageSelector() {
+    const html = `
+      <div class="image-selector-modal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:10001;overflow-y:auto;">
+        <div style="background:white;min-height:100%;padding:20px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+            <h3 style="margin:0;font-size:18px;">📸 选择景点标志性图片</h3>
+            <button onclick="document.querySelector('.image-selector-modal').remove()" style="background:#f5f5f5;border:none;border-radius:50%;width:36px;height:36px;font-size:20px;color:#666;cursor:pointer;">×</button>
+          </div>
+          
+          <div style="margin-bottom:15px;">
+            <p style="color:#666;font-size:14px;margin:0;">💡 每个景点最多选择 3 张图片，点击已选的图片可取消</p>
+          </div>
+          
+          ${this.renderCheckpointImageSelector()}
+          
+          <div style="position:sticky;bottom:20px;margin-top:30px;text-align:center;">
+            <button onclick="document.querySelector('.image-selector-modal').remove()" style="background:#168EEA;color:white;border:none;border-radius:10px;padding:14px 40px;font-size:16px;font-weight:600;cursor:pointer;">完成</button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    document.body.appendChild(tempDiv);
+  },
+  
+  // 渲染景点图片选择器
+  renderCheckpointImageSelector() {
+    let html = '';
+    
+    AppState.mandatoryCheckpoints.forEach(cp => {
+      const images = this.landmarkImages.filter(img => img.checkpointId === cp.id);
+      const selectedIds = AppState.selectedImages.filter(id => {
+        const img = this.landmarkImages.find(i => i.id === id);
+        return img && img.checkpointId === cp.id;
+      });
+      
+      html += `
+        <div class="checkpoint-images-section" style="margin-bottom:25px;">
+          <h4 style="margin:0 0 15px 0;font-size:16px;display:flex;align-items:center;">
+            <span style="margin-right:8px;">${cp.icon}</span>
+            ${cp.name}
+            <span style="margin-left:auto;font-size:12px;color:#666;">已选 ${selectedIds.length}/3</span>
+          </h4>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+            ${images.map(img => {
+              const isSelected = AppState.selectedImages.includes(img.id);
+              return `
+                <div
+                  class="image-item ${isSelected ? 'selected' : ''}"
+                  onclick="ShareManager.selectImage('${img.id}')"
+                  style="aspect-ratio:1;border-radius:8px;overflow:hidden;cursor:pointer;position:relative;border:3px solid ${isSelected ? '#168EEA' : '#e0e0e0'};"
+                >
+                  <img src="${img.url}" alt="${img.desc}" style="width:100%;height:100%;object-fit:cover;" />
+                  ${isSelected ? '<div style="position:absolute;top:5px;right:5px;background:#168EEA;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:14px;">✓</div>' : ''}
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
     });
+    
+    return html;
+  },
+  
+  // 打开文案编辑器
+  openTextEditor() {
+    const currentText = document.getElementById('share-text').textContent;
+    
+    const html = `
+      <div class="text-editor-modal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:10002;display:flex;justify-content:center;align-items:center;">
+        <div style="background:white;border-radius:16px;padding:24px;width:90%;max-width:400px;">
+          <h3 style="margin:0 0 20px 0;font-size:18px;text-align:center;">✏️ 编辑分享文案</h3>
+          
+          <textarea id="share-text-input" style="width:100%;min-height:120px;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:14px;resize:vertical;font-family:inherit;" placeholder="输入分享文案...">${currentText}</textarea>
+          
+          <div style="margin-top:15px;display:flex;flex-direction:column;gap:10px;">
+            <button id="save-custom-text-btn" style="background:#2ecc71;color:white;border:none;border-radius:8px;padding:12px;font-size:15px;font-weight:600;cursor:pointer;">💾 保存文案</button>
+            <button id="reset-random-text-btn" style="background:#168EEA;color:white;border:none;border-radius:8px;padding:12px;font-size:15px;cursor:pointer;">🎲 换一句</button>
+            <button onclick="document.querySelector('.text-editor-modal').remove()" style="background:#f5f5f5;color:#666;border:none;border-radius:8px;padding:12px;font-size:15px;cursor:pointer;">取消</button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    document.body.appendChild(tempDiv);
+    
+    // 绑定保存按钮
+    document.getElementById('save-custom-text-btn').onclick = () => {
+      const text = document.getElementById('share-text-input').value.trim();
+      if (text) {
+        this.setCustomText(text);
+      }
+      document.querySelector('.text-editor-modal').remove();
+    };
+    
+    // 绑定"换一句"按钮
+    document.getElementById('reset-random-text-btn').onclick = () => {
+      this.resetToRandomText();
+      document.querySelector('.text-editor-modal').remove();
+    };
   },
   
   // 保存到本地

@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>分享资源管理 - 重庆打卡</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif; background: #f0f2f5; padding-bottom: 30px; }
+    header { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 20px 15px; text-align: center; }
+    header h1 { font-size: 20px; margin-bottom: 5px; }
+    header .subtitle { font-size: 13px; opacity: 0.9; }
+    
+    .container { padding: 15px; }
+    .section { background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .section h2 { font-size: 16px; color: #333; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
+    
+    /* 图片网格 */
+    .checkpoint-section { margin-bottom: 25px; }
+    .checkpoint-title { font-size: 15px; font-weight: 600; color: #667eea; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .image-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    
+    .image-item { aspect-ratio: 1; border-radius: 8px; overflow: hidden; border: 2px solid #e0e0e0; position: relative; transition: all 0.2s; }
+    .image-item:hover { border-color: #667eea; }
+    .image-item img { width: 100%; height: 100%; object-fit: cover; }
+    .image-item .overlay { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.6); color: white; padding: 4px 6px; font-size: 11px; }
+    .image-item .edit-btn { position: absolute; top: 5px; right: 5px; background: rgba(255,255,255,0.9); border: none; border-radius: 50%; width: 28px; height: 28px; cursor: pointer; font-size: 14px; }
+    .image-item .edit-btn:hover { background: white; }
+    
+    /* 文案管理 */
+    .text-list { display: flex; flex-direction: column; gap: 10px; }
+    .text-item { background: #f9fafb; padding: 12px; border-radius: 8px; border-left: 3px solid #667eea; position: relative; }
+    .text-item .delete-btn { position: absolute; top: 8px; right: 8px; background: #fee2e2; color: #dc2626; border: none; border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer; }
+    .text-item p { font-size: 13px; color: #333; line-height: 1.5; }
+    
+    .btn { background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; padding: 12px 20px; font-size: 14px; cursor: pointer; width: 100%; margin-top: 10px; }
+    .btn:active { transform: scale(0.98); }
+    .btn-secondary { background: linear-gradient(135deg, #10b981, #059669); }
+    .btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); }
+    
+    /* 弹窗 */
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: none; justify-content: center; align-items: center; }
+    .modal-overlay.show { display: flex; }
+    .modal { background: white; border-radius: 16px; padding: 24px; width: 90%; max-width: 400px; max-height: 80vh; overflow-y: auto; }
+    .modal h3 { font-size: 18px; margin-bottom: 15px; text-align: center; }
+    .modal label { display: block; margin-bottom: 8px; font-size: 14px; color: #666; }
+    .modal input, .modal textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; margin-bottom: 15px; }
+    .modal textarea { min-height: 100px; resize: vertical; }
+    .modal-actions { display: flex; gap: 10px; }
+    .modal-actions .btn { flex: 1; margin-top: 0; }
+    .btn-cancel { background: #f3f4f6; color: #666; }
+    
+    .status-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #10b981; color: white; padding: 12px 24px; border-radius: 24px; z-index: 2000; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+    .status-toast.show { opacity: 1; }
+    .status-toast.error { background: #ef4444; }
+    
+    .back-btn { position: fixed; bottom: 20px; right: 20px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 50%; width: 56px; height: 56px; font-size: 24px; cursor: pointer; box-shadow: 0 4px 15px rgba(102,126,234,0.4); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>📸 分享资源管理</h1>
+    <div class="subtitle">管理景点图片和分享文案</div>
+  </header>
+  
+  <div class="container">
+    <!-- 图片管理 -->
+    <div class="section">
+      <h2>🖼️ 景点标志性图片</h2>
+      <div id="images-container"></div>
+    </div>
+    
+    <!-- 文案管理 -->
+    <div class="section">
+      <h2>✏️ 分享文案</h2>
+      <div class="text-list" id="texts-container"></div>
+      <button class="btn btn-secondary" onclick="openTextModal()">➕ 添加文案</button>
+    </div>
+    
+    <button class="btn" onclick="saveAll()">💾 保存所有修改</button>
+  </div>
+  
+  <button class="back-btn" onclick="window.history.back()">↩</button>
+  <div class="status-toast" id="toast"></div>
+  
+  <!-- 图片编辑弹窗 -->
+  <div class="modal-overlay" id="image-modal">
+    <div class="modal">
+      <h3>🖼️ 编辑图片</h3>
+      <label>图片 URL</label>
+      <input type="text" id="edit-image-url" placeholder="输入图片 URL" />
+      <label>描述文字</label>
+      <input type="text" id="edit-image-desc" placeholder="图片描述" />
+      <div class="modal-actions">
+        <button class="btn btn-cancel" onclick="closeImageModal()">取消</button>
+        <button class="btn" onclick="saveImageEdit()">保存</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 文案编辑弹窗 -->
+  <div class="modal-overlay" id="text-modal">
+    <div class="modal">
+      <h3>✏️ 编辑文案</h3>
+      <textarea id="edit-text-content" placeholder="输入分享文案..."></textarea>
+      <div class="modal-actions">
+        <button class="btn btn-cancel" onclick="closeTextModal()">取消</button>
+        <button class="btn" onclick="saveTextEdit()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0"></script>
+  <script>
+    // Supabase 配置
+    const SUPABASE_URL = 'https://ussvekkgyntubivhfext.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzc3Zla2tneW50dWJpdmhmZXh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTEwODQwMiwiZXhwIjoyMDkwNjg0NDAyfQ.i1fbQC96UGnToKL6fa7GTfaMtt0s_TGpNNR0xb3ufR0';
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    
+    // 打卡点信息
+    const checkpoints = [
+      { id: 1, name: '解放碑步行街', icon: '🏢' },
+      { id: 2, name: '李子坝轻轨站', icon: '🚝' },
+      { id: 3, name: '鹅岭二厂文创园', icon: '🎨' },
+      { id: 4, name: '南山一棵树观景台', icon: '🌳' },
+      { id: 5, name: '洪崖洞 + 千厮门大桥', icon: '🌉' }
+    ];
+    
+    // 默认 15 张图片
+    const defaultImages = [
+      { id: 'jfbei_1', checkpointId: 1, url: 'https://images.unsplash.com/photo-1599689018248-b3e9e089e8c2?w=600', desc: '🏢 解放碑步行街' },
+      { id: 'jfbei_2', checkpointId: 1, url: 'https://images.unsplash.com/photo-1478131333081-31f9a7e96847?w=600', desc: '🏙️ 解放碑商业中心' },
+      { id: 'jfbei_3', checkpointId: 1, url: 'https://images.unsplash.com/photo-1519508235410-4e1a9881c138?w=600', desc: '🌃 解放碑夜景' },
+      { id: 'liziba_1', checkpointId: 2, url: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=600', desc: '🚝 李子坝轻轨穿楼' },
+      { id: 'liziba_2', checkpointId: 2, url: 'https://images.unsplash.com/photo-1444703686981-a3abbc4d4fe3?w=600', desc: '🚄 轻轨 2 号线' },
+      { id: 'liziba_3', checkpointId: 2, url: 'https://images.unsplash.com/photo-1520639888713-78db11c0a1a3?w=600', desc: '🚇 李子坝站台' },
+      { id: 'eling_1', checkpointId: 3, url: 'https://images.unsplash.com/photo-1560185127-6ed189bf02f4?w=600', desc: '🎨 鹅岭二厂' },
+      { id: 'eling_2', checkpointId: 3, url: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=600', desc: '🖼️ 文艺青年聚集地' },
+      { id: 'eling_3', checkpointId: 3, url: 'https://images.unsplash.com/photo-1550950158-d0d960dff51b?w=600', desc: '🎭 电影取景地' },
+      { id: 'nanshan_1', checkpointId: 4, url: 'https://images.unsplash.com/photo-1506459225024-1428096a4b2e?w=600', desc: '🌳 南山观景台' },
+      { id: 'nanshan_2', checkpointId: 4, url: 'https://images.unsplash.com/photo-1518182170546-0766aaefcd09?w=600', desc: '🌆 重庆夜景' },
+      { id: 'nanshan_3', checkpointId: 4, url: 'https://images.unsplash.com/photo-1506459225024-1428096a4b2e?w=600', desc: '🌇 俯瞰全景' },
+      { id: 'hongya_1', checkpointId: 5, url: 'https://images.unsplash.com/photo-1548265047-181289a4168f?w=600', desc: '🌉 洪崖洞夜景' },
+      { id: 'hongya_2', checkpointId: 5, url: 'https://images.unsplash.com/photo-1554672408-730436b60dde?w=600', desc: '🏮 千与千寻现实版' },
+      { id: 'hongya_3', checkpointId: 5, url: 'https://images.unsplash.com/photo-1553913861-c0fddf2166ab?w=600', desc: '🌃 洪崖洞大桥' }
+    ];
+    
+    // 默认文案
+    const defaultTexts = [
+      '我在"趣玩重庆一日游"打卡活动中，已经获得 {points} 积分！打卡了重庆地标景点，快来一起探索山城魅力吧！',
+      '🎉 重庆一日游太好玩了！打卡了 {points} 积分，网红景点都打卡成功！这个周末一起来玩！',
+      '🎊 山城重庆之旅完美收官！{points} 积分到手，李子坝轻轨穿楼太震撼了，洪崖洞夜景美到窒息！',
+      '🌟 打卡重庆成功！用双腿丈量这座城市，{points} 积分见证我的山城建功之旅！',
+      '✨ 重庆一日游完美收官！{points} 积分解锁，嘉陵江的夜风、解放碑的繁华、南山的美景，都不虚此行！',
+      '🎈 8D 魔幻城市名不虚传！{points} 积分打卡成功，重庆我还会再来的！',
+      '💫 山城打卡成就达成！{points} 积分收入囊中，重庆的美食美景值得 N 刷！',
+      '🌈 雾都探索完成！{points} 积分到手，重庆的奇妙超出想象！童伴们冲鸭！'
+    ];
+    
+    let shareData = {
+      images: [],
+      texts: []
+    };
+    
+    let editingImageIndex = -1;
+    let editingTextIndex = -1;
+    
+    // 初始化
+    async function init() {
+      await loadShareData();
+      renderImages();
+      renderTexts();
+    }
+    
+    // 加载数据
+    async function loadShareData() {
+      try {
+        // 从 Supabase 加载
+        const { data, error } = await supabase.from('share_resources').select('data').eq('type', 'share').single();
+        
+        if (error && error.code !== 'PGRST116') {
+          console.error('加载失败:', error);
+          showToast('加载失败：' + error.message, true);
+          return;
+        }
+        
+        if (data && data.data) {
+          shareData = data.data;
+        } else {
+          // 使用默认数据
+          shareData = {
+            images: defaultImages,
+            texts: defaultTexts
+          };
+        }
+      } catch (e) {
+        console.error('加载异常:', e);
+        shareData = { images: defaultImages, texts: defaultTexts };
+      }
+    }
+    
+    // 渲染图片
+    function renderImages() {
+      const container = document.getElementById('images-container');
+      let html = '';
+      
+      checkpoints.forEach(cp => {
+        const images = shareData.images.filter(img => img.checkpointId === cp.id);
+        html += `
+          <div class="checkpoint-section">
+            <div class="checkpoint-title">
+              <span>${cp.icon}</span>
+              ${cp.name}
+            </div>
+            <div class="image-grid">
+              ${images.map((img, idx) => `
+                <div class="image-item">
+                  <img src="${img.url}" alt="${img.desc}" onerror="this.src='data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\'><rect fill=\'%23ddd\' width=\'100\' height=\'100\'/><text x=\'50\' y=\'50\' text-anchor=\'middle\' dy=\'0.3em\' fill=\'%23999\'>图片</text></svg>'" />
+                  <div class="overlay">${img.desc || '无描述'}</div>
+                  <button class="edit-btn" onclick="openImageModal(${shareData.images.indexOf(img)})">✏️</button>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      });
+      
+      container.innerHTML = html;
+    }
+    
+    // 渲染文案
+    function renderTexts() {
+      const container = document.getElementById('texts-container');
+      html = shareData.texts.map((text, idx) => `
+        <div class="text-item">
+          <p>${text}</p>
+          <button class="delete-btn" onclick="deleteText(${idx})">删除</button>
+        </div>
+      `).join('');
+      container.innerHTML = html;
+    }
+    
+    // 打开图片编辑弹窗
+    function openImageModal(index) {
+      editingImageIndex = index;
+      const img = shareData.images[index];
+      document.getElementById('edit-image-url').value = img.url;
+      document.getElementById('edit-image-desc').value = img.desc || '';
+      document.getElementById('image-modal').classList.add('show');
+    }
+    
+    function closeImageModal() {
+      document.getElementById('image-modal').classList.remove('show');
+      editingImageIndex = -1;
+    }
+    
+    function saveImageEdit() {
+      const url = document.getElementById('edit-image-url').value.trim();
+      const desc = document.getElementById('edit-image-desc').value.trim();
+      
+      if (!url) {
+        showToast('请输入图片 URL', true);
+        return;
+      }
+      
+      shareData.images[editingImageIndex].url = url;
+      shareData.images[editingImageIndex].desc = desc;
+      
+      closeImageModal();
+      renderImages();
+      showToast('图片已更新');
+    }
+    
+    // 打开文案编辑弹窗
+    function openTextModal() {
+      editingTextIndex = -1;
+      document.getElementById('edit-text-content').value = '';
+      document.getElementById('text-modal').classList.add('show');
+    }
+    
+    function closeTextModal() {
+      document.getElementById('text-modal').classList.remove('show');
+    }
+    
+    function saveTextEdit() {
+      const text = document.getElementById('edit-text-content').value.trim();
+      
+      if (!text) {
+        showToast('请输入文案内容', true);
+        return;
+      }
+      
+      if (editingTextIndex >= 0) {
+        shareData.texts[editingTextIndex] = text;
+      } else {
+        shareData.texts.push(text);
+      }
+      
+      closeTextModal();
+      renderTexts();
+      showToast('文案已保存');
+    }
+    
+    function deleteText(index) {
+      if (confirm('确定要删除这条文案吗？')) {
+        shareData.texts.splice(index, 1);
+        renderTexts();
+        showToast('文案已删除');
+      }
+    }
+    
+    // 保存所有修改
+    async function saveAll() {
+      const btn = event.target;
+      btn.disabled = true;
+      btn.textContent = '保存中...';
+      
+      try {
+        const { error } = await supabase
+          .from('share_resources')
+          .upsert({ 
+            type: 'share', 
+            data: shareData,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'type' });
+        
+        if (error) throw error;
+        
+        showToast('✅ 所有修改已保存！');
+      } catch (e) {
+        console.error('保存失败:', e);
+        showToast('保存失败：' + e.message, true);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '💾 保存所有修改';
+      }
+    }
+    
+    function showToast(message, isError = false) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.toggle('error', isError);
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+    
+    // 初始化
+    init();
+  </script>
+</body>
+</html>

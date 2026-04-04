@@ -41,6 +41,11 @@
     .btn:active { transform: scale(0.98); }
     .btn-primary { background: linear-gradient(135deg, #10b981, #059669); color: white; }
     .btn-secondary { background: linear-gradient(135deg, #667eea, #5b66ce); color: white; }
+    .quick-links { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 15px 10px; }
+    .quick-link { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 16px; border-radius: 12px; text-decoration: none; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; box-shadow: 0 2px 8px rgba(245,158,11,0.3); }
+    .quick-link:active { transform: scale(0.98); }
+    .quick-link .icon { font-size: 28px; }
+    .quick-link .text { font-size: 13px; font-weight: 500; }
     .card { background: white; border-radius: 12px; margin: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
     .card-header { background: #f9fafb; padding: 12px 15px; border-bottom: 1px solid #e5e5e5; font-weight: 600; color: #666; font-size: 14px; }
     .card-body { padding: 0; }
@@ -77,6 +82,18 @@
   </div>
   
   <div class="container">
+    <h2 class="section-title">⚡ 快捷入口</h2>
+    <div class="quick-links">
+      <a href="admin-share.html" class="quick-link">
+        <span class="icon">📸</span>
+        <span class="text">分享资源管理</span>
+      </a>
+      <a href="index.html" target="_blank" class="quick-link" style="background: linear-gradient(135deg, #06b6d4, #0891b2);">
+        <span class="icon">📱</span>
+        <span class="text">预览 H5 页面</span>
+      </a>
+    </div>
+    
     <h2 class="section-title">📊 基础数据</h2>
     <div class="stats" id="stats" style="display: none;">
       <div class="stat">
