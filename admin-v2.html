@@ -229,20 +229,14 @@
           document.getElementById('prize-stats').style.display = 'grid';
           document.getElementById('redeemed-count').textContent = redeemedCount;
           
-          // 如果有 user_achievements 表，可以后续添加查询逻辑
-          console.log('🎁 兑奖统计功能待完善');
+          // 简化逻辑：所有积分>=30 的用户都算待兑奖
+          var waiting = users.filter(function(u) {
+            return (u.points || 0) >= 30;
+          }).length;
+          document.getElementById('waiting-count').textContent = waiting;
+          console.log('⏳ 待兑奖:', waiting);
           
-          var redeemedIds = {};
-              });
-            }
-            
-            var waiting = users.filter(function(u) {
-              return (u.points || 0) >= 30 && !redeemedIds[u.alipay_user_id];
-            }).length;
-            document.getElementById('waiting-count').textContent = waiting;
-            console.log('⏳ 待兑奖:', waiting);
-            
-            updateStatus('✅ 已更新 ' + new Date().toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit'}));
+          updateStatus('✅ 已更新 ' + new Date().toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit'}));
             showLeaderboard(users, redeemedIds);
           })
           .catch(function(err) {
