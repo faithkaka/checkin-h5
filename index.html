@@ -373,5 +373,42 @@
   })();
 </script>
 
+<!-- 分享成功弹窗 -->
+<div class="modal-overlay" id="share-success-modal">
+  <div class="success-modal">
+    <div class="section">
+      <div class="section-title">
+        <span>✅</span>
+        <span>已完成</span>
+      </div>
+      <div class="check-item">
+        <div class="check-icon">✓</div>
+        <div class="check-text">图片已保存到相册</div>
+      </div>
+      <div class="check-item">
+        <div class="check-icon">✓</div>
+        <div class="check-text">文案已保存到剪贴板</div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <div class="images-preview" id="share-images-preview">
+        <!-- 预览图片 -->
+      </div>
+    </div>
+    
+    <div class="social-icons">
+      <div class="social-icon douyin" title="抖音" onclick="ShareManager.shareTo('douyin')">🎵</div>
+      <div class="social-icon xiaohongshu" title="小红书" onclick="ShareManager.shareTo('xiaohongshu')">📕</div>
+      <div class="social-icon wechat" title="微信" onclick="ShareManager.shareTo('wechat')">💬</div>
+      <div class="social-icon weibo" title="微博" onclick="ShareManager.shareTo('weibo')">🧣</div>
+    </div>
+    
+    <div class="sub-title">快去分享给好友吧</div>
+    
+    <button class="btn-confirm" onclick="ShareManager.closeModal()">我知道了</button>
+  </div>
+</div>
+
 </body>
 </html>

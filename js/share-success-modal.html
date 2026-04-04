@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>保存图片并复制文案</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif;
+      background: rgba(0,0,0,0.5);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .success-modal {
+      background: white;
+      border-radius: 20px;
+      padding: 32px 28px;
+      max-width: 340px;
+      width: 90%;
+    }
+    
+    .section {
+      margin-bottom: 24px;
+    }
+    
+    .section-title {
+      font-size: 17px;
+      font-weight: 600;
+      color: #1a1a1a;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .check-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    
+    .check-icon {
+      width: 20px;
+      height: 20px;
+      background: #3b82f6;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 12px;
+    }
+    
+    .check-text {
+      font-size: 15px;
+      color: #333;
+      line-height: 1.4;
+    }
+    
+    .social-icons {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin: 20px 0;
+    }
+    
+    .social-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    
+    .social-icon:hover {
+      transform: scale(1.1);
+    }
+    
+    .social-icon.douyin { background: #000; }
+    .social-icon.xiaohongshu { background: #ff2442; }
+    .social-icon.wechat { background: #07c160; }
+    .social-icon.weibo { background: #e6162d; }
+    
+    .btn-confirm {
+      width: 100%;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      padding: 14px;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .btn-confirm:active {
+      transform: scale(0.98);
+    }
+    
+    .images-preview {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+    }
+    
+    .preview-img {
+      width: 60px;
+      height: 60px;
+      border-radius: 8px;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="success-modal">
+    <div class="section">
+      <div class="section-title">
+        <span>✅</span>
+        <span>已完成</span>
+      </div>
+      <div class="check-item">
+        <div class="check-icon">✓</div>
+        <div class="check-text">图片已保存到相册</div>
+      </div>
+      <div class="check-item">
+        <div class="check-icon">✓</div>
+        <div class="check-text">文案已保存到剪贴板</div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <div class="images-preview" id="imagesPreview">
+        <!-- 预览图片 -->
+      </div>
+    </div>
+    
+    <div class="social-icons">
+      <div class="social-icon douyin" title="抖音" onclick="shareTo('douyin')">🎵</div>
+      <div class="social-icon xiaohongshu" title="小红书" onclick="shareTo('xiaohongshu')">📕</div>
+      <div class="social-icon wechat" title="微信" onclick="shareTo('wechat')">💬</div>
+      <div class="social-icon weibo" title="微博" onclick="shareTo('weibo')">🧣</div>
+    </div>
+    
+    <div class="section-title" style="justify-content: center; margin-bottom: 16px; font-size: 14px; color: #666;">
+      快去分享给好友吧
+    </div>
+    
+    <button class="btn-confirm" onclick="closeModal()">我知道了</button>
+  </div>
+  
+  <script>
+    function shareTo(platform) {
+      const platforms = {
+        douyin: '抖音',
+        xiaohongshu: '小红书',
+        wechat: '微信',
+        weibo: '微博'
+      };
+      alert(`即将打开${platforms[platform]}`);
+    }
+    
+    function closeModal() {
+      // 关闭弹窗（实际使用时会移除整个模态框）
+      console.log('Close modal');
+    }
+    
+    // 显示选中的图片预览
+    async function showPreview(imageIds) {
+      const previewDiv = document.getElementById('imagesPreview');
+      
+      if (!imageIds || imageIds.length === 0) {
+        previewDiv.innerHTML = '<p style="color:#999;font-size:13px;">未选择图片</p>';
+        return;
+      }
+      
+      const images = ShareManager.landmarkImages.filter(img => imageIds.includes(img.id));
+      
+      previewDiv.innerHTML = images.map(img => 
+        `<img src="${img.url}" class="preview-img" alt="${img.desc}" />`
+      ).join('');
+    }
+    
+    // 保存图片到相册
+    async function saveImagesToAlbum(imageIds) {
+      const images = ShareManager.landmarkImages.filter(img => imageIds.includes(img.id));
+      
+      for (const img of images) {
+        try {
+          // 下载图片
+          const response = await fetch(img.url);
+          const blob = await response.blob();
+          
+          // 创建下载链接
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `share_${img.id}.jpg`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        } catch (e) {
+          console.error('保存图片失败:', e);
+        }
+      }
+    }
+    
+    // 复制文案到剪贴板
+    async function copyTextToClipboard(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (e) {
+        // 降级方案
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        return true;
+      }
+    }
+    
+    // 主函数：分享
+    async function doShare() {
+      const imageIds = AppState.selectedImages;
+      const text = document.getElementById('share-text-content').textContent;
+      
+      // 1. 保存图片
+      await saveImagesToAlbum(imageIds);
+      
+      // 2. 复制文案
+      await copyTextToClipboard(text);
+      
+      // 3. 显示成功弹窗
+      showPreview(imageIds);
+      
+      // 4. 清空选择
+      AppState.selectedImages = [];
+      localStorage.setItem('share_data', JSON.stringify({ selectedImages: [] }));
+      ShareManager.renderPhotoCards();
+      ShareManager.updateSelectionHint();
+    }
+    
+    // 初始化
+    // doShare(); // 实际使用时调用
+  </script>
+</body>
+</html>
