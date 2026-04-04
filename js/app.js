@@ -701,7 +701,9 @@ const PrizeManager = {
 
 // ==================== 分享管理 ====================
 // ==================== 分享管理 - 简化版 ====================
-// 15 张标志性图片（使用可靠图片源）
+// ==================== 分享管理（15 张图选 3 张 - Picsum 源） ====================
+const ShareManager = {
+  // 15 张标志性图片（使用可靠图片源）
   landmarkImages: [
     // 解放碑 - 城市地标
     { id: 'jfbei_1', checkpointId: 1, url: 'https://picsum.photos/seed/jfbei1/800/600', desc: '🏢 解放碑步行街' },
@@ -727,16 +729,256 @@ const PrizeManager = {
     { id: 'hongya_1', checkpointId: 5, url: 'https://picsum.photos/seed/hongya1/800/600', desc: '🌉 洪崖洞' },
     { id: 'hongya_2', checkpointId: 5, url: 'https://picsum.photos/seed/hongya2/800/600', desc: '🏮 千与千寻' },
     { id: 'hongya_3', checkpointId: 5, url: 'https://picsum.photos/seed/hongya3/800/600', desc: '🌃 大桥夜景' }
-  ],// ==================== 初始化 ====================
+  ],
+  
+  // 8 条文案
+  shareTexts: [
+    '我在"趣玩重庆一日游"打卡活动中，已经获得 {points} 积分！打卡了重庆地标景点，快来一起探索山城魅力吧！',
+    '🎉 重庆一日游太好玩了！打卡了 {points} 积分，网红景点都打卡成功！这个周末一起来玩！',
+    '🎊 山城重庆之旅完美收官！{points} 积分到手，李子坝轻轨穿楼太震撼了，洪崖洞夜景美到窒息！',
+    '🌟 打卡重庆成功！用双腿丈量这座城市，{points} 积分见证我的山城建功之旅！',
+    '✨ 重庆一日游完美收官！{points} 积分解锁，嘉陵江的夜风、解放碑的繁华、南山的美景，都不虚此行！',
+    '🎈 8D 魔幻城市名不虚传！{points} 积分打卡成功，重庆我还会再来的！',
+    '💫 山城打卡成就达成！{points} 积分收入囊中，重庆的美食美景值得 N 刷！',
+    '🌈 雾都探索完成！{points} 积分到手，重庆的奇妙超出想象！童伴们冲鸭！'
+  ],
+  
+  init() {
+    AppState.selectedImages = [];
+    AppState.currentShareTextIndex = null;
+    this.loadShareData();
+    this.bindShareEvents();
+  },
+  
+  loadShareData() {
+    const saved = localStorage.getItem('share_data');
+    if (saved) {
+      try {
+        const data = JSON.parse(saved);
+        AppState.selectedImages = data.selectedImages || [];
+      } catch(e) {
+        AppState.selectedImages = [];
+      }
+    }
+  },
+  
+  saveShareData() {
+    localStorage.setItem('share_data', JSON.stringify({
+      selectedImages: AppState.selectedImages
+    }));
+  },
+  
+  updateShareContent() {
+    const ptsEl = document.getElementById('share-points');
+    if (ptsEl) ptsEl.textContent = AppState.points;
+    this.renderPhotoCards();
+    this.renderShareText();
+    this.updateSelectionHint();
+  },
+  
+  // 渲染所有 15 张卡片
+  renderPhotoCards() {
+    const slider = document.getElementById('photo-slider-card');
+    if (!slider) return;
+    
+    slider.innerHTML = this.landmarkImages.map((img, index) => {
+      const isSelected = AppState.selectedImages.includes(img.id);
+      return `
+        <div class="photo-card ${isSelected ? 'selected-card' : ''}" data-imgid="${img.id}" onclick="ShareManager.toggleSelect('${img.id}')">
+          <img src="${img.url}" alt="${img.desc}" />
+          <div class="checkmark">✓</div>
+        </div>
+      `;
+    }).join('');
+  },
+  
+  // 切换选择
+  toggleSelect(imgId) {
+    const index = AppState.selectedImages.indexOf(imgId);
+    
+    if (index >= 0) {
+      // 取消选择
+      AppState.selectedImages.splice(index, 1);
+    } else {
+      // 选择新图片
+      if (AppState.selectedImages.length >= 3) {
+        alert('ℹ️ 最多只能选择 3 张图片');
+        return;
+      }
+      AppState.selectedImages.push(imgId);
+    }
+    
+    this.renderPhotoCards();
+    this.saveShareData();
+    this.updateSelectionHint();
+  },
+  
+  // 更新选择提示
+  updateSelectionHint() {
+    let hintEl = document.querySelector('.select-hint');
+    if (!hintEl) {
+      hintEl = document.createElement('div');
+      hintEl.className = 'select-hint';
+      const container = document.getElementById('photo-slider-card').parentNode;
+      container.insertBefore(hintEl, container.firstChild);
+    }
+    
+    const count = AppState.selectedImages.length;
+    hintEl.innerHTML = `已选择 <span class="count">${count}</span>/3 张`;
+  },
+  
+  // 渲染随机文案
+  renderShareText() {
+    const el = document.getElementById('share-text-content');
+    if (!el) return;
+    
+    if (AppState.currentShareTextIndex === null || 
+        AppState.currentShareTextIndex >= this.shareTexts.length) {
+      AppState.currentShareTextIndex = Math.floor(Math.random() * this.shareTexts.length);
+    }
+    
+    const text = this.shareTexts[AppState.currentShareTextIndex]
+      .replace('{points}', AppState.points.toString());
+    
+    el.innerHTML = `<p>${text}</p>`;
+  },
+  
+  // 刷新文案
+  refreshText() {
+    const newIndex = Math.floor(Math.random() * this.shareTexts.length);
+    AppState.currentShareTextIndex = newIndex;
+    this.renderShareText();
+  },
+  
+  bindShareEvents() {
+    // 换一个按钮
+    const refreshBtn = document.getElementById('refresh-text-btn');
+    if (refreshBtn) {
+      refreshBtn.onclick = () => this.refreshText();
+    }
+    
+    // 去分享按钮
+    const shareBtn = document.getElementById('share-main-btn');
+    if (shareBtn) {
+      shareBtn.onclick = () => {
+        if (AppState.selectedImages.length === 0) {
+          alert('ℹ️ 请至少选择 1 张图片');
+          return;
+        }
+        
+        const text = document.getElementById('share-text-content').textContent;
+        alert('📤 长按复制下方文案，然后分享到朋友圈：\n\n' + text);
+      };
+    }
+  }
+};    
+    slider.innerHTML = this.landmarkImages.map((img, index) => {
+      const isSelected = AppState.selectedImages.includes(img.id);
+      return `
+        <div class="photo-card ${isSelected ? 'selected-card' : ''}" data-imgid="${img.id}" onclick="ShareManager.toggleSelect('${img.id}')">
+          <img src="${img.url}" alt="${img.desc}" />
+          <div class="checkmark">✓</div>
+        </div>
+      `;
+    }).join('');
+  },
+  
+  // 切换选择
+  toggleSelect(imgId) {
+    const index = AppState.selectedImages.indexOf(imgId);
+    
+    if (index >= 0) {
+      // 取消选择
+      AppState.selectedImages.splice(index, 1);
+    } else {
+      // 选择新图片
+      if (AppState.selectedImages.length >= 3) {
+        alert('ℹ️ 最多只能选择 3 张图片');
+        return;
+      }
+      AppState.selectedImages.push(imgId);
+    }
+    
+    this.renderPhotoCards();
+    this.saveShareData();
+    this.updateSelectionHint();
+  },
+  
+  // 更新选择提示
+  updateSelectionHint() {
+    let hintEl = document.querySelector('.select-hint');
+    if (!hintEl) {
+      // 创建提示元素
+      hintEl = document.createElement('div');
+      hintEl.className = 'select-hint';
+      const container = document.getElementById('photo-slider-card').parentNode;
+      container.insertBefore(hintEl, container.firstChild);
+    }
+    
+    const count = AppState.selectedImages.length;
+    hintEl.innerHTML = `已选择 <span class="count">${count}</span>/3 张`;
+  },
+  
+  // 渲染随机文案
+  renderShareText() {
+    const el = document.getElementById('share-text-content');
+    if (!el) return;
+    
+    if (AppState.currentShareTextIndex === null || 
+        AppState.currentShareTextIndex >= this.shareTexts.length) {
+      AppState.currentShareTextIndex = Math.floor(Math.random() * this.shareTexts.length);
+    }
+    
+    const text = this.shareTexts[AppState.currentShareTextIndex]
+      .replace('{points}', AppState.points.toString());
+    
+    el.innerHTML = `<p>${text}</p>`;
+  },
+  
+  // 刷新文案
+  refreshText() {
+    const newIndex = Math.floor(Math.random() * this.shareTexts.length);
+    AppState.currentShareTextIndex = newIndex;
+    this.renderShareText();
+  },
+  
+  bindShareEvents() {
+    // 换一个按钮
+    const refreshBtn = document.getElementById('refresh-text-btn');
+    if (refreshBtn) {
+      refreshBtn.onclick = () => this.refreshText();
+    }
+    
+    // 去分享按钮
+    const shareBtn = document.getElementById('share-main-btn');
+    if (shareBtn) {
+      shareBtn.onclick = () => {
+        if (AppState.selectedImages.length === 0) {
+          alert('ℹ️ 请至少选择 1 张图片');
+          return;
+        }
+        
+        const text = document.getElementById('share-text-content').textContent;
+        alert('📤 长按复制下方文案，然后分享到朋友圈：\n\n' + text);
+      };
+    }
+  }
+};
+// ==================== 初始化 ====================
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('🚀 开始初始化...');
   console.log('='.repeat(50));
   
   // 1. 初始化 Supabase 用户管理（异步，必须在最前面）
   try {
-    await SupabaseManager.init();
-    AppState.userId = SupabaseManager.userId;
-    console.log('✅ Supabase 用户管理初始化完成');
+    if (window.SupabaseManager) {
+      await SupabaseManager.init();
+      AppState.userId = SupabaseManager.userId;
+      console.log('✅ Supabase 用户管理初始化完成');
+    } else {
+      console.warn('⚠️ SupabaseManager 未加载');
+      AppState.userId = 'unknown_' + Date.now();
+    }
   } catch(e) { 
     console.error('❌ Supabase 用户管理:', e); 
     AppState.userId = 'error_' + Date.now();
