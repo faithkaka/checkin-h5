@@ -701,34 +701,24 @@ const PrizeManager = {
 
 // ==================== 分享管理 ====================
 // ==================== 分享管理 - 简化版 ====================
-// ==================== 分享管理（15 张图选 3 张 - Picsum 源） ====================
 const ShareManager = {
-  // 15 张标志性图片（使用可靠图片源）
+  // 15 张标志性图片（使用可靠的 Picsum 源）
   landmarkImages: [
-    // 解放碑 - 城市地标
-    { id: 'jfbei_1', checkpointId: 1, url: 'https://picsum.photos/seed/jfbei1/800/600', desc: '🏢 解放碑步行街' },
-    { id: 'jfbei_2', checkpointId: 1, url: 'https://picsum.photos/seed/jfbei2/800/600', desc: '🏙️ 城市商业中心' },
-    { id: 'jfbei_3', checkpointId: 1, url: 'https://picsum.photos/seed/jfbei3/800/600', desc: '🌃 城市夜景' },
-    
-    // 李子坝 - 轻轨
+    { id: 'jfbei_1', checkpointId: 1, url: 'https://picsum.photos/seed/jfbei1/800/600', desc: '🏢 解放碑' },
+    { id: 'jfbei_2', checkpointId: 1, url: 'https://picsum.photos/seed/jfbei2/800/600', desc: '🏙️ 商业中心' },
+    { id: 'jfbei_3', checkpointId: 1, url: 'https://picsum.photos/seed/jfbei3/800/600', desc: '🌃 夜景' },
     { id: 'liziba_1', checkpointId: 2, url: 'https://picsum.photos/seed/liziba1/800/600', desc: '🚝 轻轨穿楼' },
-    { id: 'liziba_2', checkpointId: 2, url: 'https://picsum.photos/seed/liziba2/800/600', desc: '🚄 轨道交通' },
-    { id: 'liziba_3', checkpointId: 2, url: 'https://picsum.photos/seed/liziba3/800/600', desc: '🚇 轻轨站台' },
-    
-    // 鹅岭二厂 - 文创
-    { id: 'eling_1', checkpointId: 3, url: 'https://picsum.photos/seed/eling1/800/600', desc: '🎨 文创园区' },
-    { id: 'eling_2', checkpointId: 3, url: 'https://picsum.photos/seed/eling2/800/600', desc: '🖼️ 艺术空间' },
-    { id: 'eling_3', checkpointId: 3, url: 'https://picsum.photos/seed/eling3/800/600', desc: '🎭 创意基地' },
-    
-    // 南山 - 观景
-    { id: 'nanshan_1', checkpointId: 4, url: 'https://picsum.photos/seed/nanshan1/800/600', desc: '🌳 南山观景台' },
-    { id: 'nanshan_2', checkpointId: 4, url: 'https://picsum.photos/seed/nanshan2/800/600', desc: '🌆 城市夜景' },
-    { id: 'nanshan_3', checkpointId: 4, url: 'https://picsum.photos/seed/nanshan3/800/600', desc: '🌇 俯瞰全景' },
-    
-    // 洪崖洞 - 夜景
+    { id: 'liziba_2', checkpointId: 2, url: 'https://picsum.photos/seed/liziba2/800/600', desc: '🚄 轻轨' },
+    { id: 'liziba_3', checkpointId: 2, url: 'https://picsum.photos/seed/liziba3/800/600', desc: '🚇 站台' },
+    { id: 'eling_1', checkpointId: 3, url: 'https://picsum.photos/seed/eling1/800/600', desc: '🎨 二厂' },
+    { id: 'eling_2', checkpointId: 3, url: 'https://picsum.photos/seed/eling2/800/600', desc: '🖼️ 文艺' },
+    { id: 'eling_3', checkpointId: 3, url: 'https://picsum.photos/seed/eling3/800/600', desc: '🎭 电影' },
+    { id: 'nanshan_1', checkpointId: 4, url: 'https://picsum.photos/seed/nanshan1/800/600', desc: '🌳 观景台' },
+    { id: 'nanshan_2', checkpointId: 4, url: 'https://picsum.photos/seed/nanshan2/800/600', desc: '🌆 夜景' },
+    { id: 'nanshan_3', checkpointId: 4, url: 'https://picsum.photos/seed/nanshan3/800/600', desc: '🌇 全景' },
     { id: 'hongya_1', checkpointId: 5, url: 'https://picsum.photos/seed/hongya1/800/600', desc: '🌉 洪崖洞' },
     { id: 'hongya_2', checkpointId: 5, url: 'https://picsum.photos/seed/hongya2/800/600', desc: '🏮 千与千寻' },
-    { id: 'hongya_3', checkpointId: 5, url: 'https://picsum.photos/seed/hongya3/800/600', desc: '🌃 大桥夜景' }
+    { id: 'hongya_3', checkpointId: 5, url: 'https://picsum.photos/seed/hongya3/800/600', desc: '🌃 大桥' }
   ],
   
   // 8 条文案
@@ -781,97 +771,6 @@ const ShareManager = {
     const slider = document.getElementById('photo-slider-card');
     if (!slider) return;
     
-    slider.innerHTML = this.landmarkImages.map((img, index) => {
-      const isSelected = AppState.selectedImages.includes(img.id);
-      return `
-        <div class="photo-card ${isSelected ? 'selected-card' : ''}" data-imgid="${img.id}" onclick="ShareManager.toggleSelect('${img.id}')">
-          <img src="${img.url}" alt="${img.desc}" />
-          <div class="checkmark">✓</div>
-        </div>
-      `;
-    }).join('');
-  },
-  
-  // 切换选择
-  toggleSelect(imgId) {
-    const index = AppState.selectedImages.indexOf(imgId);
-    
-    if (index >= 0) {
-      // 取消选择
-      AppState.selectedImages.splice(index, 1);
-    } else {
-      // 选择新图片
-      if (AppState.selectedImages.length >= 3) {
-        alert('ℹ️ 最多只能选择 3 张图片');
-        return;
-      }
-      AppState.selectedImages.push(imgId);
-    }
-    
-    this.renderPhotoCards();
-    this.saveShareData();
-    this.updateSelectionHint();
-  },
-  
-  // 更新选择提示
-  updateSelectionHint() {
-    let hintEl = document.querySelector('.select-hint');
-    if (!hintEl) {
-      hintEl = document.createElement('div');
-      hintEl.className = 'select-hint';
-      const container = document.getElementById('photo-slider-card').parentNode;
-      container.insertBefore(hintEl, container.firstChild);
-    }
-    
-    const count = AppState.selectedImages.length;
-    hintEl.innerHTML = `已选择 <span class="count">${count}</span>/3 张`;
-  },
-  
-  // 渲染随机文案
-  renderShareText() {
-    const el = document.getElementById('share-text-content');
-    if (!el) return;
-    
-    if (AppState.currentShareTextIndex === null || 
-        AppState.currentShareTextIndex >= this.shareTexts.length) {
-      AppState.currentShareTextIndex = Math.floor(Math.random() * this.shareTexts.length);
-    }
-    
-    const text = this.shareTexts[AppState.currentShareTextIndex]
-      .replace('{points}', AppState.points.toString());
-    
-    el.innerHTML = `<p>${text}</p>`;
-  },
-  
-  // 刷新文案
-  refreshText() {
-    const newIndex = Math.floor(Math.random() * this.shareTexts.length);
-    AppState.currentShareTextIndex = newIndex;
-    this.renderShareText();
-  },
-  
-  bindShareEvents() {
-    // 换一个按钮
-    const refreshBtn = document.getElementById('refresh-text-btn');
-    if (refreshBtn) {
-      refreshBtn.onclick = () => this.refreshText();
-    }
-    
-    // 去分享按钮
-    const shareBtn = document.getElementById('share-main-btn');
-    if (shareBtn) {
-      shareBtn.onclick = () => {
-        if (AppState.selectedImages.length === 0) {
-          alert('ℹ️ 请至少选择 1 张图片');
-          return;
-        }
-        
-        const text = document.getElementById('share-text-content').textContent;
-        alert('📤 长按复制下方文案，然后分享到朋友圈：\n\n' + text);
-      };
-    }
-  }
-};    
     slider.innerHTML = this.landmarkImages.map((img, index) => {
       const isSelected = AppState.selectedImages.includes(img.id);
       return `
