@@ -21,130 +21,86 @@
     .add-image-btn { background: #10b981; color: white; border: none; border-radius: 50%; width: 28px; height: 28px; cursor: pointer; font-size: 18px; }
     
     .image-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-    .image-item { aspect-ratio: 1; border-radius: 8px; overflow: hidden; border: 2px solid #e0e0e0; position: relative; transition: all 0.2s; }
-    .image-item:hover { border-color: #667eea; }
+    .image-item { aspect-ratio: 1; border-radius: 8px; overflow: hidden; border: 2px solid #e0e0e0; position: relative; }
     .image-item img { width: 100%; height: 100%; object-fit: cover; }
     .image-item .overlay { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.6); color: white; padding: 4px 6px; font-size: 11px; }
-    .image-item .edit-btn { position: absolute; top: 5px; right: 5px; background: rgba(255,255,255,0.9); border: none; border-radius: 50%; width: 28px; height: 28px; cursor: pointer; font-size: 14px; }
-    .image-item .delete-btn { position: absolute; top: 5px; left: 5px; background: rgba(239,68,68,0.9); color: white; border: none; border-radius: 50%; width: 28px; height: 28px; cursor: pointer; font-size: 12px; }
+    .image-item .edit-btn, .image-item .delete-btn { position: absolute; width: 28px; height: 28px; border-radius: 50%; border: none; cursor: pointer; font-size: 14px; }
+    .image-item .delete-btn { top: 5px; left: 5px; background: rgba(239,68,68,0.9); color: white; font-size: 12px; }
+    .image-item .edit-btn { top: 5px; right: 5px; background: rgba(255,255,255,0.9); }
     
     .text-list { display: flex; flex-direction: column; gap: 10px; }
     .text-item { background: #f9fafb; padding: 12px; border-radius: 8px; border-left: 3px solid #667eea; position: relative; }
-    .text-item .delete-btn { position: absolute; top: 8px; right: 8px; background: #fee2e2; color: #dc2626; border: none; border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer; }
-    .text-item p { font-size: 13px; color: #333; line-height: 1.5; }
-    
-    .btn { background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; padding: 12px 20px; font-size: 14px; cursor: pointer; width: 100%; margin-top: 10px; }
-    .btn:active { transform: scale(0.98); }
-    .btn-secondary { background: linear-gradient(135deg, #10b981, #059669); }
-    .btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); }
+    .text-item .delete-btn { position: absolute; top: 8px; right: 8px; background: #fee2e2; color: #dc2626; border: none; border-radius: 4px; padding: 4px 8px; }
     
     .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: none; justify-content: center; align-items: center; }
     .modal-overlay.show { display: flex; }
-    .modal { background: white; border-radius: 16px; padding: 24px; width: 90%; max-width: 400px; max-height: 80vh; overflow-y: auto; }
+    .modal { background: white; border-radius: 16px; padding: 24px; width: 90%; max-width: 400px; }
     .modal h3 { font-size: 18px; margin-bottom: 15px; text-align: center; }
     .modal label { display: block; margin-bottom: 8px; font-size: 14px; color: #666; }
     .modal input, .modal textarea, .modal select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; margin-bottom: 15px; }
     .modal textarea { min-height: 100px; resize: vertical; }
     .modal-actions { display: flex; gap: 10px; }
     .modal-actions .btn { flex: 1; margin-top: 0; }
+    .btn { background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; padding: 12px; cursor: pointer; }
     .btn-cancel { background: #f3f4f6 !important; color: #666; }
     
-    .preview-image { width: 100%; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ddd; }
-    .upload-area { border: 2px dashed #ddd; border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; margin-bottom: 15px; transition: all 0.2s; }
-    .upload-area:hover { border-color: #667eea; background: #f9fafb; }
+    .upload-area { border: 2px dashed #ddd; border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; margin-bottom: 15px; }
     .upload-area.dragover { border-color: #667eea; background: #dbeafe; }
+    .preview-image { width: 100%; border-radius: 8px; margin-bottom: 15px; }
     
-    .status-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #10b981; color: white; padding: 12px 24px; border-radius: 24px; z-index: 2000; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+    .status-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #10b981; color: white; padding: 12px 24px; border-radius: 24px; z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
     .status-toast.show { opacity: 1; }
     .status-toast.error { background: #ef4444; }
     
-    .back-btn { position: fixed; bottom: 20px; right: 20px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 50%; width: 56px; height: 56px; font-size: 24px; cursor: pointer; box-shadow: 0 4px 15px rgba(102,126,234,0.4); }
+    .btn-save-all { background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 8px; padding: 14px; width: 100%; font-size: 15px; cursor: pointer; margin-top: 20px; }
+    .back-btn { position: fixed; bottom: 20px; right: 20px; background: #667eea; color: white; border: none; border-radius: 50%; width: 56px; height: 56px; font-size: 24px; cursor: pointer; }
   </style>
 </head>
 <body>
-  <header>
-    <h1>📸 分享资源管理</h1>
-    <div class="subtitle">管理景点图片和分享文案</div>
-  </header>
+  <header><h1>📸 分享资源管理</h1><div class="subtitle">管理景点图片和分享文案</div></header>
   
   <div class="container">
-    <!-- 图片管理 -->
-    <div class="section">
-      <h2>🖼️ 景点标志性图片</h2>
-      <div id="images-container"></div>
-    </div>
-    
-    <!-- 文案管理 -->
-    <div class="section">
-      <h2>✏️ 分享文案</h2>
-      <p style="color:#666;font-size:13px;margin-bottom:15px;">💡 使用 <code style="background:#f3f4f6;padding:2px 6px;border-radius:4px;">{points}</code> 占位符，会自动替换为用户积分</p>
-      <div class="text-list" id="texts-container"></div>
-      <button class="btn btn-secondary" onclick="openTextModal()">➕ 添加文案</button>
-    </div>
-    
-    <button class="btn" onclick="saveAll()">💾 保存所有修改</button>
+    <div class="section"><h2>🖼️ 景点图片</h2><div id="images-container"></div></div>
+    <div class="section"><h2>✏️ 分享文案</h2><p style="color:#666;font-size:13px;margin-bottom:15px;">💡 使用 <code style="background:#f3f4f6;padding:2px 6px;">{points}</code> 占位符</p><div class="text-list" id="texts-container"></div><button class="btn" onclick="openTextModal(-1)">➕ 添加文案</button></div>
+    <button class="btn-save-all" onclick="saveAll()">💾 保存所有修改</button>
   </div>
   
-  <button class="back-btn" onclick="window.history.back()">↩</button>
+  <button class="back-btn" onclick="history.back()">↩</button>
   <div class="status-toast" id="toast"></div>
   
-  <!-- 图片编辑弹窗 -->
   <div class="modal-overlay" id="image-modal">
     <div class="modal">
       <h3 id="image-modal-title">🖼️ 编辑图片</h3>
-      
-      <label>选择景点</label>
-      <select id="edit-image-checkpoint">
-        <option value="1">🏢 解放碑步行街</option>
-        <option value="2">🚝 李子坝轻轨站</option>
-        <option value="3">🎨 鹅岭二厂文创园</option>
-        <option value="4">🌳 南山一棵树观景台</option>
-        <option value="5">🌉 洪崖洞 + 千厮门大桥</option>
-      </select>
-      
-      <label>预览</label>
-      <img id="edit-image-preview" class="preview-image" src="" alt="预览" />
-      
-      <label>上传方式</label>
-      <div class="upload-area" id="upload-area" onclick="document.getElementById('edit-image-file').click()">
-        <div style="font-size:32px;margin-bottom:10px;">📁</div>
-        <div style="font-size:13px;color:#666;">点击选择图片 或 拖拽到此处</div>
-        <div style="font-size:12px;color:#999;margin-top:5px;">支持 JPG、PNG 格式</div>
-      </div>
-      <input type="file" id="edit-image-file" accept="image/*" style="display:none;" onchange="handleFileSelect(this)" />
-      
-      <label>或直接输入 URL</label>
-      <input type="text" id="edit-image-url" placeholder="https://..." oninput="updatePreview()" />
-      
-      <label>描述文字</label>
-      <input type="text" id="edit-image-desc" placeholder="图片描述" />
-      
-      <div class="modal-actions">
-        <button class="btn btn-cancel" onclick="closeImageModal()">取消</button>
-        <button class="btn" onclick="saveImageEdit()">保存</button>
-      </div>
+      <label>景点</label><select id="edit-image-checkpoint"><option value="1">🏢 解放碑</option><option value="2">🚝 李子坝</option><option value="3">🎨 鹅岭二厂</option><option value="4">🌳 南山一棵树</option><option value="5">🌉 洪崖洞</option></select>
+      <label>预览</label><img id="edit-image-preview" class="preview-image" src="" />
+      <label>上传</label><div class="upload-area" id="upload-area" onclick="document.getElementById('edit-image-file').click()"><div style="font-size:32px;">📁</div><div style="font-size:13px;color:#666;">点击或拖拽上传</div></div><input type="file" id="edit-image-file" accept="image/*" style="display:none;" />
+      <label>或输入 URL</label><input type="text" id="edit-image-url" placeholder="https://..." />
+      <label>描述</label><input type="text" id="edit-image-desc" placeholder="图片描述" />
+      <div class="modal-actions"><button class="btn btn-cancel" onclick="closeImageModal()">取消</button><button class="btn" onclick="saveImageEdit()">保存</button></div>
     </div>
   </div>
   
-  <!-- 文案编辑弹窗 -->
   <div class="modal-overlay" id="text-modal">
     <div class="modal">
       <h3 id="text-modal-title">✏️ 编辑文案</h3>
-      <textarea id="edit-text-content" placeholder="输入分享文案...&#10;&#10;提示：使用 {points} 占位符，会自动替换为用户积分&#10;例如：我获得了 {points} 积分！"></textarea>
-      <div class="modal-actions">
-        <button class="btn btn-cancel" onclick="closeTextModal()">取消</button>
-        <button class="btn" onclick="saveTextEdit()">保存</button>
-      </div>
+      <textarea id="edit-text-content" placeholder="输入文案...使用 {points} 占位符"></textarea>
+      <div class="modal-actions"><button class="btn btn-cancel" onclick="closeTextModal()">取消</button><button class="btn" onclick="saveTextEdit()">保存</button></div>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0"></script>
   <script>
-    const SUPABASE_URL = 'https://ussvekkgyntubivhfext.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzc3Zla2tneW50dWJpdmhmZXh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTEwODQwMiwiZXhwIjoyMDkwNjg0NDAyfQ.i1fbQC96UGnToKL6fa7GTfaMtt0s_TGpNNR0xb3ufR0';
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // 全局变量
+    var supabaseClient = null;
+    var shareData = { images: [], texts: [] };
+    var editingImageIndex = -1;
+    var editingTextIndex = -1;
+    var currentImageFile = null;
     
-    const checkpoints = [
+    var SUPABASE_URL = 'https://ussvekkgyntubivhfext.supabase.co';
+    var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzc3Zla2tneW50dWJpdmhmZXh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTEwODQwMiwiZXhwIjoyMDkwNjg0NDAyfQ.i1fbQC96UGnToKL6fa7GTfaMtt0s_TGpNNR0xb3ufR0';
+    
+    var checkpoints = [
       { id: 1, name: '解放碑步行街', icon: '🏢' },
       { id: 2, name: '李子坝轻轨站', icon: '🚝' },
       { id: 3, name: '鹅岭二厂文创园', icon: '🎨' },
@@ -152,39 +108,48 @@
       { id: 5, name: '洪崖洞 + 千厮门大桥', icon: '🌉' }
     ];
     
-    const defaultImages = [
-      { id: 'jfbei_1', checkpointId: 1, url: 'https://images.unsplash.com/photo-1599689018248-b3e9e089e8c2?w=600', desc: '🏢 解放碑步行街' },
-      { id: 'jfbei_2', checkpointId: 1, url: 'https://images.unsplash.com/photo-1478131333081-31f9a7e96847?w=600', desc: '🏙️ 解放碑商业中心' },
-      { id: 'jfbei_3', checkpointId: 1, url: 'https://images.unsplash.com/photo-1519508235410-4e1a9881c138?w=600', desc: '🌃 解放碑夜景' },
-      { id: 'liziba_1', checkpointId: 2, url: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=600', desc: '🚝 李子坝轻轨穿楼' },
+    var defaultImages = [
+      { id: 'jfbei_1', checkpointId: 1, url: 'https://images.unsplash.com/photo-1599689018248-b3e9e089e8c2?w=600', desc: '🏢 解放碑' },
+      { id: 'jfbei_2', checkpointId: 1, url: 'https://images.unsplash.com/photo-1478131333081-31f9a7e96847?w=600', desc: '🏙️ 商业中心' },
+      { id: 'jfbei_3', checkpointId: 1, url: 'https://images.unsplash.com/photo-1519508235410-4e1a9881c138?w=600', desc: '🌃 夜景' },
+      { id: 'liziba_1', checkpointId: 2, url: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=600', desc: '🚝 轻轨穿楼' },
       { id: 'liziba_2', checkpointId: 2, url: 'https://images.unsplash.com/photo-1444703686981-a3abbc4d4fe3?w=600', desc: '🚄 轻轨 2 号线' },
-      { id: 'liziba_3', checkpointId: 2, url: 'https://images.unsplash.com/photo-1520639888713-78db11c0a1a3?w=600', desc: '🚇 李子坝站台' },
-      { id: 'eling_1', checkpointId: 3, url: 'https://images.unsplash.com/photo-1560185127-6ed189bf02f4?w=600', desc: '🎨 鹅岭二厂' },
-      { id: 'eling_2', checkpointId: 3, url: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=600', desc: '🖼️ 文艺青年聚集地' },
-      { id: 'eling_3', checkpointId: 3, url: 'https://images.unsplash.com/photo-1550950158-d0d960dff51b?w=600', desc: '🎭 电影取景地' },
-      { id: 'nanshan_1', checkpointId: 4, url: 'https://images.unsplash.com/photo-1506459225024-1428096a4b2e?w=600', desc: '🌳 南山观景台' },
-      { id: 'nanshan_2', checkpointId: 4, url: 'https://images.unsplash.com/photo-1518182170546-0766aaefcd09?w=600', desc: '🌆 重庆夜景' },
-      { id: 'nanshan_3', checkpointId: 4, url: 'https://images.unsplash.com/photo-1506459225024-1428096a4b2e?w=600', desc: '🌇 俯瞰全景' },
-      { id: 'hongya_1', checkpointId: 5, url: 'https://images.unsplash.com/photo-1548265047-181289a4168f?w=600', desc: '🌉 洪崖洞夜景' },
-      { id: 'hongya_2', checkpointId: 5, url: 'https://images.unsplash.com/photo-1554672408-730436b60dde?w=600', desc: '🏮 千与千寻现实版' },
-      { id: 'hongya_3', checkpointId: 5, url: 'https://images.unsplash.com/photo-1553913861-c0fddf2166ab?w=600', desc: '🌃 洪崖洞大桥' }
+      { id: 'liziba_3', checkpointId: 2, url: 'https://images.unsplash.com/photo-1520639888713-78db11c0a1a3?w=600', desc: '🚇 站台' },
+      { id: 'eling_1', checkpointId: 3, url: 'https://images.unsplash.com/photo-1560185127-6ed189bf02f4?w=600', desc: '🎨 二厂' },
+      { id: 'eling_2', checkpointId: 3, url: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=600', desc: '🖼️ 文艺' },
+      { id: 'eling_3', checkpointId: 3, url: 'https://images.unsplash.com/photo-1550950158-d0d960dff51b?w=600', desc: '🎭 电影取景' },
+      { id: 'nanshan_1', checkpointId: 4, url: 'https://images.unsplash.com/photo-1506459225024-1428096a4b2e?w=600', desc: '🌳 观景台' },
+      { id: 'nanshan_2', checkpointId: 4, url: 'https://images.unsplash.com/photo-1518182170546-0766aaefcd09?w=600', desc: '🌆 夜景' },
+      { id: 'nanshan_3', checkpointId: 4, url: 'https://images.unsplash.com/photo-1506459225024-1428096a4b2e?w=600', desc: '🌇 全景' },
+      { id: 'hongya_1', checkpointId: 5, url: 'https://images.unsplash.com/photo-1548265047-181289a4168f?w=600', desc: '🌉 洪崖洞' },
+      { id: 'hongya_2', checkpointId: 5, url: 'https://images.unsplash.com/photo-1554672408-730436b60dde?w=600', desc: '🏮 千与千寻' },
+      { id: 'hongya_3', checkpointId: 5, url: 'https://images.unsplash.com/photo-1553913861-c0fddf2166ab?w=600', desc: '🌃 大桥' }
     ];
     
-    const defaultTexts = [
-      '我在"趣玩重庆一日游"打卡活动中，已经获得 {points} 积分！打卡了重庆地标景点，快来一起探索山城魅力吧！',
-      '🎉 重庆一日游太好玩了！打卡了 {points} 积分，网红景点都打卡成功！这个周末一起来玩！',
-      '🎊 山城重庆之旅完美收官！{points} 积分到手，李子坝轻轨穿楼太震撼了，洪崖洞夜景美到窒息！',
-      '🌟 打卡重庆成功！用双腿丈量这座城市，{points} 积分见证我的山城建功之旅！',
-      '✨ 重庆一日游完美收官！{points} 积分解锁，嘉陵江的夜风、解放碑的繁华、南山的美景，都不虚此行！',
-      '🎈 8D 魔幻城市名不虚传！{points} 积分打卡成功，重庆我还会再来的！',
-      '💫 山城打卡成就达成！{points} 积分收入囊中，重庆的美食美景值得 N 刷！',
-      '🌈 雾都探索完成！{points} 积分到手，重庆的奇妙超出想象！童伴们冲鸭！'
+    var defaultTexts = [
+      '我在"趣玩重庆一日游"打卡活动中，已经获得 {points} 积分！',
+      '🎉 重庆一日游太好玩了！打卡了 {points} 积分！',
+      '🎊 山城重庆之旅完美收官！{points} 积分到手！',
+      '🌟 打卡重庆成功！{points} 积分见证我的旅程！',
+      '✨ 重庆一日游完美收官！{points} 积分解锁！',
+      '🎈 8D 魔幻城市！{points} 积分打卡成功！',
+      '💫 山城打卡完成！{points} 积分收入囊中！',
+      '🌈 雾都探索完成！{points} 积分到手！'
     ];
     
-    let shareData = { images: [], texts: [] };
-    let editingImageIndex = -1;
-    let editingTextIndex = -1;
-    let currentImageFile = null;
+    function getSupabase() {
+      if (!supabaseClient) {
+        supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      }
+      return supabaseClient;
+    }
+    
+    function showToast(msg, isError) {
+      var t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = 'status-toast show' + (isError ? ' error' : '');
+      setTimeout(function() { t.className = 'status-toast'; }, 2000);
+    }
     
     async function init() {
       await loadShareData();
@@ -195,226 +160,147 @@
     
     async function loadShareData() {
       try {
-        const { data, error } = await supabase.from('share_resources').select('data').eq('type', 'share').single();
-        if (error && error.code !== 'PGRST116') {
-          console.error('加载失败:', error);
-          showToast('加载失败：' + error.message, true);
-          return;
-        }
-        if (data && data.data) {
-          shareData = data.data;
+        var client = getSupabase();
+        var result = await client.from('share_resources').select('data').eq('type', 'share').single();
+        if (result.data && result.data.data) {
+          shareData = result.data.data;
         } else {
-          shareData = { images: [...defaultImages], texts: [...defaultTexts] };
+          shareData = { images: defaultImages.slice(), texts: defaultTexts.slice() };
         }
       } catch (e) {
-        console.error('加载异常:', e);
-        shareData = { images: [...defaultImages], texts: [...defaultTexts] };
+        console.error('Load error:', e);
+        shareData = { images: defaultImages.slice(), texts: defaultTexts.slice() };
+        showToast('使用默认数据');
       }
     }
     
     function renderImages() {
-      const container = document.getElementById('images-container');
-      let html = '';
-      
-      checkpoints.forEach(cp => {
-        const images = shareData.images.filter(img => img.checkpointId === cp.id);
-        html += `
-          <div class="checkpoint-section">
-            <div class="checkpoint-title">
-              <span><span>${cp.icon}</span> ${cp.name}</span>
-              <button class="add-image-btn" onclick="openImageModal(-1, ${cp.id})">+</button>
-            </div>
-            <div class="image-grid">
-              ${images.map((img, idx) => `
-                <div class="image-item">
-                  <img src="${img.url}" onerror="this.src='data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\'><rect fill=\'%23ddd\' width=\'100\' height=\'100\'/><text x=\'50\' y=\'50\' text-anchor=\'middle\' dy=\'0.3em\' fill=\'%23999\'>图片</text></svg>'" />
-                  <div class="overlay">${img.desc || '无描述'}</div>
-                  <button class="delete-btn" onclick="deleteImage(${shareData.images.indexOf(img)})">×</button>
-                  <button class="edit-btn" onclick="openImageModal(${shareData.images.indexOf(img)})">✏️</button>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        `;
+      var html = '';
+      checkpoints.forEach(function(cp) {
+        var imgs = shareData.images.filter(function(img) { return img.checkpointId === cp.id; });
+        html += '<div class="checkpoint-section"><div class="checkpoint-title"><span>'+cp.icon+' '+cp.name+'</span><button class="add-image-btn" onclick="openImageModal(-1, '+cp.id+')">+</button></div><div class="image-grid">';
+        imgs.forEach(function(img, idx) {
+          var globalIdx = shareData.images.indexOf(img);
+          html += '<div class="image-item"><img src="'+img.url+'" onerror="this.src=\'data:image/svg+xml,<svg xmlns=\\\'http://www.w3.org/2000/svg\\\' width=\\\'100\\\' height=\\\'100\\\'><rect fill=\\\'%23ddd\\\' width=\\\'100\\\' height=\\\'100\\\'/><text x=\\\'50\\\' y=\\\'50\\\' text-anchor=\\\'middle\\\' fill=\\\'%23999\\\'>图片</text></svg>\'" /><div class="overlay">'+(img.desc||'')+'</div><button class="delete-btn" onclick="deleteImage('+globalIdx+')">×</button><button class="edit-btn" onclick="openImageModal('+globalIdx+')">✏️</button></div>';
+        });
+        html += '</div></div>';
       });
-      
-      container.innerHTML = html;
+      document.getElementById('images-container').innerHTML = html;
     }
     
     function renderTexts() {
-      const container = document.getElementById('texts-container');
-      container.innerHTML = shareData.texts.map((text, idx) => `
-        <div class="text-item">
-          <p>${text}</p>
-          <button class="delete-btn" onclick="deleteText(${idx})">删除</button>
-        </div>
-      `).join('');
+      var html = '';
+      shareData.texts.forEach(function(text, idx) {
+        html += '<div class="text-item"><p>'+text+'</p><button class="delete-btn" onclick="deleteText('+idx+')">删除</button></div>';
+      });
+      document.getElementById('texts-container').innerHTML = html;
     }
     
-    function openImageModal(index = -1, checkpointId = 1) {
-      editingImageIndex = index;
-      const isNew = index < 0;
-      
+    function openImageModal(idx, cpId) {
+      editingImageIndex = idx;
+      var isNew = idx < 0;
       document.getElementById('image-modal-title').textContent = isNew ? '➕ 添加图片' : '✏️ 编辑图片';
-      document.getElementById('edit-image-checkpoint').value = checkpointId.toString();
-      document.getElementById('edit-image-desc').value = '';
+      document.getElementById('edit-image-checkpoint').value = (cpId || 1).toString();
       document.getElementById('edit-image-url').value = '';
+      document.getElementById('edit-image-desc').value = '';
       document.getElementById('edit-image-preview').src = '';
       currentImageFile = null;
       
       if (!isNew) {
-        const img = shareData.images[index];
+        var img = shareData.images[idx];
         document.getElementById('edit-image-checkpoint').value = img.checkpointId.toString();
         document.getElementById('edit-image-url').value = img.url;
         document.getElementById('edit-image-desc').value = img.desc || '';
         document.getElementById('edit-image-preview').src = img.url;
       }
-      
       document.getElementById('image-modal').classList.add('show');
     }
     
     function closeImageModal() {
       document.getElementById('image-modal').classList.remove('show');
-      editingImageIndex = -1;
-      currentImageFile = null;
     }
     
     function handleFileSelect(input) {
-      const file = input.files[0];
+      var file = input.files[0];
       if (file) {
         currentImageFile = file;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          document.getElementById('edit-image-preview').src = e.target.result;
-          document.getElementById('edit-image-url').value = '';
-        };
+        var reader = new FileReader();
+        reader.onload = function(e) { document.getElementById('edit-image-preview').src = e.target.result; };
         reader.readAsDataURL(file);
       }
     }
     
-    function updatePreview() {
-      const url = document.getElementById('edit-image-url').value;
-      if (url && !currentImageFile) {
-        document.getElementById('edit-image-preview').src = url;
-      }
-    }
-    
     function setupDragDrop() {
-      const area = document.getElementById('upload-area');
+      var area = document.getElementById('upload-area');
+      var input = document.getElementById('edit-image-file');
       
-      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-        area.addEventListener(eventName, (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-        }, false);
-      });
+      input.onchange = handleFileSelect;
       
-      ['dragenter', 'dragover'].forEach(eventName => {
-        area.addEventListener(eventName, () => area.classList.add('dragover'), false);
-      });
-      
-      ['dragleave', 'drop'].forEach(eventName => {
-        area.addEventListener(eventName, () => area.classList.remove('dragover'), false);
-      });
-      
-      area.addEventListener('drop', (e) => {
-        const dt = e.dataTransfer;
-        const files = dt.files;
-        if (files.length > 0) {
-          currentImageFile = files[0];
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            document.getElementById('edit-image-preview').src = e.target.result;
-            document.getElementById('edit-image-url').value = '';
-          };
-          reader.readAsDataURL(files[0]);
+      area.ondragover = function(e) { e.preventDefault(); area.classList.add('dragover'); };
+      area.ondragleave = function() { area.classList.remove('dragover'); };
+      area.ondrop = function(e) {
+        e.preventDefault();
+        area.classList.remove('dragover');
+        var file = e.dataTransfer.files[0];
+        if (file) {
+          currentImageFile = file;
+          var reader = new FileReader();
+          reader.onload = function(ev) { document.getElementById('edit-image-preview').src = ev.target.result; };
+          reader.readAsDataURL(file);
         }
-      }, false);
+      };
     }
     
     async function saveImageEdit() {
-      const checkpointId = parseInt(document.getElementById('edit-image-checkpoint').value);
-      const url = document.getElementById('edit-image-url').value.trim();
-      const desc = document.getElementById('edit-image-desc').value.trim();
-      const preview = document.getElementById('edit-image-preview').src;
+      var cpId = parseInt(document.getElementById('edit-image-checkpoint').value);
+      var url = document.getElementById('edit-image-url').value.trim();
+      var desc = document.getElementById('edit-image-desc').value.trim();
+      var preview = document.getElementById('edit-image-preview').src;
+      var finalUrl = url || preview;
       
-      let finalUrl = url;
-      
-      // 如果有上传文件，需要上传到图床或 CDN
       if (currentImageFile) {
-        showToast('正在上传图片...');
+        showToast('上传中...');
         try {
-          // 使用 Supabase Storage 上传图片
-          const fileName = `share_${Date.now()}_${currentImageFile.name}`;
-          const { data, error } = await supabase.storage
-            .from('share-images')
-            .upload(fileName, currentImageFile, { upsert: true });
-          
-          if (error) throw error;
-          
-          // 获取公开 URL
-          const { data: { publicUrl } } = supabase.storage
-            .from('share-images')
-            .getPublicUrl(fileName);
-          
-          finalUrl = publicUrl;
-          showToast('图片上传成功！');
+          var client = getSupabase();
+          var fileName = 'share_' + Date.now() + '_' + currentImageFile.name;
+          var upResult = await client.storage.from('share-images').upload(fileName, currentImageFile, { upsert: true });
+          if (upResult.error) throw upResult.error;
+          var urlResult = client.storage.from('share-images').getPublicUrl(fileName);
+          finalUrl = urlResult.data.publicUrl;
+          showToast('上传成功！');
         } catch (e) {
-          console.error('上传失败:', e);
-          // 如果上传失败，使用 base64
+          console.error('Upload failed:', e);
           finalUrl = preview;
-          showToast('使用 Base64 格式保存', true);
         }
-      } else if (!finalUrl) {
-        finalUrl = preview;
       }
       
-      if (!finalUrl) {
-        showToast('请选择或输入图片', true);
-        return;
-      }
+      if (!finalUrl) { showToast('请选择图片', true); return; }
       
-      const cp = checkpoints.find(c => c.id === checkpointId);
+      var cp = checkpoints.find(function(c) { return c.id === cpId; });
       
       if (editingImageIndex >= 0) {
-        // 编辑现有图片
-        shareData.images[editingImageIndex] = {
-          ...shareData.images[editingImageIndex],
-          checkpointId,
-          url: finalUrl,
-          desc: desc || cp.name
-        };
+        shareData.images[editingImageIndex] = { id: shareData.images[editingImageIndex].id, checkpointId: cpId, url: finalUrl, desc: desc || cp.name };
       } else {
-        // 添加新图片
-        const newId = `custom_${Date.now()}`;
-        shareData.images.push({
-          id: newId,
-          checkpointId,
-          url: finalUrl,
-          desc: desc || cp.name
-        });
+        shareData.images.push({ id: 'custom_' + Date.now(), checkpointId: cpId, url: finalUrl, desc: desc || cp.name });
       }
       
       closeImageModal();
       renderImages();
-      showToast('图片已保存');
+      showToast('已保存');
     }
     
-    function deleteImage(index) {
-      if (confirm('确定要删除这张图片吗？')) {
-        shareData.images.splice(index, 1);
+    function deleteImage(idx) {
+      if (confirm('确定删除？')) {
+        shareData.images.splice(idx, 1);
         renderImages();
-        showToast('图片已删除');
       }
     }
     
-    function openTextModal(index = -1) {
-      editingTextIndex = index;
-      const isNew = index < 0;
-      
+    function openTextModal(idx) {
+      editingTextIndex = idx;
+      var isNew = idx < 0;
       document.getElementById('text-modal-title').textContent = isNew ? '➕ 添加文案' : '✏️ 编辑文案';
-      document.getElementById('edit-text-content').value = isNew ? '' : shareData.texts[index];
-      
+      document.getElementById('edit-text-content').value = isNew ? '' : shareData.texts[idx];
       document.getElementById('text-modal').classList.add('show');
     }
     
@@ -423,51 +309,38 @@
     }
     
     function saveTextEdit() {
-      const text = document.getElementById('edit-text-content').value.trim();
-      
-      if (!text) {
-        showToast('请输入文案内容', true);
-        return;
-      }
+      var text = document.getElementById('edit-text-content').value.trim();
+      if (!text) { showToast('请输入文案', true); return; }
       
       if (editingTextIndex >= 0) {
         shareData.texts[editingTextIndex] = text;
       } else {
         shareData.texts.push(text);
       }
-      
       closeTextModal();
       renderTexts();
-      showToast('文案已保存');
+      showToast('已保存');
     }
     
-    function deleteText(index) {
-      if (confirm('确定要删除这条文案吗？')) {
-        shareData.texts.splice(index, 1);
+    function deleteText(idx) {
+      if (confirm('确定删除？')) {
+        shareData.texts.splice(idx, 1);
         renderTexts();
-        showToast('文案已删除');
       }
     }
     
     async function saveAll() {
-      const btn = event.target;
+      var btn = event.target;
       btn.disabled = true;
       btn.textContent = '保存中...';
       
       try {
-        const { error } = await supabase
-          .from('share_resources')
-          .upsert({ 
-            type: 'share', 
-            data: shareData,
-            updated_at: new Date().toISOString()
-          }, { onConflict: 'type' });
-        
-        if (error) throw error;
-        
-        showToast('✅ 所有修改已保存！');
+        var client = getSupabase();
+        var result = await client.from('share_resources').upsert({ type: 'share', data: shareData, updated_at: new Date().toISOString() }, { onConflict: 'type' });
+        if (result.error) throw result.error;
+        showToast('✅ 保存成功！');
       } catch (e) {
-        console.error('保存失败:', e);
+        console.error('Save failed:', e);
         showToast('保存失败：' + e.message, true);
       } finally {
         btn.disabled = false;
@@ -475,13 +348,11 @@
       }
     }
     
-    function showToast(message, isError = false) {
-      const toast = document.getElementById('toast');
-      toast.textContent = message;
-      toast.classList.toggle('error', isError);
-      toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 2000);
-    }
+    document.getElementById('edit-image-url').oninput = function() {
+      if (!currentImageFile) {
+        document.getElementById('edit-image-preview').src = this.value;
+      }
+    };
     
     init();
   </script>
