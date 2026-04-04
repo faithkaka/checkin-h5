@@ -778,18 +778,21 @@ const ShareManager = {
     const slider = document.getElementById('photo-slider');
     const indicators = document.getElementById('photo-indicators');
     const placeholder = document.getElementById('photo-placeholder');
-    const addBtnSection = document.getElementById('add-photo-btn');
     
-    if (!slider || !indicators || !placeholder) return;
+    if (!slider || !indicators || !placeholder) {
+      console.error('❌ 照片墙元素未找到');
+      return;
+    }
+    
+    console.log('📸 渲染照片墙，已选图片:', AppState.selectedImages.length);
     
     if (AppState.selectedImages.length === 0) {
       placeholder.style.display = 'block';
       slider.style.display = 'none';
       indicators.style.display = 'none';
-      // 显示说明文字
       placeholder.innerHTML = `
         <div style="text-align:center;padding:20px;">
-          <span style="font-size:14px;color:#666;">📸 从下方选择景点标志性图片<br>每个景点最多选择 3 张</span>
+          <span style="font-size:14px;color:#666;">📸 点击"选择图片"<br>每个景点最多选择 3 张</span>
         </div>
       `;
       return;
@@ -799,31 +802,45 @@ const ShareManager = {
     slider.style.display = 'flex';
     indicators.style.display = 'flex';
     
-    // 渲染已选择的图片
-    slider.innerHTML = AppState.selectedImages.map((imgId, index) => {
-      const imgData = this.landmarkImages.find(img => img.id === imgId);
-      return `
-        <div class="photo-slide" data-index="${index}">
-          <img src="${imgData ? imgData.url : ''}" alt="${imgData ? imgData.desc : '景点图片'}" />
-          <button class="photo-delete" onclick="ShareManager.removePhoto(${index})">×</button>
-        </div>
-      `;
-    }).join('');
-    
-    // 渲染指示器
-    indicators.innerHTML = AppState.selectedImages.map((_, index) => `
-      <div class="indicator ${index === this.currentPhotoIndex ? 'active' : ''}"></div>
-    `).join('');
-    
-    // 监听滑动
-    slider.addEventListener('scroll', () => {
-      const slideWidth = slider.clientWidth;
-      const newIndex = Math.round(slider.scrollLeft / slideWidth);
-      if (newIndex !== this.currentPhotoIndex && newIndex >= 0 && newIndex < AppState.selectedImages.length) {
-        this.currentPhotoIndex = newIndex;
-        this.updateIndicators();
-      }
-    });
+    try {
+      // 渲染已选择的图片
+      slider.innerHTML = AppState.selectedImages.map((imgId, index) => {
+        const imgData = this.landmarkImages.find(img => img.id === imgId);
+        const imgUrl = imgData ? imgData.url : '';
+        const imgDesc = imgData ? imgData.desc : '景点图片';
+        console.log(`  图片 ${index}:`, imgId, imgUrl);
+        
+        return `
+          <div class="photo-slide" data-index="${index}">
+            <img src="${imgUrl}" alt="${imgDesc}" onerror="console.error('图片加载失败:', this.src)" />
+            <button class="photo-delete" onclick="ShareManager.removePhoto(${index})">×</button>
+          </div>
+        `;
+      }).join('');
+      
+      // 渲染指示器
+      indicators.innerHTML = AppState.selectedImages.map((_, index) => `
+        <div class="indicator ${index === this.currentPhotoIndex ? 'active' : ''}"></div>
+      `).join('');
+      
+      // 清除旧的事件监听（避免重复）
+      const newSlider = slider.cloneNode(true);
+      slider.parentNode.replaceChild(newSlider, slider);
+      
+      // 重新绑定滑动事件
+      newSlider.addEventListener('scroll', () => {
+        const slideWidth = newSlider.clientWidth;
+        const newIndex = Math.round(newSlider.scrollLeft / slideWidth);
+        if (newIndex !== this.currentPhotoIndex && newIndex >= 0 && newIndex < AppState.selectedImages.length) {
+          this.currentPhotoIndex = newIndex;
+          this.updateIndicators();
+        }
+      });
+      
+      console.log('✅ 照片墙渲染完成');
+    } catch (e) {
+      console.error('❌ 渲染照片墙失败:', e);
+    }
   },
   
   // 更新指示器
