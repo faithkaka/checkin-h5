@@ -271,10 +271,13 @@
         showToast('上传中...');
         try {
           var client = getSupabase();
-          var fileName = 'share_' + Date.now() + '_' + currentImageFile.name;
-          var upResult = await client.storage.from('share-images').upload(fileName, currentImageFile, { upsert: true });
+          // 将中文文件名转换为安全的 ASCII 名称
+          var originalName = currentImageFile.name;
+          var ext = originalName.split('.').pop();
+          var safeName = 'share_' + Date.now() + '_' + Math.random().toString(36).substring(2, 10) + '.' + ext;
+          var upResult = await client.storage.from('share-images').upload(safeName, currentImageFile, { upsert: true });
           if (upResult.error) throw upResult.error;
-          var urlResult = client.storage.from('share-images').getPublicUrl(fileName);
+          var urlResult = client.storage.from('share-images').getPublicUrl(safeName);
           finalUrl = urlResult.data.publicUrl;
           showToast('上传成功！');
         } catch (e) {
