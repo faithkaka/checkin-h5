@@ -237,16 +237,6 @@
           console.log('⏳ 待兑奖:', waiting);
           
           updateStatus('✅ 已更新 ' + new Date().toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit'}));
-            showLeaderboard(users, redeemedIds);
-          })
-          .catch(function(err) {
-            console.log('⚠️ 兑奖查询失败:', err.message);
-            document.getElementById('prize-stats').style.display = 'grid';
-            document.getElementById('redeemed-count').textContent = '0';
-            document.getElementById('waiting-count').textContent = '0';
-            showLeaderboard(users, {});
-          });
-        });
       })
       .catch(function(err) {
         console.error('❌ 加载失败:', err.message);
