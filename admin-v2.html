@@ -203,16 +203,7 @@
         document.getElementById('max-points').textContent = maxPoints;
         
         // 2. 查询打卡
-        return fetch(API_URL + '/checkins?select=checked_at&order=checked_at.desc&limit=500', {
-          headers: {
-            'apikey': API_KEY,
-            'Authorization': 'Bearer ' + API_KEY
-          }
-        })
-        .then(function(res) {
-          if (!res.ok) return [];
-          return res.json();
-        })
+// 这行开始替换 loadData 函数中的打卡统计部分
         .then(function(checkins) {
           console.log('📍 打卡:', checkins.length);
           
@@ -224,7 +215,7 @@
           document.getElementById('today-count').textContent = todayCount;
           document.getElementById('total-count').textContent = checkins.length;
           
-          // 3. 兑奖统计（简化版，避免 400 错误）
+          // 3. 兑奖统计（简化版）
           document.getElementById('prize-stats').style.display = 'grid';
           document.getElementById('redeemed-count').textContent = '0';
           
@@ -235,7 +226,8 @@
           console.log('⏳ 待兑奖:', waiting);
           
           updateStatus('✅ 已更新 ' + new Date().toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit'}));
-            showLeaderboard(users);
+          showLeaderboard(users);
+        });
       })
       .catch(function(err) {
         console.error('❌ 加载失败:', err.message);
@@ -243,6 +235,38 @@
       });
     }
     
+    function showLeaderboard(users) {
+      document.getElementById('leaderboard-card').style.display = 'block';
+      var tbody = document.getElementById('leaderboard-body');
+      var html = '';
+      
+      users.sort(function(a, b) { return (b.points || 0) - (a.points || 0); });
+      
+      for (var i = 0; i < Math.min(users.length, 10); i++) {
+        var u = users[i];
+        var uid = u.alipay_user_id || ('user_' + u.id);
+        var shortUid = uid.length > 20 ? uid.substring(0, 20) + '...' : uid;
+        var rankClass = i < 3 ? 'rank-' + (i+1) : '';
+        var date = u.created_at ? new Date(u.created_at).toLocaleDateString('zh-CN') : '-';
+        
+        var prizeBadge;
+        if ((u.points || 0) >= 30) {
+          prizeBadge = '<span class="badge badge-wait">⏳</span>';
+        } else {
+          prizeBadge = '<span style="color:#999">-</span>';
+        }
+        
+        html += '<tr>' +
+          '<td><span class="rank ' + rankClass + '">' + (i+1) + '</span></td>' +
+          '<td><span class="code">' + shortUid + '</span></td>' +
+          '<td><span class="points">' + (u.points || 0) + '</span></td>' +
+          '<td>' + prizeBadge + '</td>' +
+          '<td style="color:#999;font-size:11px">' + date + '</td>' +
+        '</tr>';
+      }
+      
+      tbody.innerHTML = html;
+    }    
     function showLeaderboard(users) {
       document.getElementById('leaderboard-card').style.display = 'block';
       var tbody = document.getElementById('leaderboard-body');
