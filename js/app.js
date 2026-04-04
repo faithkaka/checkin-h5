@@ -722,7 +722,9 @@ const ShareManager = {
   // 从 Supabase 加载分享资源（图片和文案）
   async loadShareResources() {
     try {
-      const client = window.AlipayUserManager ? AlipayUserManager.supabase : null;
+      // 使用 window.supabaseClient（由 SupabaseManager 创建）
+      const client = window.supabaseClient || (window.AlipayUserManager && AlipayUserManager.supabase);
+      
       if (!client) {
         console.warn('⚠️ Supabase 客户端未初始化，使用默认图片');
         this.landmarkImages = this.defaultImages.slice();

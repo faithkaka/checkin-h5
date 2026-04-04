@@ -20,6 +20,7 @@ const SupabaseManager = {
         // 设置超时，防止网络请求卡住
         const initPromise = (async () => {
           this.supabase = supabase.createClient(this.supabaseUrl, this.supabaseKey);
+          window.supabaseClient = this.supabase; // 暴露给全局
           console.log('✅ Supabase 客户端创建成功');
           
           this.detectAlipay();
