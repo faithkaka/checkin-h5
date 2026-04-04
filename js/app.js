@@ -812,11 +812,20 @@ const ShareManager = {
     '🌈 雾都探索完成！{points} 积分到手，重庆的奇妙超出想象！童伴们冲鸭！'
   ],
   
-  init() {
+  async init() {
     AppState.selectedImages = [];
     AppState.currentShareTextIndex = null;
-    this.loadShareData();
+    await this.loadShareData();
+    await this.loadImagesFromSupabase();
     this.bindShareEvents();
+    
+    // 如果已经在分享页面，更新显示
+    const slider = document.getElementById('photo-slider-card');
+    if (slider) {
+      this.renderPhotoCards();
+      this.updateSelectionHint();
+      this.renderShareText();
+    }
   },
   
   loadShareData() {
@@ -828,6 +837,41 @@ const ShareManager = {
       } catch(e) {
         AppState.selectedImages = [];
       }
+    }
+  },
+  
+  // 从 Supabase 加载最新的分享资源
+  async loadImagesFromSupabase() {
+    try {
+      console.log('🔄 从 Supabase 加载分享图片...');
+      const client = window.supabaseClient;
+      if (!client) {
+        console.warn('⚠️ Supabase 客户端未初始化，使用默认图片');
+        return;
+      }
+      
+      const { data, error } = await client.from('share_resources')
+        .select('data')
+        .eq('type', 'share')
+        .single();
+      
+      if (error) {
+        console.warn('⚠️ 加载分享资源失败，使用默认图片:', error.message);
+        return;
+      }
+      
+      if (data && data.data && data.data.images) {
+        this.landmarkImages = data.data.images;
+        console.log('✅ 分享资源加载成功，图片：' + data.data.images.length + '张');
+        
+        // 如果有文案也加载
+        if (data.data.texts && data.data.texts.length > 0) {
+          this.shareTexts = data.data.texts;
+          console.log('✅ 文案加载成功：' + data.data.texts.length + '条');
+        }
+      }
+    } catch(e) {
+      console.error('❌ 加载分享图片失败:', e);
     }
   },
   
@@ -984,7 +1028,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // 5. 初始化分享管理
   try {
-    ShareManager.init();
+    await ShareManager.init();
     console.log('✅ ShareManager 完成');
   } catch(e) { console.error('❌ ShareManager:', e); }
   
