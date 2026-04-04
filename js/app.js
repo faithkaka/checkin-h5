@@ -757,6 +757,19 @@ const ShareManager = {
   
   // 加载保存的分享数据
   loadShareData() {
+    const savedData = localStorage.getItem('share_data');
+    if (savedData) {
+      try {
+        const data = JSON.parse(savedData);
+        AppState.selectedImages = data.selectedImages || [];
+        AppState.customShareText = data.customShareText || null;
+        this.currentPhotoIndex = data.currentPhotoIndex || 0;
+      } catch(e) {
+        console.error('❌ 加载分享数据失败:', e);
+        AppState.selectedImages = [];
+      }
+    }
+  },
   
   // 保存分享数据
   saveShareData() {
