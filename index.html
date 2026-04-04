@@ -6,6 +6,7 @@
   <title>趣玩重庆一日游 - 打卡活动</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="css/style.css?v=20260404">
+<link rel="stylesheet" href="css/share-style.css?v=20260404">
   <style>
     /* 地图背景 */
     .map-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
@@ -239,40 +240,37 @@
         <div class="share-container">
           <h2>📸 精彩瞬间</h2>
           <div class="share-content" id="share-content">
-            <!-- 已选择的照片 -->
-            <div class="selected-photos" id="selected-photos">
+            <!-- 照片墙 - 横向滑动选择 -->
+            <div class="photo-wall" id="photo-wall">
               <div class="photo-slider" id="photo-slider" style="display:none;">
                 <!-- 用户选择的图片 -->
               </div>
               <div class="photo-indicators" id="photo-indicators" style="display:none;">
                 <!-- 指示器 -->
               </div>
-              <div class="selected-count" id="selected-count">
-                已选择 <span class="count-num">0</span>/3 张图片
+              <div class="photo-placeholder" id="photo-placeholder">
+                <span>📷</span>
+                <p>从下方 15 张标志性图片中选择<br>最多可选 3 张</p>
               </div>
             </div>
             
-            <!-- 分享文案 -->
+            <!-- 分享文案 - 随机显示 -->
             <div class="share-copy" id="share-copy">
-              <p id="share-text">我在"趣玩重庆一日游"打卡活动中，已经获得 <span id="share-points">0</span> 积分！</p>
-              <button class="edit-text-btn" id="edit-share-text-btn">✏️ 编辑文案</button>
+              <p id="share-text">我在"趣玩重庆一日游"打卡活动中，已经获得 <span id="share-points">0</span> 积分！打卡了重庆地标景点，快来一起探索山城魅力吧！</p>
             </div>
             
-            <!-- 景点图片选择区 -->
+            <!-- 15 张标志性图片选择 -->
             <div class="landmark-section">
-              <h3>🏞️ 选择景点图片（可选 1-3 张）</h3>
-              <div class="checkpoint-groups" id="checkpoint-groups">
-                <!-- 按景点分组的图片将通过 JS 动态添加 -->
+              <h3>🏞️ 选择标志性图片（1-3 张）</h3>
+              <div class="landmark-images-grid" id="landmark-images-grid">
+                <!-- 15 张图片将通过 JS 动态添加 -->
               </div>
             </div>
             
             <!-- 操作按钮 -->
             <div class="share-actions">
-              <button class="action-btn" id="save-share-btn">
-                💾 保存分享
-              </button>
               <button class="action-btn" id="share-channel-btn">
-                📤 分享到其他渠道
+                📤 分享朋友圈
               </button>
             </div>
           </div>

@@ -672,16 +672,12 @@ const PrizeManager = {
 };
 
 // ==================== 分享管理 ====================
+// ==================== 分享管理 - 简化版 ====================
 const ShareManager = {
-  checkpoints: [
-    { id: 1, name: '解放碑', icon: '🏢' },
-    { id: 2, name: '李子坝', icon: '🚝' },
-    { id: 3, name: '二厂', icon: '🎨' },
-    { id: 4, name: '南山', icon: '🌳' },
-    { id: 5, name: '洪崖洞', icon: '🌉' }
-  ],
+  currentPhotoIndex: 0,
   
-  defaultImages: [
+  // 15 张标志性图片（5 景点 × 3 张）
+  landmarkImages: [
     { id: 'jfbei_1', checkpointId: 1, url: 'https://images.unsplash.com/photo-1599689018248-b3e9e089e8c2?w=600', desc: '🏢 解放碑' },
     { id: 'jfbei_2', checkpointId: 1, url: 'https://images.unsplash.com/photo-1478131333081-31f9a7e96847?w=600', desc: '🏙️ 商业中心' },
     { id: 'jfbei_3', checkpointId: 1, url: 'https://images.unsplash.com/photo-1519508235410-4e1a9881c138?w=600', desc: '🌃 夜景' },
@@ -699,18 +695,20 @@ const ShareManager = {
     { id: 'hongya_3', checkpointId: 5, url: 'https://images.unsplash.com/photo-1553913861-c0fddf2166ab?w=600', desc: '🌃 大桥' }
   ],
   
-  defaultTexts: [
-    '我在"趣玩重庆一日游"打卡活动中，已经获得 {points} 积分！',
-    '🎉 重庆一日游太好玩了！打卡了 {points} 积分！',
-    '🎊 山城重庆之旅完美收官！{points} 积分到手！',
-    '🌟 打卡重庆成功！{points} 积分见证旅程！',
-    '✨ 重庆一日游完美收官！{points} 积分解锁！',
-    '🎈 8D 魔幻城市！{points} 积分打卡成功！',
-    '💫 山城打卡完成！{points} 积分收入囊中！',
-    '🌈 雾都探索完成！{points} 积分到手！'
+  // 8 条随机文案
+  shareTexts: [
+    '我在"趣玩重庆一日游"打卡活动中，已经获得 {points} 积分！打卡了重庆地标景点，快来一起探索山城魅力吧！',
+    '🎉 重庆一日游太好玩了！打卡了 {points} 积分，网红景点都打卡成功！这个周末一起来玩！',
+    '🎊 山城重庆之旅完美收官！{points} 积分到手，李子坝轻轨穿楼太震撼了，洪崖洞夜景美到窒息！',
+    '🌟 打卡重庆成功！用双腿丈量这座城市，{points} 积分见证我的山城建功之旅！',
+    '✨ 重庆一日游完美收官！{points} 积分解锁，嘉陵江的夜风、解放碑的繁华、南山的美景，都不虚此行！',
+    '🎈 8D 魔幻城市名不虚传！{points} 积分打卡成功，重庆我还会再来的！',
+    '💫 山城打卡成就达成！{points} 积分收入囊中，重庆的美食美景值得 N 刷！',
+    '🌈 雾都探索完成！{points} 积分到手，重庆的奇妙超出想象！童伴们冲鸭！'
   ],
   
   init() {
+    AppState.selectedImages = [];
     this.loadShareData();
     this.bindShareEvents();
   },
@@ -721,154 +719,148 @@ const ShareManager = {
       try {
         const data = JSON.parse(saved);
         AppState.selectedImages = data.selectedImages || [];
-        AppState.customShareText = data.customShareText || null;
-      } catch(e) {}
+      } catch(e) {
+        AppState.selectedImages = [];
+      }
     }
   },
   
   saveShareData() {
     localStorage.setItem('share_data', JSON.stringify({
-      selectedImages: AppState.selectedImages,
-      customShareText: AppState.customShareText
+      selectedImages: AppState.selectedImages
     }));
   },
   
   updateShareContent() {
     const ptsEl = document.getElementById('share-points');
     if (ptsEl) ptsEl.textContent = AppState.points;
-    this.renderSelectedPhotos();
-    this.renderLandmarkImages();
+    this.renderPhotoWall();
     this.renderShareText();
+    this.renderLandmarkGrid();
   },
   
-  renderSelectedPhotos() {
+  // 渲染已选择的照片墙（横向滑动）
+  renderPhotoWall() {
     const slider = document.getElementById('photo-slider');
     const indicators = document.getElementById('photo-indicators');
-    const countEl = document.getElementById('selected-count');
-    if (!slider || !countEl) return;
+    const placeholder = document.getElementById('photo-placeholder');
     
-    countEl.innerHTML = `已选择 <span class="count-num">${AppState.selectedImages.length}</span>/3 张图片`;
+    if (!slider || !indicators || !placeholder) return;
     
     if (AppState.selectedImages.length === 0) {
+      placeholder.style.display = 'block';
       slider.style.display = 'none';
-      if (indicators) indicators.style.display = 'none';
+      indicators.style.display = 'none';
       return;
     }
     
+    placeholder.style.display = 'none';
     slider.style.display = 'flex';
-    if (indicators) indicators.style.display = 'flex';
+    indicators.style.display = 'flex';
     
-    slider.innerHTML = AppState.selectedImages.map((imgId, idx) => {
-      const img = this.defaultImages.find(i => i.id === imgId);
+    slider.innerHTML = AppState.selectedImages.map((imgId, index) => {
+      const imgData = this.landmarkImages.find(img => img.id === imgId);
       return `
-        <div class="photo-slide">
-          <img src="${img ? img.url : ''}" />
-          <button class="photo-delete" onclick="ShareManager.removePhoto(${idx})">×</button>
+        <div class="photo-slide" data-index="${index}">
+          <img src="${imgData ? imgData.url : ''}" alt="${imgData ? imgData.desc : '景点图片'}" />
+          <button class="photo-delete" onclick="ShareManager.removePhoto(${index})">×</button>
         </div>
       `;
     }).join('');
     
-    if (indicators) {
-      indicators.innerHTML = AppState.selectedImages.map((_, idx) => 
-        `<div class="indicator ${idx === 0 ? 'active' : ''}"></div>`
-      ).join('');
-    }
+    indicators.innerHTML = AppState.selectedImages.map((_, index) => `
+      <div class="indicator ${index === this.currentPhotoIndex ? 'active' : ''}"></div>
+    `).join('');
+    
+    slider.addEventListener('scroll', () => {
+      const slideWidth = slider.clientWidth;
+      const newIndex = Math.round(slider.scrollLeft / slideWidth);
+      if (newIndex !== this.currentPhotoIndex && newIndex >= 0 && newIndex < AppState.selectedImages.length) {
+        this.currentPhotoIndex = newIndex;
+        this.updateIndicators();
+      }
+    });
   },
   
-  renderLandmarkImages() {
-    const container = document.getElementById('checkpoint-groups');
-    if (!container) return;
+  updateIndicators() {
+    const indicators = document.querySelectorAll('.indicator');
+    indicators.forEach((ind, index) => {
+      ind.classList.toggle('active', index === this.currentPhotoIndex);
+    });
+  },
+  
+  // 渲染 15 张图片选择网格
+  renderLandmarkGrid() {
+    const grid = document.getElementById('landmark-images-grid');
+    if (!grid) return;
     
     let html = '';
-    this.checkpoints.forEach(cp => {
-      const imgs = this.defaultImages.filter(img => img.checkpointId === cp.id);
+    this.landmarkImages.forEach(img => {
+      const isSelected = AppState.selectedImages.includes(img.id);
       html += `
-        <div class="checkpoint-group">
-          <div class="checkpoint-group-title">${cp.icon} ${cp.name}</div>
-          <div class="checkpoint-images">
+        <div class="landmark-img-item ${isSelected ? 'selected' : ''}" onclick="ShareManager.toggleSelect('${img.id}')">
+          <img src="${img.url}" alt="${img.desc}" />
+          <div class="checkmark">${isSelected ? '✓' : ''}</div>
+        </div>
       `;
-      imgs.forEach(img => {
-        const isSelected = AppState.selectedImages.includes(img.id);
-        html += `
-          <div class="checkpoint-img ${isSelected ? 'selected' : ''}" data-imgid="${img.id}" onclick="ShareManager.toggleImage('${img.id}')">
-            <img src="${img.url}" />
-            <div class="checkmark">✓</div>
-          </div>
-        `;
-      });
-      html += `</div></div>`;
     });
-    container.innerHTML = html;
+    grid.innerHTML = html;
   },
   
-  toggleImage(imageId) {
-    const index = AppState.selectedImages.indexOf(imageId);
+  // 切换选择
+  toggleSelect(imgId) {
+    const index = AppState.selectedImages.indexOf(imgId);
+    
     if (index >= 0) {
+      // 取消选择
       AppState.selectedImages.splice(index, 1);
     } else {
+      // 选择新图片
       if (AppState.selectedImages.length >= 3) {
         alert('ℹ️ 最多只能选择 3 张图片');
         return;
       }
-      AppState.selectedImages.push(imageId);
+      AppState.selectedImages.push(imgId);
+      this.currentPhotoIndex = AppState.selectedImages.length - 1;
     }
-    this.renderSelectedPhotos();
-    this.renderLandmarkImages();
+    
+    this.renderPhotoWall();
+    this.renderLandmarkGrid();
     this.saveShareData();
   },
   
+  // 移除已选择的照片
   removePhoto(index) {
     AppState.selectedImages.splice(index, 1);
-    this.renderSelectedPhotos();
-    this.renderLandmarkImages();
+    if (this.currentPhotoIndex >= AppState.selectedImages.length) {
+      this.currentPhotoIndex = Math.max(0, AppState.selectedImages.length - 1);
+    }
+    this.renderPhotoWall();
+    this.renderLandmarkGrid();
     this.saveShareData();
   },
   
+  // 渲染随机文案
   renderShareText() {
     const el = document.getElementById('share-text');
     if (!el) return;
-    let text = AppState.customShareText;
-    if (!text) {
-      const random = this.defaultTexts[Math.floor(Math.random() * this.defaultTexts.length)];
-      text = random.replace('{points}', AppState.points.toString());
-    }
+    
+    const randomText = this.shareTexts[Math.floor(Math.random() * this.shareTexts.length)];
+    const text = randomText.replace('{points}', AppState.points.toString());
     el.textContent = text;
   },
   
   bindShareEvents() {
-    const editBtn = document.getElementById('edit-share-text-btn');
-    if (editBtn) {
-      editBtn.onclick = () => {
-        const text = prompt('请输入分享文案：', AppState.customShareText || '');
-        if (text !== null) {
-          AppState.customShareText = text || null;
-          this.renderShareText();
-          this.saveShareData();
-        }
-      };
-    }
-    
-    const saveBtn = document.getElementById('save-share-btn');
-    if (saveBtn) {
-      saveBtn.onclick = () => {
-        if (AppState.selectedImages.length === 0) {
-          alert('ℹ️ 请至少选择 1 张图片');
-          return;
-        }
-        this.saveShareData();
-        alert('✅ 分享已保存！');
-      };
-    }
-    
+    // 分享到朋友圈
     const shareBtn = document.getElementById('share-channel-btn');
     if (shareBtn) {
       shareBtn.onclick = () => {
-        alert('📤 复制下方文案，分享到微信/朋友圈！\n\n' + document.getElementById('share-text').textContent);
+        const text = document.getElementById('share-text').textContent;
+        alert('📤 长按复制下方文案，然后分享到朋友圈：\n\n' + text);
       };
     }
   }
 };
-
 // ==================== 初始化 ====================
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('🚀 重庆打卡活动初始化...');
