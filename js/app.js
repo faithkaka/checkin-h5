@@ -974,16 +974,83 @@ const ShareManager = {
     // 去分享按钮
     const shareBtn = document.getElementById('share-main-btn');
     if (shareBtn) {
-      shareBtn.onclick = () => {
-        if (AppState.selectedImages.length === 0) {
-          alert('ℹ️ 请至少选择 1 张图片');
-          return;
-        }
-        
-        const text = document.getElementById('share-text-content').textContent;
-        alert('📤 长按复制下方文案，然后分享到朋友圈：\n\n' + text);
-      };
+      shareBtn.onclick = () => this.doShare();
     }
+  },
+  
+  // 执行分享
+  async doShare() {
+    if (AppState.selectedImages.length === 0) {
+      alert('ℹ️ 请至少选择 1 张图片');
+      return;
+    }
+    
+    const text = document.getElementById('share-text-content').textContent;
+    
+    // 1. 保存图片到相册
+    await this.saveImagesToAlbum(AppState.selectedImages);
+    
+    // 2. 复制文案到剪贴板
+    await this.copyTextToClipboard(text);
+    
+    // 3. 显示成功弹窗
+    this.showShareSuccessModal();
+    
+    // 4. 清空选择
+    AppState.selectedImages = [];
+    localStorage.setItem('share_data', JSON.stringify({ selectedImages: [] }));
+    this.renderPhotoCards();
+    this.updateSelectionHint();
+  },
+  
+  // 保存图片到相册
+  async saveImagesToAlbum(imageIds) {
+    const images = this.landmarkImages.filter(img => imageIds.includes(img.id));
+    
+    for (const img of images) {
+      try {
+        const response = await fetch(img.url);
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `share_${img.id}.jpg`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        console.error('保存图片失败:', e);
+      }
+    }
+  },
+  
+  // 复制文案到剪贴板
+  async copyTextToClipboard(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (e) {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      return true;
+    }
+  },
+  
+  // 显示成功弹窗
+  showShareSuccessModal() {
+    const modal = document.getElementById('share-success-modal');
+    modal.style.display = 'flex';
+  },
+  
+  // 关闭弹窗
+  closeShareModal() {
+    const modal = document.getElementById('share-success-modal');
+    modal.style.display = 'none';
   }
 };
 // ==================== 初始化 ====================
