@@ -1,0 +1,49 @@
+管理后台 admin-share.html 图片无法显示的排查步骤：
+
+## 问题原因可能：
+1. Supabase `share_resources` 表不存在或没有数据
+2. 图片 URL 无法加载（网络问题）
+3. 渲染函数出错
+
+## 解决方法：
+
+### 1. 打开浏览器控制台检查错误
+访问：http://localhost:8080/admin-share.html
+按 F12 打开 Console，查看是否有错误信息
+
+### 2. 确认 Supabase 表已创建
+在 Supabase Dashboard → SQL Editor 执行：
+```sql
+CREATE TABLE IF NOT EXISTS public.share_resources (
+  id SERIAL PRIMARY KEY,
+  type VARCHAR(50) UNIQUE NOT NULL,
+  data JSONB NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+INSERT INTO public.share_resources (type, data) VALUES ('share', '{
+  "images": [
+    {"id": "jfbei_1", "checkpointId": 1, "url": "https://images.unsplash.com/photo-1599689018248-b3e9e089e8c2?w=600", "desc": "🏢 解放碑"},
+    {"id": "jfbei_2", "checkpointId": 1, "url": "https://images.unsplash.com/photo-1478131333081-31f9a7e96847?w=600", "desc": "🏙️ 商业中心"},
+    {"id": "jfbei_3", "checkpointId": 1, "url": "https://images.unsplash.com/photo-1519508235410-4e1a9881c138?w=600", "desc": "🌃 夜景"}
+  ],
+  "texts": ["测试文案 1", "测试文案 2"]
+}') ON CONFLICT (type) DO NOTHING;
+```
+
+### 3. 测试图片 URL 是否能访问
+直接在浏览器打开：
+https://images.unsplash.com/photo-1599689018248-b3e9e089e8c2?w=600
+
+### 4. 如果 Supabase 没数据，会使用默认图片
+admin-share.html 有 fallback 逻辑，如果加载失败会使用默认 15 张图片
+
+### 5. 检查控制台日志
+应该看到：
+- "🔄 从 Supabase 加载分享资源..."
+- "✅ 分享资源加载成功，图片：X 张"
+或者
+- "⚠️ 使用默认数据"
+
+请告诉我控制台的具体错误信息！
