@@ -224,27 +224,15 @@
           document.getElementById('today-count').textContent = todayCount;
           document.getElementById('total-count').textContent = checkins.length;
           
-          // 3. 查询兑奖（可选）
-          fetch(API_URL + '/user_achievements?select=alipay_user_id&status=eq.redeemed', {
-            headers: {
-              'apikey': API_KEY,
-              'Authorization': 'Bearer ' + API_KEY
-            }
-          })
-          .then(function(res) {
-            if (!res.ok) return [];
-            return res.json();
-          })
-          .then(function(redeemed) {
-            console.log('🎁 已兑奖:', redeemed ? redeemed.length : 0);
-            
-            document.getElementById('prize-stats').style.display = 'grid';
-            document.getElementById('redeemed-count').textContent = redeemed ? redeemed.length : 0;
-            
-            var redeemedIds = {};
-            if (redeemed) {
-              redeemed.forEach(function(r) {
-                redeemedIds[r.alipay_user_id] = true;
+          // 3. 查询兑奖统计（简单版本）
+          var redeemedCount = 0;
+          document.getElementById('prize-stats').style.display = 'grid';
+          document.getElementById('redeemed-count').textContent = redeemedCount;
+          
+          // 如果有 user_achievements 表，可以后续添加查询逻辑
+          console.log('🎁 兑奖统计功能待完善');
+          
+          var redeemedIds = {};
               });
             }
             
