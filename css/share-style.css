@@ -1,29 +1,41 @@
-/* 分享卡片样式 */
-.share-card {
-  background: #fff;
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+/* 分享页 - 简化版 */
+.share-container {
+  padding: 15px;
+  background: #f5f7fa;
+  min-height: calc(100vh - 60px);
 }
 
-/* 横向滑动照片墙 */
-.photo-slider {
+.share-container h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #333;
+  font-size: 18px;
+}
+
+/* 图片墙 - 横向滑动卡片 */
+.photo-wall-container {
+  margin-bottom: 20px;
+  padding: 10px 5px;
+}
+
+.photo-slider-card {
   display: flex;
+  gap: 12px;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
-  gap: 16px;
-  padding: 0 12px 16px;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  padding: 10px 15px;
 }
 
-.photo-slider::-webkit-scrollbar {
+.photo-slider-card::-webkit-scrollbar {
   display: none;
 }
 
 .photo-card {
   flex: 0 0 200px;
   scroll-snap-align: center;
+  aspect-ratio: 3/4;
   border-radius: 12px;
   overflow: hidden;
   position: relative;
@@ -32,11 +44,6 @@
   border: 3px solid #e5e7eb;
   transition: all 0.3s;
   cursor: pointer;
-  /* 固定高度，让图片完整显示 */
-  height: 280px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .photo-card.selected-card {
@@ -47,9 +54,8 @@
 .photo-card img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   pointer-events: none;
-  background: #f9fafb;
 }
 
 .photo-card .checkmark {
@@ -93,36 +99,35 @@
 }
 
 .share-text-title {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   color: #333;
 }
 
-.refresh-text-btn {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+.refresh-btn {
+  background: linear-gradient(135deg, #4d94ff, #63a4ff);
   color: white;
   border: none;
+  border-radius: 20px;
   padding: 6px 14px;
-  border-radius: 16px;
   font-size: 13px;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 4px;
-  transition: transform 0.2s;
+  transition: all 0.2s;
 }
 
-.refresh-text-btn:active {
+.refresh-btn:active {
   transform: scale(0.95);
 }
 
 .share-text-content {
-  background: #f9fafb;
-  border-radius: 8px;
-  padding: 12px;
+  background: #f5f7fa;
+  border-radius: 12px;
+  padding: 14px;
   max-height: 120px;
   overflow-y: auto;
-  margin-bottom: 12px;
 }
 
 .share-text-content p {
@@ -132,22 +137,30 @@
   margin: 0;
 }
 
-.share-points {
-  color: #667eea;
-  font-weight: 600;
+.share-text-content::-webkit-scrollbar {
+  width: 4px;
 }
 
+.share-text-content::-webkit-scrollbar-thumb {
+  background: #ddd;
+  border-radius: 2px;
+}
+
+/* 提示标签 */
 .select-hint {
   text-align: center;
   font-size: 13px;
   color: #666;
-  margin-bottom: 8px;
+  margin: 10px 0 15px;
+  padding: 8px 15px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
 .select-hint .count {
-  color: #667eea;
+  color: #10b981;
   font-weight: 600;
-  font-size: 16px;
 }
 
 /* 去分享按钮 */
@@ -168,154 +181,4 @@
 .share-main-btn:active {
   transform: scale(0.98);
   box-shadow: 0 2px 8px rgba(77, 148, 255, 0.3);
-}
-
-/* ========== 分享成功弹窗 ========== */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0,0,0,0.6);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.3s, visibility 0.3s;
-  backdrop-filter: blur(4px);
-}
-
-.modal-overlay.show {
-  opacity: 1;
-  visibility: visible;
-}
-
-.success-modal {
-  background: white;
-  border-radius: 20px;
-  padding: 32px 28px;
-  max-width: 340px;
-  width: 90%;
-  transform: scale(0.9);
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.modal-overlay.show .success-modal {
-  transform: scale(1);
-}
-
-.section {
-  margin-bottom: 24px;
-}
-
-.section-title {
-  font-size: 17px;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin-bottom: 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.check-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin-bottom: 8px;
-}
-
-.check-icon {
-  width: 20px;
-  height: 20px;
-  background: #3b82f6;
-  color: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  font-size: 12px;
-}
-
-.check-text {
-  font-size: 15px;
-  color: #333;
-  line-height: 1.4;
-}
-
-.social-icons {
-  display: flex;
-  justify-content: center;
-  gap: 16px;
-  margin: 20px 0;
-}
-
-.social-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28px;
-  cursor: pointer;
-  transition: transform 0.2s;
-  user-select: none;
-}
-
-.social-icon:hover {
-  transform: scale(1.1);
-}
-
-.social-icon:active {
-  transform: scale(0.95);
-}
-
-.social-icon.douyin { background: #000000; }
-.social-icon.xiaohongshu { background: #ff2442; }
-.social-icon.wechat { background: #07c160; }
-.social-icon.weibo { background: #e6162d; }
-
-.images-preview {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 8px;
-}
-
-.preview-img {
-  width: 60px;
-  height: 60px;
-  border-radius: 8px;
-  object-fit: cover;
-  flex-shrink: 0;
-  background: #f0f0f0;
-}
-
-.btn-confirm {
-  width: 100%;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: white;
-  border: none;
-  padding: 14px;
-  border-radius: 14px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.btn-confirm:active {
-  transform: scale(0.98);
-}
-
-.sub-title {
-  text-align: center;
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 16px;
 }
