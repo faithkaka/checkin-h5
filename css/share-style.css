@@ -35,7 +35,6 @@
 .photo-card {
   flex: 0 0 200px;
   scroll-snap-align: center;
-  aspect-ratio: 3/4;
   border-radius: 12px;
   overflow: hidden;
   position: relative;
@@ -44,6 +43,11 @@
   border: 3px solid #e5e7eb;
   transition: all 0.3s;
   cursor: pointer;
+  /* 固定高度，让图片完整显示 */
+  height: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .photo-card.selected-card {
@@ -54,8 +58,9 @@
 .photo-card img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   pointer-events: none;
+  background: #f9fafb;
 }
 
 .photo-card .checkmark {

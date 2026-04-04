@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>测试 Supabase 分享数据</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    .success { color: #22c55e; }
+    .error { color: #ef4444; }
+    .info { color: #3b82f6; }
+    pre { background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 5px; overflow: auto; max-height: 500px; font-size: 12px; }
+    img { border: 2px solid #ddd; border-radius: 4px; }
+    code { background: #f0f0f0; padding: 2px 6px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <h1>🔍 测试 Supabase 分享数据</h1>
+  <div id="results">正在加载 Supabase SDK...</div>
+  
+  <!-- 先加载 Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <script>
+    // 等待 SDK 加载完成后再执行
+    window.addEventListener('DOMContentLoaded', async () => {
+      const results = document.getElementById('results');
+      
+      const SUPABASE_URL = 'https://ussvekkgyntubivhfext.supabase.co';
+      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzc3Zla2tneW50dWJpdmhmZXh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTEwODQwMiwiZXhwIjoyMDkwNjg0NDAyfQ.i1fbQC96UGnToKL6fa7GTfaMtt0s_TGpNNR0xb3ufR0';
+      
+      console.log('✅ Supabase SDK 已加载:', typeof supabase);
+      
+      try {
+        console.log('🚀 开始测试...');
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        console.log('✅ Supabase 客户端已创建');
+        
+        console.log('📥 查询 share_resources 表...');
+        const { data, error } = await supabaseClient
+          .from('share_resources')
+          .select('*')
+          .eq('type', 'share')
+          .single();
+        
+        if (error) {
+          console.error('❌ 查询失败:', error);
+          results.innerHTML = `
+            <h2 class="error">❌ 查询失败</h2>
+            <p><strong>错误信息:</strong> ${error.message}</p>
+            <p><strong>错误代码:</strong> ${error.code || '无'}</p>
+            <p><strong>可能原因:</strong></p>
+            <ul>
+              <li>表 <code>share_resources</code> 不存在</li>
+              <li>表存在但没有 <code>type='share'</code> 的数据</li>
+              <li>权限不足</li>
+            </ul>
+            <p><strong>请复制以下 SQL 到 Supabase Dashboard 执行：</strong></p>
+            <pre>
+-- ============================================
+-- 1. 创建分享资源表
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.share_resources (
+  id SERIAL PRIMARY KEY,
+  type VARCHAR(50) UNIQUE NOT NULL,
+  data JSONB NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
+);
+
+-- ============================================
+-- 2. 插入 15 张测试图片 + 8 条文案
+-- ============================================
+INSERT INTO public.share_resources (type, data) 
+VALUES ('share', '{
+  "images": [
+    {"id": "jfbei_1", "checkpointId": 1, "url": "https://picsum.photos/seed/jfbei1/800/600", "desc": "🏢 解放碑"},
+    {"id": "jfbei_2", "checkpointId": 1, "url": "https://picsum.photos/seed/jfbei2/800/600", "desc": "🏙️ 商业中心"},
+    {"id": "jfbei_3", "checkpointId": 1, "url": "https://picsum.photos/seed/jfbei3/800/600", "desc": "🌃 夜景"},
+    {"id": "liziba_1", "checkpointId": 2, "url": "https://picsum.photos/seed/liziba1/800/600", "desc": "🚝 轻轨穿楼"},
+    {"id": "liziba_2", "checkpointId": 2, "url": "https://picsum.photos/seed/liziba2/800/600", "desc": "🚄 轨道交通"},
+    {"id": "liziba_3", "checkpointId": 2, "url": "https://picsum.photos/seed/liziba3/800/600", "desc": "🚇 站台"},
+    {"id": "eling_1", "checkpointId": 3, "url": "https://picsum.photos/seed/eling1/800/600", "desc": "🎨 文创园区"},
+    {"id": "eling_2", "checkpointId": 3, "url": "https://picsum.photos/seed/eling2/800/600", "desc": "🖼️ 艺术空间"},
+    {"id": "eling_3", "checkpointId": 3, "url": "https://picsum.photos/seed/eling3/800/600", "desc": "🎭 创意基地"},
+    {"id": "nanshan_1", "checkpointId": 4, "url": "https://picsum.photos/seed/nanshan1/800/600", "desc": "🌳 观景台"},
+    {"id": "nanshan_2", "checkpointId": 4, "url": "https://picsum.photos/seed/nanshan2/800/600", "desc": "🌆 夜景"},
+    {"id": "nanshan_3", "checkpointId": 4, "url": "https://picsum.photos/seed/nanshan3/800/600", "desc": "🌇 全景"},
+    {"id": "hongya_1", "checkpointId": 5, "url": "https://picsum.photos/seed/hongya1/800/600", "desc": "🌉 洪崖洞"},
+    {"id": "hongya_2", "checkpointId": 5, "url": "https://picsum.photos/seed/hongya2/800/600", "desc": "🏮 千与千寻"},
+    {"id": "hongya_3", "checkpointId": 5, "url": "https://picsum.photos/seed/hongya3/800/600", "desc": "🌃 大桥"}
+  ],
+  "texts": [
+    "我在\\"趣玩重庆一日游\\"打卡活动中，已经获得 {points} 积分！",
+    "🎉 重庆一日游太好玩了！打卡了 {points} 积分！",
+    "🎊 山城重庆之旅完美收官！{points} 积分到手！",
+    "🌟 打卡重庆成功！{points} 积分见证旅程！",
+    "✨ 重庆一日游完美收官！{points} 积分解锁！",
+    "🎈 8D 魔幻城市！{points} 积分打卡成功！",
+    "💫 山城打卡完成！{points} 积分收入囊中！",
+    "🌈 雾都探索完成！{points} 积分到手！"
+  ]
+}'::jsonb)
+ON CONFLICT (type) DO UPDATE SET data = EXCLUDED.data;
+
+-- ============================================
+-- 3. 授权访问
+-- ============================================
+GRANT ALL ON public.share_resources TO anon;
+GRANT ALL ON public.share_resources TO authenticated;
+            </pre>
+            <p><strong>操作步骤：</strong></p>
+            <ol>
+              <li>打开 <a href="https://supabase.com/dashboard/project/ussvekkgyntubivhfext/sql" target="_blank" style="color:#667eea;">Supabase SQL Editor</a></li>
+              <li>粘贴上面的所有 SQL</li>
+              <li>点击 "Run" 执行</li>
+              <li>刷新本页面</li>
+            </ol>
+          `;
+          return;
+        }
+        
+        console.log('✅ 查询成功:', data);
+        const dbData = data.data;
+        const images = dbData.images || [];
+        const texts = dbData.texts || [];
+        
+        // 生成图片预览
+        let imagesHtml = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin:20px 0;">';
+        images.forEach((img) => {
+          imagesHtml += `
+            <div style="border:1px solid #ddd;border-radius:8px;padding:10px;background:#fff;">
+              <img src="${img.url}" style="width:100%;height:120px;object-fit:cover;" onerror="this.src='data:image/svg+xml,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'100\\' height=\\'100\\'><rect fill=\\'%23ddd\\' width=\\'100\\' height=\\'100\\'/><text x=\\'50\\' y=\\'50\\' text-anchor=\\'middle\\' fill=\\'%23999\\'>图片</text></svg>'"/>
+              <p style="font-size:12px;margin:8px 0 4px;"><strong>${img.desc || '无描述'}</strong></p>
+              <p style="font-size:11px;color:#666;">ID: ${img.id} | 景点：${img.checkpointId}</p>
+            </div>
+          `;
+        });
+        imagesHtml += '</div>';
+        
+        results.innerHTML = `
+          <h2 class="success">✅ 查询成功！</h2>
+          <p class="info"><strong>📊 数据概览:</strong></p>
+          <ul>
+            <li>记录 ID: ${data.id}</li>
+            <li>Type: ${data.type}</li>
+            <li>图片数量: <strong>${images.length}</strong></li>
+            <li>文案数量: <strong>${texts.length}</strong></li>
+            <li>更新时间: ${data.updated_at || '无'}</li>
+          </ul>
+          
+          <p class="info"><strong>🖼️ 图片预览:</strong></p>
+          ${imagesHtml}
+          
+          <p class="info"><strong>📄 完整 JSON 数据:</strong></p>
+          <pre>${JSON.stringify(dbData, null, 2)}</pre>
+          
+          <p class="success"><strong>🎉 数据库配置正确！</strong></p>
+          <p>如果分享页面看不到图片，请检查：</p>
+          <ol>
+            <li>分享页面的 JavaScript 控制台是否有错误</li>
+            <li>ShareManager.loadImagesFromSupabase() 是否被正确调用</li>
+            <li>图片 URL 是否能正常访问（检查网络或防火墙）</li>
+          </ol>
+        `;
+        
+      } catch (e) {
+        console.error('💥 Unexpected error:', e);
+        results.innerHTML = `
+          <h2 class="error">❌ 发生未知错误</h2>
+          <p>${e.message}</p>
+          <pre>${e.stack}</pre>
+        `;
+      }
+    });
+  </script>
+</body>
+</html>
