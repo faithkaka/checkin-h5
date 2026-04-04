@@ -221,6 +221,10 @@
     }
     
     function handleFileSelect(input) {
+      if (!input || !input.files || input.files.length === 0) {
+        console.warn('⚠️ No file selected');
+        return;
+      }
       var file = input.files[0];
       if (file) {
         currentImageFile = file;
@@ -234,7 +238,12 @@
       var area = document.getElementById('upload-area');
       var input = document.getElementById('edit-image-file');
       
-      input.onchange = handleFileSelect;
+      if (!area || !input) {
+        console.warn('⚠️ Upload elements not found, skipping drag-drop setup');
+        return;
+      }
+      
+      input.onchange = function(e) { handleFileSelect(e.target); };
       
       area.ondragover = function(e) { e.preventDefault(); area.classList.add('dragover'); };
       area.ondragleave = function() { area.classList.remove('dragover'); };
