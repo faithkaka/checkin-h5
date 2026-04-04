@@ -1,18 +1,13 @@
 // 打卡活动 H5 - 主逻辑
-// 版本：b4b4350 完整动画导航版 + 新版分享功能（15 张图选 3 张）
+// 版本：完整动画导航 + 地图标记 + 点位列表 + 15 选 3 分享功能
 
 // ==================== 数据状态 ====================
 const AppState = {
-  // 当前用户 ID
   userId: null,
-  
-  // 用户积分
   points: 0,
-  
-  // 已打卡点位
   checkedCheckpoints: [],
   
-  // 必打卡点配置（5 个核心打卡点）
+  // 必打卡点（5 个核心打卡点）
   mandatoryCheckpoints: [
     { id: 1, name: '解放碑步行街', icon: '🏢', points: 15, checked: false, time: '8:00-9:30', period: '上午', desc: '重庆市渝中区解放碑商业步行街', address: '重庆市渝中区解放碑商业步行街', pos: { left: '18%', top: '32%' } },
     { id: 2, name: '李子坝轻轨站', icon: '🚝', points: 15, checked: false, time: '9:30-10:30', period: '上午', desc: '轻轨 2 号线穿楼而过的奇观', address: '重庆市渝中区李子坝正站', pos: { left: '78%', top: '38%' } },
@@ -40,7 +35,7 @@ const AppState = {
     { id: 4, name: '神秘大奖', points: 120, vouchers: [], icon: '🎁' }
   ],
   
-  // 已选择的分享图片（最多 3 张）
+  // 分享相关
   selectedImages: [],
   customShareText: null
 };
@@ -80,14 +75,12 @@ const CheckpointManager = {
     const mapWrapper = document.getElementById('checkin-map');
     if (!mapWrapper) return;
     
-    // 清空旧标记
     const bgElement = mapWrapper.querySelector('.map-background');
     const mapImage = mapWrapper.querySelector('.map-image');
     mapWrapper.innerHTML = '';
     if (bgElement) mapWrapper.appendChild(bgElement);
     if (mapImage) mapWrapper.appendChild(mapImage);
     
-    // 添加打卡点标记
     AppState.mandatoryCheckpoints.forEach((cp, index) => {
       const marker = document.createElement('div');
       marker.className = `checkpoint-marker ${cp.checked ? 'checked' : ''}`;
@@ -105,18 +98,56 @@ const CheckpointManager = {
     });
   },
   
-  // 打开导航
-  openNavigation(checkpoint) {
-    if (!navigator.geolocation) {
-      alert('您的设备不支持地理位置功能');
-      return;
+  // 渲染打卡点列表
+  renderCheckpointList() {
+    const container = document.getElementById('mandatory-checkpoints');
+    if (!container) return;
+    
+    let html = '';
+    AppState.mandatoryCheckpoints.forEach(cp => {
+      html += `
+        <div class="checkpoint-item ${cp.checked ? 'checked' : ''}" data-id="${cp.id}">
+          <div class="checkpoint-icon">${cp.icon}</div>
+          <div class="checkpoint-info">
+            <div class="checkpoint-name">${cp.name}</div>
+            <div class="checkpoint-desc">${cp.desc}</div>
+            <div class="checkpoint-time">${cp.time}</div>
+          </div>
+          <button class="checkin-btn ${cp.checked ? 'checked' : ''}" onclick="CheckpointManager.toggleCheckin(${cp.id})">
+            ${cp.checked ? '✅ 已打卡' : '📍 打卡'}
+          </button>
+        </div>
+      `;
+    });
+    container.innerHTML = html;
+  },
+  
+  // 打卡/取消打卡
+  toggleCheckin(id) {
+    const cp = AppState.mandatoryCheckpoints.find(c => c.id === id);
+    if (!cp) return;
+    
+    cp.checked = !cp.checked;
+    if (cp.checked) {
+      AppState.points += cp.points;
+      AppState.checkedCheckpoints.push(cp.id);
+    } else {
+      AppState.points -= cp.points;
+      const idx = AppState.checkedCheckpoints.indexOf(cp.id);
+      if (idx > -1) AppState.checkedCheckpoints.splice(idx, 1);
     }
     
+    this.renderMap();
+    this.renderCheckpointList();
+    PageManager.updateAllDisplays();
+  },
+  
+  // 打开导航
+  openNavigation(checkpoint) {
     const destName = encodeURIComponent(checkpoint.name);
     const destAddress = encodeURIComponent(checkpoint.address);
     const navUrl = `https://uri.amap.com/navigation?to=${destAddress}&toName=${destName}&from=0&dev=0`;
     
-    // 手机版直接跳转，电脑版打开新窗口
     if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
       window.location.href = navUrl;
     } else {
@@ -138,6 +169,7 @@ const CheckpointManager = {
         AppState.points += cp.points;
         AppState.checkedCheckpoints.push(cp.id);
         this.renderMap();
+        this.renderCheckpointList();
         PageManager.updateAllDisplays();
       }
     }
@@ -146,7 +178,6 @@ const CheckpointManager = {
 
 // ==================== 页面管理 ====================
 const PageManager = {
-  // 切换页面
   switchPage(pageName) {
     const pages = document.querySelectorAll('.page');
     const navItems = document.querySelectorAll('.nav-item');
@@ -165,20 +196,19 @@ const PageManager = {
       }
     });
     
-    // 页面特定更新
     if (pageName === 'prize') {
       setTimeout(() => PrizeManager.updatePrizeCards(), 100);
     } else if (pageName === 'share') {
       setTimeout(() => ShareManager.updateShareContent(), 100);
+    } else if (pageName === 'checkpoint') {
+      setTimeout(() => CheckpointManager.renderCheckpointList(), 100);
     }
     
-    // 更新 URL
     if (window.history.pushState) {
       window.history.pushState({ page: pageName }, '', `${window.location.pathname}?page=${pageName}`);
     }
   },
   
-  // 绑定导航事件
   bindNavEvents() {
     document.querySelectorAll('.nav-item').forEach(item => {
       item.addEventListener('click', () => {
@@ -186,7 +216,6 @@ const PageManager = {
       });
     });
     
-    // 处理浏览器前进/后退
     window.addEventListener('popstate', (event) => {
       if (event.state && event.state.page) {
         this.switchPage(event.state.page);
@@ -194,7 +223,6 @@ const PageManager = {
     });
   },
   
-  // 更新所有显示
   updateAllDisplays() {
     const totalPoints = document.getElementById('total-points');
     if (totalPoints) totalPoints.textContent = AppState.points;
@@ -227,7 +255,7 @@ const PrizeManager = {
   }
 };
 
-// ==================== 分享管理 - 新版（15 张图选 3 张） ====================
+// ==================== 分享管理（15 张图选 3 张） ====================
 const ShareManager = {
   checkpoints: [
     { id: 1, name: '解放碑', icon: '🏢' },
@@ -289,7 +317,6 @@ const ShareManager = {
     }));
   },
   
-  // 更新分享内容
   updateShareContent() {
     const ptsEl = document.getElementById('share-points');
     if (ptsEl) ptsEl.textContent = AppState.points;
@@ -298,7 +325,6 @@ const ShareManager = {
     this.renderShareText();
   },
   
-  // 渲染已选择的照片（顶部）
   renderSelectedPhotos() {
     const slider = document.getElementById('photo-slider');
     const indicators = document.getElementById('photo-indicators');
@@ -333,7 +359,6 @@ const ShareManager = {
     }
   },
   
-  // 渲染 15 张景点图片（底部选择区）
   renderLandmarkImages() {
     const container = document.getElementById('checkpoint-groups');
     if (!container) return;
@@ -360,7 +385,6 @@ const ShareManager = {
     container.innerHTML = html;
   },
   
-  // 切换图片选择
   toggleImage(imageId) {
     const index = AppState.selectedImages.indexOf(imageId);
     if (index >= 0) {
@@ -377,7 +401,6 @@ const ShareManager = {
     this.saveShareData();
   },
   
-  // 移除图片
   removePhoto(index) {
     AppState.selectedImages.splice(index, 1);
     this.renderSelectedPhotos();
@@ -385,7 +408,6 @@ const ShareManager = {
     this.saveShareData();
   },
   
-  // 渲染分享文案
   renderShareText() {
     const el = document.getElementById('share-text');
     if (!el) return;
@@ -397,7 +419,6 @@ const ShareManager = {
     el.textContent = text;
   },
   
-  // 绑定事件
   bindShareEvents() {
     const editBtn = document.getElementById('edit-share-text-btn');
     if (editBtn) {
@@ -437,32 +458,23 @@ document.addEventListener('DOMContentLoaded', async () => {
   console.log('🚀 重庆打卡活动初始化...');
   console.log('='.repeat(50));
   
-  // 1. 初始化 Supabase
   try {
     await SupabaseManager.init();
   } catch(e) {
     console.error('❌ SupabaseManager:', e);
   }
   
-  // 2. 绑定导航
   PageManager.bindNavEvents();
-  
-  // 3. 渲染地图
   CheckpointManager.renderMap();
   console.log('✅ 地图标记渲染完成');
   
-  // 4. 初始化奖品
   PrizeManager.updatePrizeCards();
   console.log('✅ PrizeManager 完成');
   
-  // 5. 初始化分享
   ShareManager.init();
   console.log('✅ ShareManager 完成');
   
-  // 6. 处理 URL 打卡
   CheckpointManager.handleCheckinFromURL();
-  
-  // 7. 更新显示
   PageManager.updateAllDisplays();
   
   console.log('='.repeat(50));
