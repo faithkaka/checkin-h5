@@ -352,48 +352,63 @@ const CheckpointManager = {
     const address = encodeURIComponent(checkpoint.address);
     const name = encodeURIComponent(checkpoint.name);
     
-    // 高德地图导航 URL Schema
-    const gaodeUrl = isMobile 
-      ? `iosamap://navi?sourceApplication=funinChongqing&poiname=${name}&lat=0&lon=0&dev=0`  // iOS
-      : `androidamap://navi?sourceApplication=funinChongqing&poiname=${name}&lat=0&lon=0&dev=0`;  // Android
-    
-    // 备用网页版（如果 App 没安装会跳转到网页）
-    const webUrl = `https://uri.amap.com/navigation?to=${address}&toName=${name}`;
+    // 高德地图 URL（使用 HTTPS，系统会自动处理）
+    // 移动版会尝试打开 App，失败则 fallback 到网页
+    const gaodeUrl = `https://uri.amap.com/navigation?to=${address}&toName=${name}`;
     
     if (isMobile) {
-      // 手机版：尝试唤起高德地图 App，失败则打开网页版
-      this.openGaodeNavigation(gaodeUrl, webUrl, checkpoint);
+      // 手机版：打开高德 URL，系统会自动选择 App 或网页
+      this.openMobileGaode(gaodeUrl, checkpoint);
     } else {
-      // 电脑版：打开高德地图网页
-      window.open(webUrl, '_blank');
+      // 电脑版：直接打开网页版
+      window.open(gaodeUrl, '_blank');
       this.showToast('🗺️ 已打开高德地图，请在手机上继续导航');
     }
   },
   
-  // 打开高德地图（优先 App，其次网页）
-  openGaodeNavigation(appUrl, webUrl, checkpoint) {
-    console.log('🗺️ 打开导航：', checkpoint.name);
+  // 手机版打开高德地图
+  openMobileGaode(url, checkpoint) {
+    console.log('🗺️ 打开导航到：', checkpoint.name);
     
-    // 先尝试打开 App
-    window.location.href = appUrl;
+    // 创建隐藏的 iframe 尝试唤起 App
+    const hiddenIframe = document.createElement('iframe');
+    hiddenIframe.style.display = 'none';
+    hiddenIframe.src = url;
+    document.body.appendChild(hiddenIframe);
     
-    // 1.5 秒后如果没成功，显示提示并提供网页版按钮
+    // 如果 2.5 秒后还在页面，说明唤起失败，显示网页版选项
     setTimeout(() => {
-      // 如果用户还在页面（说明 App 没唤起），显示网页版提示
-      this.showGaodeWebOption(webUrl, checkpoint);
-    }, 1500);
+      if (document.body.contains(hiddenIframe)) {
+        hiddenIframe.remove();
+        this.showGaodeWebOption(url, checkpoint);
+      }
+    }, 2500);
+    
+    // 同时尝试新窗口打开（某些浏览器需要）
+    const newWindow = window.open(url, '_blank');
+    
+    // 如果窗口被阻止，显示提示
+    if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+      setTimeout(() => {
+        this.showGaodeWebOption(url, checkpoint);
+      }, 500);
+    }
   },
   
   // 显示网页版导航选项
-  showGaodeWebOption(webUrl, checkpoint) {
+  showGaodeWebOption(url, checkpoint) {
+    // 移除已存在的弹窗
+    const existing = document.querySelector('.nav-modal-overlay');
+    if (existing) existing.remove();
+    
     // 创建提示弹窗
     const modalHtml = `
       <div class="nav-modal-overlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:10000;display:flex;justify-content:center;align-items:center;">
-        <div style="background:white;border-radius:16px;padding:24px;max-width:85%;margin:20px;min-width:280px;">
-          <h3 style="margin:0 0 12px 0;font-size:18px;text-align:center;">🗺️ 正在导航到</h3>
+        <div style="background:white;border-radius:16px;padding:24px;max-width:85%;margin:20px;min-width:280px;box-shadow:0 4px 20px rgba(0,0,0,0.3);">
+          <h3 style="margin:0 0 12px 0;font-size:18px;text-align:center;">🗺️ 导航到</h3>
           <p style="margin:0 0 20px 0;font-size:16px;color:#666;text-align:center;font-weight:600;">${checkpoint.name}</p>
           <div style="display:flex;flex-direction:column;gap:12px;">
-            <button class="nav-btn-gaode-web" style="padding:14px 20px;background:#168EEA;color:white;border:none;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;">📍 在浏览器中打开高德地图</button>
+            <button class="nav-btn-gaode-web" style="padding:14px 20px;background:#168EEA;color:white;border:none;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;box-shadow:0 2px 10px rgba(22,142,234,0.3);">📍 在高德地图中打开</button>
             <button class="nav-btn-cancel" style="padding:12px 20px;background:#f5f5f5;color:#666;border:none;border-radius:8px;font-size:15px;cursor:pointer;">取消</button>
           </div>
         </div>
@@ -407,7 +422,7 @@ const CheckpointManager = {
     const overlay = tempDiv.querySelector('.nav-modal-overlay');
     
     overlay.querySelector('.nav-btn-gaode-web').onclick = () => {
-      window.open(webUrl, '_blank');
+      window.open(url, '_blank');
       overlay.remove();
       this.showToast('🗺️ 正在打开高德地图...');
     };
