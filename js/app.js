@@ -993,14 +993,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // 1. 初始化 Supabase 用户管理（异步，必须在最前面）
   try {
-    if (window.SupabaseManager) {
-      await SupabaseManager.init();
-      AppState.userId = SupabaseManager.userId;
-      console.log('✅ Supabase 用户管理初始化完成');
-    } else {
-      console.warn('⚠️ SupabaseManager 未加载');
-      AppState.userId = 'unknown_' + Date.now();
-    }
+    await SupabaseManager.init();
+    AppState.userId = SupabaseManager.userId;
+    console.log('✅ Supabase 用户管理初始化完成');
   } catch(e) { 
     console.error('❌ Supabase 用户管理:', e); 
     AppState.userId = 'error_' + Date.now();
