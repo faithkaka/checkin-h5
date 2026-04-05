@@ -58,7 +58,7 @@
     <div class="loading-dot"></div>
     <div class="loading-dot"></div>
     <div class="loading-dot"></div>
-    <span>趣玩重庆加载中...</span>
+    <span id="loading-text">趣玩重庆加载中...</span>
   </div>
   
   <div id="app">
@@ -338,13 +338,22 @@
 
   <!-- Supabase JS SDK - 使用国内可访问的 CDN -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0"></script>
-<script src="js/app.js?v=20260404"></script>
+<!-- 先加载 SupabaseManager -->
+<script src="js/supabase-manager.js?v=20260405"></script>
+<!-- 再加载主逻辑 -->
+<script src="js/app.js?v=20260405"></script>
 
 <!-- 加载提示控制 -->
 <script>
   (function() {
-    // 页面加载完成后隐藏（最多等待 3 秒）
     var loaded = false;
+    var loadingText = document.getElementById('loading-text');
+    
+    function updateLoadingText(text) {
+      if (loadingText) {
+        loadingText.textContent = text;
+      }
+    }
     
     function hideLoading() {
       if (loaded) return;
@@ -359,6 +368,27 @@
       }
     }
     
+    // 页面加载流程提示
+    var loadingSteps = [
+      '初始化中...',
+      '获取用户信息...',
+      '加载打卡数据...',
+      '准备就绪!'
+    ];
+    var currentStep = 0;
+    
+    function nextStep() {
+      if (currentStep < loadingSteps.length - 1) {
+        currentStep++;
+        updateLoadingText(loadingSteps[currentStep]);
+      }
+    }
+    
+    // 模拟步骤更新
+    setTimeout(nextStep, 800);
+    setTimeout(nextStep, 1600);
+    setTimeout(nextStep, 2400);
+    
     // 页面 load 事件
     if (window.addEventListener) {
       window.addEventListener('load', function() {
@@ -366,10 +396,10 @@
       });
     }
     
-    // 超时保护：3 秒后强制隐藏
+    // 超时保护：5 秒后强制隐藏
     setTimeout(function() {
       hideLoading();
-    }, 3000);
+    }, 5000);
   })();
 </script>
 

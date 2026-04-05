@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>今日打卡数据 - 趣玩重庆</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #f5f5f5; padding: 20px; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 24px;
+      border-radius: 16px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .header h1 { font-size: 24px; margin-bottom: 8px; }
+    .header p { font-size: 14px; opacity: 0.9; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .stat-card {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .stat-value {
+      font-size: 42px;
+      font-weight: bold;
+      color: #667eea;
+      margin-bottom: 8px;
+    }
+    .stat-label {
+      font-size: 14px;
+      color: #666;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .card h2 {
+      font-size: 18px;
+      color: #333;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    th {
+      background: #f8f9fa;
+      font-weight: 600;
+      color: #555;
+      font-size: 12px;
+    }
+    tr:hover { background: #f8f9fa; }
+    .btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+      margin: 8px 8px 8px 0;
+    }
+    .btn:hover { opacity: 0.9; }
+    .btn-secondary {
+      background: #f0f0f0;
+      color: #333;
+    }
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+    }
+    .checkpoint-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+      background: #f0f0f0;
+    }
+    .checkpoint-1 { background: #dbeafe; color: #1e40af; }
+    .checkpoint-2 { background: #fae8ff; color: #86198f; }
+    .checkpoint-3 { background: #fef3c7; color: #92400e; }
+    .checkpoint-4 { background: #d1fae5; color: #065f46; }
+    .checkpoint-5 { background: #fee2e2; color: #991b1b; }
+    .empty {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📊 今日打卡数据</h1>
+      <p id="current-date">加载中...</p>
+    </div>
+    
+    <div class="stats" id="stats" style="display:none;">
+      <div class="stat-card">
+        <div class="stat-value" id="today-users">0</div>
+        <div class="stat-label">今日新增用户</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="today-checkins">0</div>
+        <div class="stat-label">今日打卡次数</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="today-points">0</div>
+        <div class="stat-label">今日发放积分</div>
+      </div>
+    </div>
+    
+    <div class="card" id="checkpoints-card" style="display:none;">
+      <h2>📍 各打卡点统计</h2>
+      <div id="checkpoints-stats"></div>
+    </div>
+    
+    <div class="card">
+      <h2>👥 今日新增用户</h2>
+      <button class="btn" onclick="loadData()">🔄 刷新</button>
+      <button class="btn btn-secondary" onclick="exportData()">📥 导出</button>
+      <table id="users-table" style="margin-top: 16px;">
+        <thead>
+          <tr>
+            <th>用户 ID</th>
+            <th>当前积分</th>
+            <th>注册时间</th>
+          </tr>
+        </thead>
+        <tbody id="users-tbody">
+          <tr><td colspan="3" class="loading">加载中...</td></tr>
+        </tbody>
+      </table>
+      <div id="users-empty" class="empty" style="display:none;">今天还没有新用户</div>
+    </div>
+    
+    <div class="card">
+      <h2>📝 今日打卡记录</h2>
+      <table id="checkins-table" style="margin-top: 16px;">
+        <thead>
+          <tr>
+            <th>打卡点</th>
+            <th>用户 ID</th>
+            <th>获得积分</th>
+            <th>打卡时间</th>
+          </tr>
+        </thead>
+        <tbody id="checkins-tbody">
+          <tr><td colspan="4" class="loading">加载中...</td></tr>
+        </tbody>
+      </table>
+      <div id="checkins-empty" class="empty" style="display:none;">今天还没有打卡记录</div>
+    </div>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0"></script>
+  <script>
+    const supabaseUrl = 'https://ussvekkgyntubivhfext.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzc3Zla2tneW50dWJpdmhmZXh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTEwODQwMiwiZXhwIjoyMDkwNjg0NDAyfQ.i1fbQC96UGnToKL6fa7GTfaMtt0s_TGpNNR0xb3ufR0';
+    let supabase = null;
+    
+    const checkpointNames = {
+      1: { name: '解放碑步行街', icon: '🏢', class: 'checkpoint-1' },
+      2: { name: '李子坝轻轨站', icon: '🚝', class: 'checkpoint-2' },
+      3: { name: '鹅岭二厂文创园', icon: '🎨', class: 'checkpoint-3' },
+      4: { name: '南山一棵树观景台', icon: '🌳', class: 'checkpoint-4' },
+      5: { name: '洪崖洞', icon: '🌉', class: 'checkpoint-5' }
+    };
+    
+    // 获取今天的日期范围（北京时间 UTC+8）
+    function getTodayRange() {
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      // 北京时间 00:00:00 对应的 UTC 时间
+      const startUTC = new Date(today.getTime() - (8 * 60 * 60 * 1000));
+      const endUTC = new Date(startUTC.getTime() + (24 * 60 * 60 * 1000));
+      
+      return {
+        start: startUTC.toISOString(),
+        end: endUTC.toISOString()
+      };
+    }
+    
+    async function init() {
+      if (typeof supabase !== 'undefined') {
+        supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        await loadData();
+      } else {
+        alert('Supabase SDK 未加载');
+      }
+    }
+    
+    async function loadData() {
+      const range = getTodayRange();
+      const todayStr = new Date().toLocaleDateString('zh-CN', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric',
+        weekday: 'long'
+      });
+      
+      document.getElementById('current-date').textContent = todayStr;
+      
+      try {
+        // 1. 加载今日用户
+        const { data: users, error: usersError } = await supabase
+          .from('users')
+          .select('*')
+          .gte('created_at', range.start)
+          .lt('created_at', range.end)
+          .order('created_at', { ascending: false });
+        
+        if (usersError) throw usersError;
+        
+        const todayUsers = users || [];
+        document.getElementById('today-users').textContent = todayUsers.length;
+        
+        const usersTbody = document.getElementById('users-tbody');
+        const usersEmpty = document.getElementById('users-empty');
+        
+        if (todayUsers.length === 0) {
+          usersTbody.style.display = 'none';
+          usersEmpty.style.display = 'block';
+        } else {
+          usersTbody.style.display = '';
+          usersEmpty.style.display = 'none';
+          usersTbody.innerHTML = todayUsers.map(u => `
+            <tr>
+              <td style="font-family:monospace;font-size:11px;">${u.alipay_user_id}</td>
+              <td><strong>${u.points || 0}</strong></td>
+              <td>${new Date(u.created_at).toLocaleString('zh-CN')}</td>
+            </tr>
+          `).join('');
+        }
+        
+        // 2. 加载今日打卡记录
+        const { data: checkins, error: checkinsError } = await supabase
+          .from('checkins')
+          .select('*')
+          .gte('checked_at', range.start)
+          .lt('checked_at', range.end)
+          .order('checked_at', { ascending: false });
+        
+        if (checkinsError) throw checkinsError;
+        
+        const todayCheckins = checkins || [];
+        const totalPoints = todayCheckins.reduce((sum, c) => sum + (c.points || 0), 0);
+        
+        document.getElementById('today-checkins').textContent = todayCheckins.length;
+        document.getElementById('today-points').textContent = totalPoints;
+        document.getElementById('stats').style.display = 'grid';
+        
+        const checkinsTbody = document.getElementById('checkins-tbody');
+        const checkinsEmpty = document.getElementById('checkins-empty');
+        
+        if (todayCheckins.length === 0) {
+          checkinsTbody.style.display = 'none';
+          checkinsEmpty.style.display = 'block';
+          document.getElementById('checkpoints-card').style.display = 'none';
+        } else {
+          checkinsTbody.style.display = '';
+          checkinsEmpty.style.display = 'none';
+          document.getElementById('checkpoints-card').style.display = 'block';
+          
+          checkinsTbody.innerHTML = todayCheckins.map(c => {
+            const cp = checkpointNames[c.checkpoint_id] || { name: '点位' + c.checkpoint_id, icon: '📍', class: '' };
+            return `
+              <tr>
+                <td><span class="checkpoint-badge ${cp.class}">${cp.icon} ${cp.name}</span></td>
+                <td style="font-family:monospace;font-size:11px;">${c.alipay_user_id}</td>
+                <td><strong>${c.points || 0}</strong></td>
+                <td>${new Date(c.checked_at).toLocaleString('zh-CN')}</td>
+              </tr>
+            `;
+          }).join('');
+          
+          // 各打卡点统计
+          const stats = {};
+          todayCheckins.forEach(c => {
+            stats[c.checkpoint_id] = (stats[c.checkpoint_id] || 0) + 1;
+          });
+          
+          const checkpointsContainer = document.getElementById('checkpoints-stats');
+          checkpointsContainer.innerHTML = `
+            <table>
+              <thead>
+                <tr>
+                  <th>打卡点</th>
+                  <th>打卡次数</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${[1,2,3,4,5].map(id => {
+                  const cp = checkpointNames[id];
+                  const count = stats[id] || 0;
+                  return `
+                    <tr>
+                      <td><span class="checkpoint-badge ${cp.class}">${cp.icon} ${cp.name}</span></td>
+                      <td><strong>${count}</strong> 次</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          `;
+        }
+        
+      } catch (err) {
+        console.error('加载失败:', err);
+        alert('加载失败：' + err.message);
+      }
+    }
+    
+    function exportData() {
+      alert('导出功能开发中...');
+    }
+    
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>

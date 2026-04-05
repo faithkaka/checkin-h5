@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>测试用户持久化 - 趣玩重庆</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #f5f5f5; }
+    .card { background: white; padding: 20px; border-radius: 12px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    h1 { font-size: 20px; margin-bottom: 16px; }
+    .info { font-size: 14px; color: #666; margin-bottom: 8px; }
+    .value { font-weight: bold; color: #333; font-size: 16px; }
+    .btn { background: #667eea; color: white; border: none; padding: 12px 24px; border-radius: 8px; margin: 8px 8px 8px 0; cursor: pointer; }
+    .btn:hover { opacity: 0.9; }
+    .log { background: #1e1e1e; color: #00ff00; padding: 16px; border-radius: 8px; font-family: monospace; font-size: 12px; max-height: 300px; overflow-y: auto; }
+  </style>
+</head>
+<body>
+  <h1>🧪 测试用户持久化</h1>
+  
+  <div class="card">
+    <h2>测试结果</h2>
+    <div class="info">用户 ID: <span class="value" id="user-id">检测中...</span></div>
+    <div class="info">localStorage ID: <span class="value" id="local-id">检测中...</span></div>
+    <div class="info">积分: <span class="value" id="points">检测中...</span></div>
+    <div class="info">已打卡点: <span class="value" id="checked">检测中...</span></div>
+  </div>
+  
+  <div class="card">
+    <h2>操作</h2>
+    <button class="btn" onclick="testUserId()">测试用户 ID</button>
+    <button class="btn" onclick="doCheckin()">模拟打卡</button>
+    <button class="btn" onclick="clearData()">清除数据</button>
+    <button class="btn" onclick="location.reload()">刷新页面</button>
+    <button class="btn" onclick="window.open('index.html', '_blank')">打开主页</button>
+    <button class="btn" onclick="window.open('index.html?checkin=1', '_blank')">打卡点 1</button>
+  </div>
+  
+  <div class="card">
+    <h2>日志</h2>
+    <div class="log" id="log"></div>
+  </div>
+  
+  <script>
+    const log = document.getElementById('log');
+    function logMsg(msg) {
+      const time = new Date().toLocaleTimeString();
+      log.innerHTML = `[${time}] ${msg}<br>` + log.innerHTML;
+      console.log(msg);
+    }
+    
+    function updateDisplay() {
+      const localId = localStorage.getItem('alipay_user_id');
+      document.getElementById('local-id').textContent = localId || '无';
+      
+      const data = JSON.parse(localStorage.getItem('checkin_data') || '{}');
+      document.getElementById('points').textContent = data.points || 0;
+      document.getElementById('checked').textContent = (data.checkedCheckpoints || []).length + ' 个';
+    }
+    
+    function testUserId() {
+      // 模拟 SupabaseManager 的行为
+      const storedId = localStorage.getItem('alipay_user_id');
+      let userId;
+      
+      if (storedId && storedId.startsWith('alipay_')) {
+        userId = storedId;
+        logMsg('✅ 从 localStorage 恢复用户 ID: ' + userId);
+      } else if (storedId) {
+        userId = storedId;
+        logMsg('✅ 从 localStorage 恢复用户 ID: ' + userId);
+      } else {
+        // 生成新 ID 并保存
+        userId = 'user_' + Date.now();
+        localStorage.setItem('alipay_user_id', userId);
+        logMsg('🆕 生成新用户 ID: ' + userId);
+      }
+      
+      document.getElementById('user-id').textContent = userId;
+      updateDisplay();
+    }
+    
+    function doCheckin() {
+      const userId = localStorage.getItem('alipay_user_id');
+      if (!userId) {
+        alert('❌ 请先测试用户 ID');
+        return;
+      }
+      
+      // 模拟打卡
+      const currentPoints = parseInt(localStorage.getItem('points')) || 0;
+      const newPoints = currentPoints + 15;
+      localStorage.setItem('points', newPoints.toString());
+      
+      const data = JSON.parse(localStorage.getItem('checkin_data') || '{}');
+      data.points = newPoints;
+      if (!data.checkedCheckpoints) data.checkedCheckpoints = [];
+      if (!data.checkedCheckpoints.includes(1)) {
+        data.checkedCheckpoints.push(1);
+      }
+      localStorage.setItem('checkin_data', JSON.stringify(data));
+      
+      logMsg('✅ 打卡成功！获得 15 积分，总积分：' + newPoints);
+      updateDisplay();
+    }
+    
+    function clearData() {
+      if (confirm('确定清除所有数据？')) {
+        localStorage.removeItem('alipay_user_id');
+        localStorage.removeItem('checkin_data');
+        localStorage.removeItem('points');
+        logMsg('✅ 数据已清除');
+        location.reload();
+      }
+    }
+    
+    // 页面加载时自动测试
+    document.addEventListener('DOMContentLoaded', () => {
+      logMsg('页面加载完成');
+      testUserId();
+      
+      // 监听存储变化
+      window.addEventListener('storage', (e) => {
+        logMsg('📦 存储变化：' + e.key + ' = ' + e.newValue);
+        updateDisplay();
+      });
+    });
+  </script>
+</body>
+</html>

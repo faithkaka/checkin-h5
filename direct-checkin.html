@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>直接打卡测试 - 趣玩重庆</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container { max-width: 600px; margin: 0 auto; }
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    }
+    h1 { color: white; text-align: center; margin-bottom: 24px; font-size: 24px; }
+    h2 { font-size: 18px; color: #333; margin-bottom: 16px; }
+    .checkpoint-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+    .checkpoint-btn {
+      background: linear-gradient(135deg, #f0f0f0, #e0e0e0);
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .checkpoint-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      border-color: #667eea;
+    }
+    .checkpoint-btn.active {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border-color: #667eea;
+    }
+    .checkpoint-icon { font-size: 32px; margin-bottom: 8px; display: block; }
+    .checkpoint-name { font-size: 14px; font-weight: 600; display: block; }
+    .checkpoint-points { font-size: 12px; color: #999; margin-top: 4px; display: block; }
+    .checkpoint-btn.active .checkpoint-points { color: rgba(255,255,255,0.9); }
+    .btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 14px 24px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 16px;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+    .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-success {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    }
+    .log-box {
+      background: #1e1e1e;
+      color: #00ff00;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      padding: 16px;
+      border-radius: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+      line-height: 1.6;
+    }
+    .status {
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .status.success { background: #d1fae5; color: #065f46; }
+    .status.error { background: #fee2e2; color: #991b1b; }
+    .status.info { background: #dbeafe; color: #1e40af; }
+    .user-info {
+      background: #f8f9fa;
+      padding: 16px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+    }
+    .user-info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      font-size: 14px;
+    }
+    .user-info-label { color: #666; }
+    .user-info-value { font-weight: 600; color: #333; }
+  </style>
+</head>
+<body>
+  <h1>🧪 直接打卡测试</h1>
+  
+  <div class="container">
+    <div class="card">
+      <h2>👤 当前用户</h2>
+      <div class="user-info">
+        <div class="user-info-row">
+          <span class="user-info-label">用户 ID</span>
+          <span class="user-info-value" id="user-id">检测中...</span>
+        </div>
+        <div class="user-info-row">
+          <span class="user-info-label">当前积分</span>
+          <span class="user-info-value" id="user-points">0</span>
+        </div>
+      </div>
+      <div id="status" class="status info">正在初始化...</div>
+    </div>
+    
+    <div class="card">
+      <h2>📍 选择打卡点</h2>
+      <div class="checkpoint-grid">
+        <div class="checkpoint-btn" data-id="1" data-points="15">
+          <span class="checkpoint-icon">🏢</span>
+          <span class="checkpoint-name">解放碑步行街</span>
+          <span class="checkpoint-points">+15 积分</span>
+        </div>
+        <div class="checkpoint-btn" data-id="2" data-points="15">
+          <span class="checkpoint-icon">🚝</span>
+          <span class="checkpoint-name">李子坝轻轨站</span>
+          <span class="checkpoint-points">+15 积分</span>
+        </div>
+        <div class="checkpoint-btn" data-id="3" data-points="15">
+          <span class="checkpoint-icon">🎨</span>
+          <span class="checkpoint-name">鹅岭二厂文创园</span>
+          <span class="checkpoint-points">+15 积分</span>
+        </div>
+        <div class="checkpoint-btn" data-id="4" data-points="20">
+          <span class="checkpoint-icon">🌳</span>
+          <span class="checkpoint-name">南山一棵树观景台</span>
+          <span class="checkpoint-points">+20 积分</span>
+        </div>
+        <div class="checkpoint-btn" data-id="5" data-points="25">
+          <span class="checkpoint-icon">🌉</span>
+          <span class="checkpoint-name">洪崖洞</span>
+          <span class="checkpoint-points">+25 积分</span>
+        </div>
+      </div>
+      
+      <button class="btn" id="checkin-btn" disabled>
+        ✅ 立即打卡
+      </button>
+    </div>
+    
+    <div class="card">
+      <h2>📝 调试日志</h2>
+      <button class="btn" style="background: #666; margin-bottom: 12px;" onclick="checkDatabase()">🔍 查看数据库</button>
+      <div class="log-box" id="log"></div>
+    </div>
+  </div>
+  
+  <script>
+    const supabaseUrl = 'https://ussvekkgyntubivhfext.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzc3Zla2tneW50dWJpdmhmZXh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTEwODQwMiwiZXhwIjoyMDkwNjg0NDAyfQ.i1fbQC96UGnToKL6fa7GTfaMtt0s_TGpNNR0xb3ufR0';
+    let supabase = null;
+    let userId = null;
+    let selectedCheckpoint = null;
+    let logs = [];
+    
+    const checkpointNames = {
+      1: '解放碑步行街',
+      2: '李子坝轻轨站',
+      3: '鹅岭二厂文创园',
+      4: '南山一棵树观景台',
+      5: '洪崖洞'
+    };
+    
+    function log(msg, type = 'info') {
+      const time = new Date().toLocaleTimeString();
+      const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
+      logs.unshift(`[${time}] ${prefix} ${msg}`);
+      if (logs.length > 50) logs.pop();
+      document.getElementById('log').innerHTML = logs.join('<br>');
+      console.log(msg);
+    }
+    
+    function updateStatus(msg, type = 'info') {
+      const status = document.getElementById('status');
+      status.textContent = msg;
+      status.className = 'status ' + type;
+    }
+    
+    async function init() {
+      log('初始化 Supabase 客户端...');
+      
+      if (typeof supabase !== 'undefined') {
+        supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        log('✅ Supabase 客户端创建成功');
+        updateStatus('✅ Supabase 已连接', 'success');
+      } else {
+        log('❌ Supabase SDK 未加载', 'error');
+        updateStatus('❌ Supabase SDK 未加载', 'error');
+        return;
+      }
+      
+      await getUserId();
+      bindEvents();
+    }
+    
+    async function getUserId() {
+      // 1. 从 localStorage 获取
+      let storedId = localStorage.getItem('test_user_id');
+      
+      if (storedId) {
+        userId = storedId;
+        log('📦 从 localStorage 恢复用户 ID: ' + userId);
+      } else {
+        // 2. 生成新 ID
+        userId = 'test_user_' + Date.now();
+        localStorage.setItem('test_user_id', userId);
+        log('🆕 生成新用户 ID: ' + userId);
+      }
+      
+      document.getElementById('user-id').textContent = userId;
+      
+      // 3. 加载用户积分
+      await loadUserPoints();
+    }
+    
+    async function loadUserPoints() {
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('points')
+          .eq('alipay_user_id', userId)
+          .single();
+        
+        if (error && error.code !== 'PGRST116') {
+          throw error;
+        }
+        
+        if (data) {
+          document.getElementById('user-points').textContent = data.points;
+          log('📊 加载用户积分：' + data.points);
+        } else {
+          // 创建新用户
+          log('📝 创建新用户记录...');
+          const { data: newUser, error: insertError } = await supabase
+            .from('users')
+            .insert({ alipay_user_id: userId, points: 0 })
+            .select()
+            .single();
+          
+          if (insertError) throw insertError;
+          log('✅ 新用户创建成功');
+        }
+      } catch (err) {
+        log('❌ 加载积分失败：' + err.message, 'error');
+      }
+    }
+    
+    function bindEvents() {
+      document.querySelectorAll('.checkpoint-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.checkpoint-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          selectedCheckpoint = {
+            id: parseInt(btn.dataset.id),
+            name: checkpointNames[btn.dataset.id],
+            points: parseInt(btn.dataset.points)
+          };
+          document.getElementById('checkin-btn').disabled = false;
+          log('📍 已选择：' + selectedCheckpoint.name);
+        });
+      });
+      
+      document.getElementById('checkin-btn').addEventListener('click', doCheckin);
+    }
+    
+    async function doCheckin() {
+      if (!selectedCheckpoint) return;
+      
+      const btn = document.getElementById('checkin-btn');
+      btn.disabled = true;
+      btn.textContent = '⏳ 打卡中...';
+      
+      log('🚀 开始打卡：' + selectedCheckpoint.name);
+      
+      try {
+        // 1. 检查是否已打卡
+        log('🔍 检查是否已打卡...');
+        const { data: existing, error: checkError } = await supabase
+          .from('checkins')
+          .select('*')
+          .eq('alipay_user_id', userId)
+          .eq('checkpoint_id', selectedCheckpoint.id)
+          .single();
+        
+        if (existing) {
+          log('⚠️ 该点位已打卡，跳过', 'error');
+          alert('ℹ️ 您已经打卡过 "' + selectedCheckpoint.name + '" 了！');
+          btn.disabled = false;
+          btn.textContent = '✅ 立即打卡';
+          return;
+        }
+        
+        // 2. 保存打卡记录
+        log('💾 保存打卡记录...');
+        const { data: checkin, error: checkinError } = await supabase
+          .from('checkins')
+          .insert({
+            alipay_user_id: userId,
+            checkpoint_id: selectedCheckpoint.id,
+            points: selectedCheckpoint.points
+          })
+          .select()
+          .single();
+        
+        if (checkinError) throw checkinError;
+        log('✅ 打卡记录保存成功');
+        
+        // 3. 更新用户积分
+        log('📊 更新用户积分...');
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('points')
+          .eq('alipay_user_id', userId)
+          .single();
+        
+        const newPoints = (userData?.points || 0) + selectedCheckpoint.points;
+        
+        const { error: updateError } = await supabase
+          .from('users')
+          .update({ 
+            points: newPoints,
+            updated_at: new Date().toISOString()
+          })
+          .eq('alipay_user_id', userId);
+        
+        if (updateError) throw updateError;
+        
+        log('✅ 积分更新成功：' + newPoints);
+        document.getElementById('user-points').textContent = newPoints;
+        
+        updateStatus('✅ 打卡成功！获得 ' + selectedCheckpoint.points + ' 积分', 'success');
+        
+        alert('✅ 打卡成功！\n\n点位：' + selectedCheckpoint.name + '\n获得：' + selectedCheckpoint.points + ' 积分\n总积分：' + newPoints);
+        
+      } catch (err) {
+        log('❌ 打卡失败：' + err.message, 'error');
+        updateStatus('❌ 打卡失败：' + err.message, 'error');
+        alert('❌ 打卡失败：' + err.message);
+      }
+      
+      btn.disabled = false;
+      btn.textContent = '✅ 立即打卡';
+    }
+    
+    async function checkDatabase() {
+      log('🔍 查询数据库...');
+      
+      try {
+        // 查询今日打卡记录
+        const now = new Date();
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const utcTodayStart = new Date(todayStart.getTime() - (8 * 60 * 60 * 1000));
+        
+        const { data: checkins, error } = await supabase
+          .from('checkins')
+          .select('*')
+          .gte('checked_at', utcTodayStart.toISOString())
+          .order('checked_at', { ascending: false });
+        
+        if (error) throw error;
+        
+        log('📊 今日打卡记录：' + (checkins?.length || 0) + ' 条');
+        
+        if (checkins && checkins.length > 0) {
+          checkins.forEach(c => {
+            log(`  - ${checkpointNames[c.checkpoint_id] || '点位'+c.checkpoint_id} | 用户：${c.alipay_user_id} | 积分：${c.points}`);
+          });
+        } else {
+          log('⚠️ 今天还没有打卡记录');
+        }
+        
+        // 查询用户
+        const { data: user, error: userError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('alipay_user_id', userId)
+          .single();
+        
+        if (userError && userError.code !== 'PGRST116') throw userError;
+        
+        if (user) {
+          log('👤 用户信息：积分=' + user.points + ', 创建时间=' + new Date(user.created_at).toLocaleString('zh-CN'));
+        }
+        
+      } catch (err) {
+        log('❌ 查询失败：' + err.message, 'error');
+      }
+    }
+    
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>

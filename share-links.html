@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>打卡链接管理 - 趣玩重庆</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 30px;
+    }
+    
+    .header h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+    
+    .header p {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    
+    .checkpoint-item {
+      border: 2px solid #f0f0f0;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+      transition: all 0.3s;
+    }
+    
+    .checkpoint-item:hover {
+      border-color: #667eea;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+    }
+    
+    .checkpoint-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    
+    .checkpoint-icon {
+      font-size: 32px;
+      margin-right: 12px;
+    }
+    
+    .checkpoint-info {
+      flex: 1;
+    }
+    
+    .checkpoint-name {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 4px;
+    }
+    
+    .checkpoint-points {
+      font-size: 14px;
+      color: #f59e0b;
+      font-weight: 600;
+    }
+    
+    .checkpoint-address {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 8px;
+    }
+    
+    .link-section {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 12px;
+    }
+    
+    .link-label {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 6px;
+    }
+    
+    .link-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .link-input {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #333;
+      background: white;
+      font-family: monospace;
+    }
+    
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+    
+    .btn-secondary {
+      background: #f0f0f0;
+      color: #333;
+    }
+    
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
+    
+    .btn-success {
+      background: #10b981;
+      color: white;
+    }
+    
+    .btn-success:hover {
+      background: #059669;
+    }
+    
+    .info-card {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .info-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1e40af;
+      margin-bottom: 12px;
+    }
+    
+    .info-list {
+      list-style: none;
+    }
+    
+    .info-list li {
+      font-size: 14px;
+      color: #1e3a8a;
+      margin-bottom: 8px;
+      padding-left: 20px;
+      position: relative;
+    }
+    
+    .info-list li:before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      color: #10b981;
+      font-weight: bold;
+    }
+    
+    .qr-section {
+      text-align: center;
+      padding: 20px;
+    }
+    
+    .qr-placeholder {
+      width: 200px;
+      height: 200px;
+      margin: 0 auto 12px;
+      background: #f0f0f0;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: #999;
+    }
+    
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 24px;
+      font-size: 14px;
+      z-index: 9999;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+    
+    .toast.show {
+      opacity: 1;
+    }
+    
+    .domain-input {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+    
+    .domain-input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    
+    .domain-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎯 打卡链接管理</h1>
+      <p>趣玩重庆一日游 - 5 个打卡点分享链接</p>
+    </div>
+    
+    <!-- 使用说明 -->
+    <div class="info-card">
+      <div class="info-title">📋 使用说明</div>
+      <ul class="info-list">
+        <li>每个打卡点对应一个专属链接，游客在支付宝中打开即可打卡</li>
+        <li>系统自动识别不同支付宝用户，数据独立存储</li>
+        <li>同一用户多次打卡可累积积分</li>
+        <li>点击下方"复制链接"按钮可快速复制</li>
+        <li>建议将链接生成二维码打印放在打卡点</li>
+      </ul>
+    </div>
+    
+    <!-- 域名配置 -->
+    <div class="card">
+      <label class="domain-label">🌐 服务器域名</label>
+      <input type="text" class="domain-input" id="domain-input" 
+             placeholder="例如：https://checkin.your-domain.com"
+             value="http://localhost:9000" />
+      <p style="font-size: 12px; color: #666; margin-top: 8px;">
+        💡 提示：修改域名后，下方链接会自动更新。生产环境请使用 HTTPS。
+      </p>
+    </div>
+    
+    <!-- 打卡点列表 -->
+    <div class="card">
+      <h2 style="margin-bottom: 20px; color: #333;">📍 打卡点链接</h2>
+      
+      <!-- 打卡点 1 -->
+      <div class="checkpoint-item">
+        <div class="checkpoint-header">
+          <div class="checkpoint-icon">🏢</div>
+          <div class="checkpoint-info">
+            <div class="checkpoint-name">解放碑步行街</div>
+            <div class="checkpoint-points">💰 15 积分</div>
+          </div>
+        </div>
+        <div class="checkpoint-address">📍 重庆市渝中区解放碑商业步行街</div>
+        <div class="link-section">
+          <div class="link-label">打卡链接</div>
+          <div class="link-box">
+            <input type="text" class="link-input" id="link-1" readonly />
+            <button class="btn btn-primary" onclick="copyLink('link-1')">复制</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 打卡点 2 -->
+      <div class="checkpoint-item">
+        <div class="checkpoint-header">
+          <div class="checkpoint-icon">🚝</div>
+          <div class="checkpoint-info">
+            <div class="checkpoint-name">李子坝轻轨站</div>
+            <div class="checkpoint-points">💰 15 积分</div>
+          </div>
+        </div>
+        <div class="checkpoint-address">📍 重庆市渝中区李子坝正站</div>
+        <div class="link-section">
+          <div class="link-label">打卡链接</div>
+          <div class="link-box">
+            <input type="text" class="link-input" id="link-2" readonly />
+            <button class="btn btn-primary" onclick="copyLink('link-2')">复制</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 打卡点 3 -->
+      <div class="checkpoint-item">
+        <div class="checkpoint-header">
+          <div class="checkpoint-icon">🎨</div>
+          <div class="checkpoint-info">
+            <div class="checkpoint-name">鹅岭二厂文创园</div>
+            <div class="checkpoint-points">💰 15 积分</div>
+          </div>
+        </div>
+        <div class="checkpoint-address">📍 重庆市渝中区鹅岭正街 1 号</div>
+        <div class="link-section">
+          <div class="link-label">打卡链接</div>
+          <div class="link-box">
+            <input type="text" class="link-input" id="link-3" readonly />
+            <button class="btn btn-primary" onclick="copyLink('link-3')">复制</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 打卡点 4 -->
+      <div class="checkpoint-item">
+        <div class="checkpoint-header">
+          <div class="checkpoint-icon">🌳</div>
+          <div class="checkpoint-info">
+            <div class="checkpoint-name">南山一棵树观景台</div>
+            <div class="checkpoint-points">💰 20 积分</div>
+          </div>
+        </div>
+        <div class="checkpoint-address">📍 重庆市南岸区南山植物园旁</div>
+        <div class="link-section">
+          <div class="link-label">打卡链接</div>
+          <div class="link-box">
+            <input type="text" class="link-input" id="link-4" readonly />
+            <button class="btn btn-primary" onclick="copyLink('link-4')">复制</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 打卡点 5 -->
+      <div class="checkpoint-item">
+        <div class="checkpoint-header">
+          <div class="checkpoint-icon">🌉</div>
+          <div class="checkpoint-info">
+            <div class="checkpoint-name">洪崖洞 + 千厮门大桥</div>
+            <div class="checkpoint-points">💰 25 积分</div>
+          </div>
+        </div>
+        <div class="checkpoint-address">📍 重庆市渝中区嘉陵江滨江路 88 号</div>
+        <div class="link-section">
+          <div class="link-label">打卡链接</div>
+          <div class="link-box">
+            <input type="text" class="link-input" id="link-5" readonly />
+            <button class="btn btn-primary" onclick="copyLink('link-5')">复制</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 统一首页链接 -->
+      <div class="checkpoint-item" style="border-color: #667eea; background: #f8f9ff;">
+        <div class="checkpoint-header">
+          <div class="checkpoint-icon" style="font-size: 28px;">🏠</div>
+          <div class="checkpoint-info">
+            <div class="checkpoint-name">活动主页</div>
+            <div class="checkpoint-points">📱 所有打卡点入口</div>
+          </div>
+        </div>
+        <div class="link-section">
+          <div class="link-label">主页链接</div>
+          <div class="link-box">
+            <input type="text" class="link-input" id="link-home" readonly />
+            <button class="btn btn-primary" onclick="copyLink('link-home')">复制</button>
+          </div>
+        </div>
+      </div>
+      
+      <button class="btn btn-success" onclick="copyAllLinks()" style="width: 100%; padding: 14px; font-size: 15px; margin-top: 10px;">
+        📋 复制所有链接
+      </button>
+    </div>
+    
+    <!-- 二维码生成说明 -->
+    <div class="card">
+      <h2 style="margin-bottom: 16px; color: #333;">📱 生成二维码</h2>
+      <p style="font-size: 14px; color: #666; margin-bottom: 16px;">
+        可以使用以下在线工具生成二维码：
+      </p>
+      <ul style="font-size: 14px; color: #666; line-height: 2;">
+        <li>🔗 <a href="https://www.qr-code-generator.com/" target="_blank" style="color: #667eea;">QR Code Generator</a></li>
+        <li>🔗 <a href="https://cli.im/" target="_blank" style="color: #667eea;">草料二维码</a></li>
+        <li>🔗 <a href="https://www.msunl.net/qrcode/" target="_blank" style="color: #667eea;">联软在线二维码</a></li>
+      </ul>
+      <p style="font-size: 12px; color: #999; margin-top: 16px;">
+        💡 提示：生成二维码后，建议测试扫码是否能正常打开
+      </p>
+    </div>
+    
+    <!-- 数据统计 -->
+    <div class="card">
+      <h2 style="margin-bottom: 16px; color: #333;">📊 打卡统计</h2>
+      <div id="stats-loading" style="text-align: center; padding: 40px; color: #999;">
+        加载中...
+      </div>
+      <div id="stats-content" style="display: none;">
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+          <div style="background: #f8f9fa; padding: 16px; border-radius: 8px;">
+            <div style="font-size: 12px; color: #666; margin-bottom: 4px;">总打卡次数</div>
+            <div style="font-size: 24px; font-weight: bold; color: #667eea;" id="total-checkins">-</div>
+          </div>
+          <div style="background: #f8f9fa; padding: 16px; border-radius: 8px;">
+            <div style="font-size: 12px; color: #666; margin-bottom: 4px;">参与用户数</div>
+            <div style="font-size: 24px; font-weight: bold; color: #10b981;" id="total-users">-</div>
+          </div>
+        </div>
+        <div style="margin-top: 16px;">
+          <div style="font-size: 14px; font-weight: 600; color: #333; margin-bottom: 12px;">各点位打卡情况</div>
+          <div id="checkpoint-stats"></div>
+        </div>
+      </div>
+      <button class="btn btn-secondary" onclick="loadStats()" style="width: 100%; margin-top: 16px; padding: 12px;">
+        🔄 刷新统计
+      </button>
+    </div>
+  </div>
+  
+  <!-- 提示框 -->
+  <div class="toast" id="toast">已复制链接</div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0"></script>
+  <script>
+    // 打卡点配置
+    const checkpoints = [
+      { id: 1, name: '解放碑步行街', icon: '🏢', points: 15 },
+      { id: 2, name: '李子坝轻轨站', icon: '🚝', points: 15 },
+      { id: 3, name: '鹅岭二厂文创园', icon: '🎨', points: 15 },
+      { id: 4, name: '南山一棵树观景台', icon: '🌳', points: 20 },
+      { id: 5, name: '洪崖洞 + 千厮门大桥', icon: '🌉', points: 25 }
+    ];
+    
+    // Supabase 配置
+    const supabaseUrl = 'https://ussvekkgyntubivhfext.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzc3Zla2tneW50dWJpdmhmZXh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTEwODQwMiwiZXhwIjoyMDkwNjg0NDAyfQ.i1fbQC96UGnToKL6fa7GTfaMtt0s_TGpNNR0xb3ufR0';
+    let supabase = null;
+    
+    // 初始化
+    document.addEventListener('DOMContentLoaded', function() {
+      updateLinks();
+      initSupabase();
+      loadStats();
+      
+      // 监听域名变化
+      document.getElementById('domain-input').addEventListener('input', updateLinks);
+    });
+    
+    // 初始化 Supabase
+    function initSupabase() {
+      if (typeof supabase !== 'undefined') {
+        supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+      }
+    }
+    
+    // 更新所有链接
+    function updateLinks() {
+      const domain = document.getElementById('domain-input').value.replace(/\/$/, '');
+      
+      checkpoints.forEach(cp => {
+        const link = `${domain}/index.html?checkin=${cp.id}`;
+        document.getElementById(`link-${cp.id}`).value = link;
+      });
+      
+      document.getElementById('link-home').value = `${domain}/index.html`;
+    }
+    
+    // 复制链接
+    function copyLink(elementId) {
+      const input = document.getElementById(elementId);
+      input.select();
+      input.setSelectionRange(0, 99999);
+      
+      navigator.clipboard.writeText(input.value).then(() => {
+        showToast('✅ 链接已复制');
+      }).catch(err => {
+        document.execCommand('copy');
+        showToast('✅ 链接已复制');
+      });
+    }
+    
+    // 复制所有链接
+    function copyAllLinks() {
+      const domain = document.getElementById('domain-input').value.replace(/\/$/, '');
+      let text = '🎯 趣玩重庆一日游 - 打卡链接\n\n';
+      
+      checkpoints.forEach(cp => {
+        text += `${cp.icon} ${cp.name} (${cp.points}积分)\n`;
+        text += `${domain}/index.html?checkin=${cp.id}\n\n`;
+      });
+      
+      text += `🏠 活动主页\n${domain}/index.html`;
+      
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('✅ 所有链接已复制');
+      }).catch(err => {
+        showToast('❌ 复制失败，请手动复制');
+      });
+    }
+    
+    // 显示提示
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2000);
+    }
+    
+    // 加载统计数据
+    async function loadStats() {
+      const loading = document.getElementById('stats-loading');
+      const content = document.getElementById('stats-content');
+      
+      loading.style.display = 'block';
+      content.style.display = 'none';
+      
+      if (!supabase) {
+        loading.textContent = '❌ Supabase 未初始化';
+        return;
+      }
+      
+      try {
+        // 获取总打卡次数
+        const { data: checkins, error: checkinError } = await supabase
+          .from('checkins')
+          .select('*', { count: 'exact', head: true });
+        
+        // 获取用户数
+        const { data: users, error: userError } = await supabase
+          .from('users')
+          .select('*', { count: 'exact', head: true });
+        
+        // 获取各点位打卡统计
+        const { data: stats, error: statsError } = await supabase.rpc('get_checkpoint_stats');
+        
+        if (checkinError && checkinError.code !== 'PGRST116') {
+          throw checkinError;
+        }
+        
+        loading.style.display = 'none';
+        content.style.display = 'block';
+        
+        document.getElementById('total-checkins').textContent = checkins ? 0 : '-';
+        document.getElementById('total-users').textContent = users ? 0 : '-';
+        
+        if (stats) {
+          const container = document.getElementById('checkpoint-stats');
+          container.innerHTML = stats.map(s => `
+            <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f0f0;">
+              <span style="font-size: 14px; color: #333;">${getCheckpointName(s.checkpoint_id)}</span>
+              <span style="font-size: 14px; font-weight: 600; color: #667eea;">${s.checkin_count} 次</span>
+            </div>
+          `).join('');
+        }
+      } catch (err) {
+        console.error('加载统计失败:', err);
+        loading.style.display = 'none';
+        content.style.display = 'block';
+        document.getElementById('total-checkins').textContent = '-';
+        document.getElementById('total-users').textContent = '-';
+        document.getElementById('checkpoint-stats').innerHTML = '<p style="color: #999; font-size: 14px;">暂时无法加载统计数据</p>';
+      }
+    }
+    
+    function getCheckpointName(id) {
+      const cp = checkpoints.find(c => c.id === id);
+      return cp ? `${cp.icon} ${cp.name}` : `点位${id}`;
+    }
+  </script>
+</body>
+</html>

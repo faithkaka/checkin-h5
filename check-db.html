@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>数据库检查 - 趣玩重庆</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    .container { max-width: 1000px; margin: 0 auto; }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 { font-size: 20px; margin-bottom: 16px; color: #333; }
+    h2 { font-size: 16px; margin-bottom: 12px; color: #666; }
+    .btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+      margin: 8px 8px 8px 0;
+    }
+    .btn:hover { opacity: 0.9; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th, td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    th {
+      background: #f8f9fa;
+      font-weight: 600;
+      color: #333;
+    }
+    .status-ok { color: #10b981; font-weight: 600; }
+    .status-error { color: #ef4444; font-weight: 600; }
+    .log-box {
+      background: #1e1e1e;
+      color: #00ff00;
+      font-family: monospace;
+      font-size: 12px;
+      padding: 16px;
+      border-radius: 8px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+    }
+    .stat-value { font-size: 36px; font-weight: bold; margin-bottom: 8px; }
+    .stat-label { font-size: 14px; opacity: 0.9; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📊 数据库数据检查</h1>
+    
+    <div class="grid" style="margin-bottom: 20px;">
+      <div class="stat-card">
+        <div class="stat-value" id="total-users">-</div>
+        <div class="stat-label">总用户数</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="total-checkins">-</div>
+        <div class="stat-label">总打卡次数</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="today-checkins">-</div>
+        <div class="stat-label">今日打卡</div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <h2>📍 各打卡点统计</h2>
+      <button class="btn" onclick="loadData()">🔄 刷新数据</button>
+      <div id="checkpoint-stats" style="margin-top: 16px;"></div>
+    </div>
+    
+    <div class="card">
+      <h2>👥 最新用户</h2>
+      <table id="users-table">
+        <thead>
+          <tr>
+            <th>用户 ID</th>
+            <th>积分</th>
+            <th>创建时间</th>
+          </tr>
+        </thead>
+        <tbody id="users-tbody">
+          <tr><td colspan="3" style="text-align:center;color:#999;">加载中...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="card">
+      <h2>📝 最新打卡记录</h2>
+      <table id="checkins-table">
+        <thead>
+          <tr>
+            <th>用户 ID</th>
+            <th>打卡点</th>
+            <th>积分</th>
+            <th>打卡时间</th>
+          </tr>
+        </thead>
+        <tbody id="checkins-tbody">
+          <tr><td colspan="4" style="text-align:center;color:#999;">加载中...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="card">
+      <h2>🔍 调试日志</h2>
+      <div class="log-box" id="log-box"></div>
+    </div>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0"></script>
+  <script>
+    const supabaseUrl = 'https://ussvekkgyntubivhfext.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzc3Zla2tneW50dWJpdmhmZXh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTEwODQwMiwiZXhwIjoyMDkwNjg0NDAyfQ.i1fbQC96UGnToKL6fa7GTfaMtt0s_TGpNNR0xb3ufR0';
+    let supabase = null;
+    let logs = [];
+    
+    function log(msg) {
+      const time = new Date().toLocaleTimeString();
+      logs.unshift(`[${time}] ${msg}`);
+      if (logs.length > 50) logs.pop();
+      document.getElementById('log-box').innerHTML = logs.join('<br>');
+      console.log(msg);
+    }
+    
+    const checkpointNames = {
+      1: '🏢 解放碑步行街',
+      2: '🚝 李子坝轻轨站',
+      3: '🎨 鹅岭二厂文创园',
+      4: '🌳 南山一棵树观景台',
+      5: '🌉 洪崖洞 + 千厮门大桥'
+    };
+    
+    async function init() {
+      if (typeof supabase !== 'undefined') {
+        supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        log('✅ Supabase 客户端初始化成功');
+        await loadData();
+      } else {
+        log('❌ Supabase SDK 未加载');
+      }
+    }
+    
+    async function loadData() {
+      log('🔄 开始加载数据...');
+      
+      try {
+        // 1. 获取用户总数
+        const { count: userCount, error: userCountError } = await supabase
+          .from('users')
+          .select('*', { count: 'exact', head: true });
+        
+        if (userCountError) throw userCountError;
+        document.getElementById('total-users').textContent = userCount || 0;
+        log(`✅ 用户总数：${userCount || 0}`);
+        
+        // 2. 获取打卡总数
+        const { count: checkinCount, error: checkinCountError } = await supabase
+          .from('checkins')
+          .select('*', { count: 'exact', head: true });
+        
+        if (checkinCountError) throw checkinCountError;
+        document.getElementById('total-checkins').textContent = checkinCount || 0;
+        log(`✅ 打卡总数：${checkinCount || 0}`);
+        
+        // 3. 获取今日打卡数（北京时间 UTC+8）
+        const now = new Date();
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        // 转换为 UTC（北京时间 -8 小时 = UTC 时间）
+        const utcTodayStart = new Date(todayStart.getTime() - (8 * 60 * 60 * 1000));
+        
+        const { count: todayCount, error: todayError } = await supabase
+          .from('checkins')
+          .select('*', { count: 'exact', head: true })
+          .gte('checked_at', utcTodayStart.toISOString());
+        
+        if (todayError) throw todayError;
+        document.getElementById('today-checkins').textContent = todayCount || 0;
+        log(`✅ 今日打卡：${todayCount || 0}`);
+        
+        // 4. 获取各打卡点统计
+        await loadCheckpointStats();
+        
+        // 5. 获取最新用户
+        await loadLatestUsers();
+        
+        // 6. 获取最新打卡记录
+        await loadLatestCheckins();
+        
+        log('✅ 所有数据加载完成');
+      } catch (err) {
+        log('❌ 加载数据失败：' + err.message);
+        console.error(err);
+      }
+    }
+    
+    async function loadCheckpointStats() {
+      const { data, error } = await supabase.rpc('get_checkpoint_stats');
+      
+      if (error) {
+        log('⚠️ 无法获取点位统计（可能缺少 RPC 函数）: ' + error.message);
+        // 尝试手动统计
+        await loadCheckpointStatsManual();
+        return;
+      }
+      
+      const container = document.getElementById('checkpoint-stats');
+      container.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>打卡点</th>
+              <th>打卡次数</th>
+              <th>打卡人数</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data.map(s => `
+              <tr>
+                <td>${checkpointNames[s.checkpoint_id] || '点位 ' + s.checkpoint_id}</td>
+                <td>${s.checkin_count}</td>
+                <td>${s.unique_users || s.checkin_count}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+      log('✅ 点位统计加载成功');
+    }
+    
+    async function loadCheckpointStatsManual() {
+      const stats = [];
+      for (let i = 1; i <= 5; i++) {
+        const { count, error } = await supabase
+          .from('checkins')
+          .select('*', { count: 'exact', head: true })
+          .eq('checkpoint_id', i);
+        
+        if (!error) {
+          stats.push({ checkpoint_id: i, count: count || 0 });
+          log(`点位 ${i}: ${count || 0} 次`);
+        }
+      }
+      
+      const container = document.getElementById('checkpoint-stats');
+      container.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>打卡点</th>
+              <th>打卡次数</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${stats.map(s => `
+              <tr>
+                <td>${checkpointNames[s.checkpoint_id]}</td>
+                <td>${s.count}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+    
+    async function loadLatestUsers() {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(10);
+      
+      if (error) {
+        log('❌ 加载用户失败：' + error.message);
+        return;
+      }
+      
+      const tbody = document.getElementById('users-tbody');
+      tbody.innerHTML = data.map(u => `
+        <tr>
+          <td style="font-family:monospace;font-size:12px;">${u.alipay_user_id}</td>
+          <td><strong>${u.points || 0}</strong></td>
+          <td>${new Date(u.created_at).toLocaleString('zh-CN')}</td>
+        </tr>
+      `).join('');
+      
+      log(`✅ 加载了 ${data.length} 个用户`);
+    }
+    
+    async function loadLatestCheckins() {
+      const { data, error } = await supabase
+        .from('checkins')
+        .select('alipay_user_id, checkpoint_id, points, checked_at')
+        .order('checked_at', { ascending: false })
+        .limit(10);
+      
+      if (error) {
+        log('❌ 加载打卡记录失败：' + error.message);
+        return;
+      }
+      
+      const tbody = document.getElementById('checkins-tbody');
+      tbody.innerHTML = data.map(c => `
+        <tr>
+          <td style="font-family:monospace;font-size:11px;">${c.alipay_user_id}</td>
+          <td>${checkpointNames[c.checkpoint_id] || '点位 ' + c.checkpoint_id}</td>
+          <td>${c.points || 0}</td>
+          <td>${new Date(c.checked_at).toLocaleString('zh-CN')}</td>
+        </tr>
+      `).join('');
+      
+      log(`✅ 加载了 ${data.length} 条打卡记录`);
+    }
+    
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>

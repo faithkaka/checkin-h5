@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>用户识别调试 - 趣玩重庆</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    .container { max-width: 800px; margin: 0 auto; }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 { font-size: 20px; margin-bottom: 16px; color: #333; }
+    h2 { font-size: 16px; margin-bottom: 12px; color: #666; }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .info-label { color: #666; font-size: 14px; }
+    .info-value { color: #333; font-weight: 600; font-size: 14px; }
+    .info-value.success { color: #10b981; }
+    .info-value.error { color: #ef4444; }
+    .info-value.warning { color: #f59e0b; }
+    .log-box {
+      background: #1e1e1e;
+      color: #00ff00;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      padding: 16px;
+      border-radius: 8px;
+      max-height: 400px;
+      overflow-y: auto;
+      line-height: 1.6;
+    }
+    .btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      margin: 8px 8px 8px 0;
+    }
+    .btn:hover { opacity: 0.9; }
+    .btn-secondary {
+      background: #f0f0f0;
+      color: #333;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .status-badge.yes { background: #d1fae5; color: #065f46; }
+    .status-badge.no { background: #fee2e2; color: #991b1b; }
+    .loading { color: #999; font-style: italic; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 用户识别调试</h1>
+    
+    <div class="card">
+      <h2>环境检测</h2>
+      <div class="info-row">
+        <span class="info-label">User Agent</span>
+        <span class="info-value" id="ua" style="max-width: 400px; word-break: break-all;">检测中...</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">是否支付宝</span>
+        <span class="info-value" id="is-alipay">检测中...</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">AlipayJSBridge</span>
+        <span class="info-value" id="jsbridge">检测中...</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">my 对象</span>
+        <span class="info-value" id="my-object">检测中...</span>
+      </div>
+    </div>
+    
+    <div class="card">
+      <h2>用户信息</h2>
+      <div class="info-row">
+        <span class="info-label">用户 ID</span>
+        <span class="info-value" id="user-id">获取中...</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Supabase 状态</span>
+        <span class="info-value" id="supabase-status">检测中...</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">当前积分</span>
+        <span class="info-value" id="user-points">加载中...</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">已打卡点位</span>
+        <span class="info-value" id="checked-points">加载中...</span>
+      </div>
+    </div>
+    
+    <div class="card">
+      <h2>操作</h2>
+      <button class="btn" onclick="testGetAuthCode()">🔑 测试获取 AuthCode</button>
+      <button class="btn btn-secondary" onclick="clearData()">🗑️ 清除本地数据</button>
+      <button class="btn btn-secondary" onclick="location.reload()">🔄 刷新页面</button>
+    </div>
+    
+    <div class="card">
+      <h2>调试日志</h2>
+      <div class="log-box" id="log-box"></div>
+    </div>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0"></script>
+  <script>
+    const logBox = document.getElementById('log-box');
+    let logs = [];
+    
+    function log(message, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString();
+      const logLine = `[${timestamp}] ${message}`;
+      logs.unshift(logLine);
+      if (logs.length > 100) logs.pop();
+      logBox.innerHTML = logs.join('\n');
+      console.log(logLine);
+    }
+    
+    function updateElement(id, text, className = '') {
+      const el = document.getElementById(id);
+      if (el) {
+        el.textContent = text;
+        el.className = 'info-value ' + className;
+      }
+    }
+    
+    // 环境检测
+    function detectEnvironment() {
+      const ua = navigator.userAgent;
+      document.getElementById('ua').textContent = ua;
+      
+      const isAlipay = /AlipayClient/i.test(ua) || /alipay/i.test(ua) || !!window.AlipayJSBridge;
+      document.getElementById('is-alipay').innerHTML = isAlipay 
+        ? '<span class="status-badge yes">✅ 是</span>' 
+        : '<span class="status-badge no">❌ 否</span>';
+      
+      document.getElementById('jsbridge').innerHTML = window.AlipayJSBridge 
+        ? '<span class="status-badge yes">✅ 存在</span>' 
+        : '<span class="status-badge no">❌ 不存在</span>';
+      
+      document.getElementById('my-object').innerHTML = window.my 
+        ? '<span class="status-badge yes">✅ 存在</span>' 
+        : '<span class="status-badge no">❌ 不存在</span>';
+      
+      log('环境检测完成 - 支付宝：' + isAlipay);
+    }
+    
+    // Supabase 配置
+    const supabaseUrl = 'https://ussvekkgyntubivhfext.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzc3Zla2tneW50dWJpdmhmZXh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTEwODQwMiwiZXhwIjoyMDkwNjg0NDAyfQ.i1fbQC96UGnToKL6fa7GTfaMtt0s_TGpNNR0xb3ufR0';
+    let supabase = null;
+    
+    // 初始化
+    async function init() {
+      detectEnvironment();
+      await initSupabase();
+      await loadUserData();
+    }
+    
+    // 初始化 Supabase
+    async function initSupabase() {
+      try {
+        if (typeof supabase !== 'undefined') {
+          supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+          log('✅ Supabase 客户端创建成功');
+          updateElement('supabase-status', '✅ 已连接', 'success');
+        } else {
+          log('❌ Supabase SDK 未加载', 'error');
+          updateElement('supabase-status', '❌ SDK 未加载', 'error');
+        }
+      } catch (err) {
+        log('❌ Supabase 初始化失败：' + err.message, 'error');
+        updateElement('supabase-status', '❌ ' + err.message, 'error');
+      }
+    }
+    
+    // 获取用户 ID
+    async function getUserId() {
+      // 1. 检查 localStorage
+      const storedId = localStorage.getItem('alipay_user_id');
+      if (storedId && storedId.startsWith('alipay_')) {
+        log('📦 从缓存恢复用户 ID: ' + storedId);
+        return storedId;
+      }
+      
+      // 2. 在支付宝中获取 AuthCode
+      const isAlipay = /AlipayClient/i.test(navigator.userAgent) || !!window.AlipayJSBridge;
+      
+      if (isAlipay) {
+        try {
+          const authCode = await getAuthCode();
+          if (authCode) {
+            const userId = 'alipay_' + authCode;
+            localStorage.setItem('alipay_user_id', userId);
+            log('✅ 获取到 AuthCode: ' + authCode);
+            return userId;
+          }
+        } catch (err) {
+          log('⚠️ 获取 AuthCode 失败：' + err.message, 'error');
+        }
+      }
+      
+      // 3. 生成临时 ID
+      const tempId = 'guest_' + Date.now();
+      log('⚠️ 使用临时用户 ID: ' + tempId);
+      return tempId;
+    }
+    
+    // 获取 AuthCode
+    function getAuthCode() {
+      return new Promise((resolve, reject) => {
+        // 方式 1: my.getAuthCode (小程序环境)
+        if (window.my && my.getAuthCode) {
+          log('📱 使用 my.getAuthCode()');
+          my.getAuthCode({ scopes: ['auth_user'] }, (res) => {
+            if (res && res.authCode) {
+              resolve(res.authCode);
+            } else {
+              reject(new Error('my.getAuthCode 返回空值'));
+            }
+          });
+          return;
+        }
+        
+        // 方式 2: AlipayJSBridge.call (H5 环境)
+        if (window.AlipayJSBridge && AlipayJSBridge.call) {
+          log('📱 使用 AlipayJSBridge.call()');
+          AlipayJSBridge.call('getAuthCode', { scopes: ['auth_user'] }, (res) => {
+            if (res && res.authCode) {
+              resolve(res.authCode);
+            } else {
+              reject(new Error('AlipayJSBridge.call 返回空值'));
+            }
+          });
+          return;
+        }
+        
+        reject(new Error('支付宝 JSAPI 不可用'));
+      });
+    }
+    
+    // 加载用户数据
+    async function loadUserData() {
+      try {
+        const userId = await getUserId();
+        updateElement('user-id', userId, 'success');
+        
+        if (!supabase) {
+          log('⚠️ Supabase 未初始化，无法加载数据');
+          return;
+        }
+        
+        // 查询用户
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('alipay_user_id', userId)
+          .single();
+        
+        if (userError && userError.code !== 'PGRST116') {
+          throw userError;
+        }
+        
+        if (!userData) {
+          log('ℹ️ 新用户，创建用户记录');
+          const { data: newUser, error: insertError } = await supabase
+            .from('users')
+            .insert({ alipay_user_id: userId, points: 0 })
+            .select()
+            .single();
+          
+          if (insertError) throw insertError;
+          updateElement('user-points', '0 (新用户)');
+          updateElement('checked-points', '0/5');
+        } else {
+          log('✅ 加载用户数据成功，积分：' + userData.points);
+          updateElement('user-points', userData.points, 'success');
+          
+          // 加载打卡记录
+          const { data: checkins, error: checkinError } = await supabase
+            .from('checkins')
+            .select('checkpoint_id')
+            .eq('alipay_user_id', userId);
+          
+          if (!checkinError && checkins) {
+            const checkedIds = checkins.map(c => c.checkpoint_id).sort();
+            updateElement('checked-points', checkedIds.length + '/5 (' + checkedIds.join(', ') + ')', 'success');
+            log('✅ 已打卡点位：' + checkedIds.join(', '));
+          } else {
+            updateElement('checked-points', '0/5');
+          }
+        }
+      } catch (err) {
+        log('❌ 加载用户数据失败：' + err.message, 'error');
+        updateElement('user-id', '获取失败', 'error');
+      }
+    }
+    
+    // 测试获取 AuthCode
+    async function testGetAuthCode() {
+      log('🔑 开始测试获取 AuthCode...');
+      try {
+        const authCode = await getAuthCode();
+        log('✅ AuthCode 获取成功：' + authCode);
+        alert('✅ AuthCode 获取成功！\n\nAuthCode: ' + authCode);
+      } catch (err) {
+        log('❌ AuthCode 获取失败：' + err.message);
+        alert('❌ AuthCode 获取失败！\n\n错误：' + err.message + '\n\n请在支付宝客户端中打开此页面');
+      }
+    }
+    
+    // 清除数据
+    function clearData() {
+      if (confirm('确定要清除本地缓存的用户数据吗？')) {
+        localStorage.removeItem('alipay_user_id');
+        localStorage.removeItem('checkin_data');
+        log('✅ 本地数据已清除');
+        setTimeout(() => location.reload(), 500);
+      }
+    }
+    
+    // 页面加载完成
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>

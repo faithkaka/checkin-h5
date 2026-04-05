@@ -68,8 +68,10 @@ const SupabaseManager = {
     }
   },
   
-  // 获取用户 ID（核心逻辑）
+  // 获取用户 ID（核心逻辑 - 优化版）
   async getUserId() {
+    console.log('🔍 开始获取用户 ID...');
+    
     // 1. 优先从 localStorage 获取缓存的用户 ID
     const storedId = localStorage.getItem('alipay_user_id');
     if (storedId && storedId.startsWith('alipay_')) {
@@ -82,22 +84,35 @@ const SupabaseManager = {
     
     // 2. 在支付宝环境中获取用户 ID
     if (this.isAlipay) {
-      await this.getAlipayAuthUserId();
+      const result = await this.getAlipayAuthUserId();
+      if (result) {
+        return;
+      }
+      // 如果获取失败，继续下面的方案
+    }
+    
+    // 3. 非支付宝环境或获取失败 - 使用持久化 ID
+    // 检查是否有已保存的持久化 ID
+    if (storedId) {
+      this.userId = storedId;
+      this.alipayUserId = storedId;
+      console.log('📦 使用保存的 ID:', this.userId);
+      this.saveToLocalStorage();
       return;
     }
     
-    // 3. 非支付宝环境 - 生成游客 ID
-    this.userId = 'guest_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    // 4. 生成新的持久化 ID
+    this.userId = 'user_' + this.generateUniqueId();
     this.alipayUserId = this.userId;
     this.saveToLocalStorage();
-    console.log('👤 生成游客 ID:', this.userId);
+    console.log('👤 生成新 ID:', this.userId);
   },
   
   // 通过支付宝 JSAPI 获取用户 ID
   async getAlipayAuthUserId() {
     const self = this;
     
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       // 等待支付宝 JSAPI 就绪
       const waitForJSBridge = () => {
         if (window.AlipayJSBridge && window.AlipayJSBridge.call) {
@@ -153,13 +168,93 @@ const SupabaseManager = {
       this.saveToLocalStorage();
       console.log('✅ 获取到支付宝用户 ID:', this.userId);
       this.syncWithSupabase();
+      callback(true); // 返回成功
     } else {
-      // 授权失败，使用匿名用户 ID
-      this.userId = 'alipay_anonymous_' + Date.now();
-      this.saveToLocalStorage();
-      console.log('⚠️ 支付宝授权失败，使用匿名 ID:', this.userId);
+      console.warn('⚠️ 支付宝授权响应缺少 authCode:', res);
+      callback(false); // 返回失败
     }
-    callback();
+  },
+  
+  // 修改 getAlipayAuthUserId 的回调处理
+  async getAlipayAuthUserId() {
+    const self = this;
+    
+    return new Promise((resolve) => {
+      console.log('🔑 开始获取支付宝用户 ID...');
+      
+      // 等待支付宝 JSAPI 就绪
+      const waitForJSBridge = () => {
+        if (window.AlipayJSBridge && window.AlipayJSBridge.call) {
+          callAlipayAPI();
+        } else {
+          console.log('⏳ 等待 AlipayJSBridgeReady...');
+          document.addEventListener('AlipayJSBridgeReady', callAlipayAPI, false);
+          setTimeout(() => {
+            if (!self.userId) {
+              console.warn('⚠️ 支付宝 JSAPI 超时 (5 秒)，使用备用方案');
+              self.userId = 'user_alipay_' + Date.now();
+              self.saveToLocalStorage();
+              resolve(true); // 返回 true 表示已处理
+            }
+          }, 5000);
+        }
+      };
+      
+      const callAlipayAPI = () => {
+        console.log('🔑 调用支付宝 getAuthCode...');
+        
+        // 方式 1: 小程序环境
+        if (typeof my !== 'undefined' && my.getAuthCode) {
+          console.log('📱 使用 my.getAuthCode()');
+          my.getAuthCode({ scopes: ['auth_user'] }, (res) => {
+            console.log('📥 my.getAuthCode 响应:', res);
+            const success = self.handleAuthResponse(res, () => {});
+            resolve(success);
+          });
+          return;
+        }
+        
+        // 方式 2: H5 环境（支付宝内网页）
+        if (window.AlipayJSBridge && window.AlipayJSBridge.call) {
+          console.log('📱 使用 AlipayJSBridge.call()');
+          window.AlipayJSBridge.call('getAuthCode', { scopes: ['auth_user'] }, (res) => {
+            console.log('📥 AlipayJSBridge.call 响应:', res);
+            const success = self.handleAuthResponse(res, () => {});
+            resolve(success);
+          });
+          return;
+        }
+        
+        // 方式 3: 回退方案
+        console.warn('⚠️ 支付宝 API 不可用，使用回退方案');
+        self.userId = 'user_alipay_' + Date.now();
+        self.saveToLocalStorage();
+        resolve(true);
+      };
+      
+      waitForJSBridge();
+    });
+  },
+  
+  // 生成唯一 ID（基于设备指纹 + 时间戳）
+  generateUniqueId() {
+    // 使用多种信息生成相对稳定的 ID
+    const ua = navigator.userAgent;
+    const lang = navigator.language;
+    const screen = screen.width + 'x' + screen.height;
+    const time = Date.now();
+    const random = Math.random().toString(36).substr(2, 9);
+    
+    // 简单哈希
+    const str = ua + lang + screen + time;
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    
+    return Math.abs(hash).toString(36) + random;
   },
   
   // 保存到 localStorage
@@ -167,6 +262,7 @@ const SupabaseManager = {
     if (this.userId) {
       localStorage.setItem('alipay_user_id', this.userId);
       localStorage.setItem('alipay_init_time', Date.now().toString());
+      console.log('💾 用户 ID 已保存到 localStorage:', this.userId);
     }
   },
   

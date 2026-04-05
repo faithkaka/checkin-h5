@@ -162,32 +162,31 @@ const Utils = {
 };
 
 // ==================== Supabase 管理 ====================
-const SupabaseManager = {
-  supabaseUrl: 'https://ussvekkgyntubivhfext.supabase.co',
-  supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzc3Zla2tneW50dWJpdmhmZXh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTEwODQwMiwiZXhwIjoyMDkwNjg0NDAyfQ.i1fbQC96UGnToKL6fa7GTfaMtt0s_TGpNNR0xb3ufR0',
-  supabase: null,
-  userId: null,
-  
-  async init() {
-    console.log('🚀 SupabaseManager 初始化...');
-    if (typeof supabase !== 'undefined') {
-      this.supabase = supabase.createClient(this.supabaseUrl, this.supabaseKey);
-      window.supabaseClient = this.supabase;
-      await this.getUserId();
-      console.log('✅ Supabase 客户端创建成功');
-    } else {
-      console.warn('⚠️ Supabase SDK 未加载');
-      this.userId = 'local_' + Date.now();
-    }
-    AppState.userId = this.userId;
-    console.log('👤 用户 ID:', this.userId);
-  },
-  
-  async getUserId() {
-    this.userId = 'user_' + Date.now();
-    return this.userId;
+// 注意：实际的 SupabaseManager 在 js/supabase-manager.js 中定义
+// 这里只保留对全局 SupabaseManager 的引用检查
+console.log('📌 等待 SupabaseManager 加载...');
+
+// 延迟检查 SupabaseManager 是否正确加载
+setTimeout(() => {
+  if (window.SupabaseManager) {
+    console.log('✅ SupabaseManager 已从 supabase-manager.js 加载');
+    console.log('👤 用户 ID:', window.SupabaseManager.userId);
+  } else {
+    console.warn('⚠️ SupabaseManager 未加载，创建简化版本');
+    window.SupabaseManager = {
+      userId: 'user_' + Date.now(),
+      isReady: true,
+      saveCheckinData: function() {
+        console.log('⚠️ 简化模式：数据保存到 localStorage');
+        localStorage.setItem('checkin_data', JSON.stringify({
+          points: AppState.points,
+          checkedCheckpoints: AppState.checkedCheckpoints
+        }));
+      }
+    };
+    AppState.userId = window.SupabaseManager.userId;
   }
-};
+}, 100);
 
 // ==================== 页面管理 ====================
 const PageManager = {
@@ -333,8 +332,8 @@ const CheckpointManager = {
     });
   },
   
-  // 通过 URL 参数打卡
-  handleCheckinFromURL() {
+  // 通过 URL 参数打卡（支付宝优化版）
+  async handleCheckinFromURL() {
     const urlParams = new URLSearchParams(window.location.search);
     const checkinId = urlParams.get('checkin');
     
@@ -342,33 +341,193 @@ const CheckpointManager = {
     
     const checkpointIndex = parseInt(checkinId) - 1;
     if (checkpointIndex < 0 || checkpointIndex >= AppState.mandatoryCheckpoints.length) {
+      console.log('⚠️ 无效的打卡点 ID:', checkinId);
       return;
     }
     
     const checkpoint = AppState.mandatoryCheckpoints[checkpointIndex];
+    console.log('🎯 处理打卡请求 - 点位:', checkpoint.name);
     
-    if (!checkpoint.checked) {
+    // 显示加载提示
+    this.showCheckinProcessing(checkpoint);
+    
+    try {
+      // 等待 Supabase 初始化完成
+      if (window.SupabaseManager && !window.SupabaseManager.isReady) {
+        console.log('⏳ 等待 Supabase 初始化...');
+        await new Promise(resolve => {
+          const checkReady = setInterval(() => {
+            if (window.SupabaseManager.isReady) {
+              clearInterval(checkReady);
+              resolve();
+            }
+          }, 100);
+          // 超时保护
+          setTimeout(() => {
+            clearInterval(checkReady);
+            resolve();
+          }, 5000);
+        });
+      }
+      
+      // 检查是否已打卡
+      if (checkpoint.checked) {
+        console.log('ℹ️ 该点位已打卡');
+        setTimeout(() => {
+          this.showCheckinResult(checkpoint, false, 'already');
+        }, 500);
+        return;
+      }
+      
+      // 执行打卡
+      console.log('✅ 执行打卡操作');
       checkpoint.checked = true;
+      checkpoint.checkedAt = new Date().toISOString();
       AppState.checkedCheckpoints.push(checkpoint.id);
       AppState.points += checkpoint.points;
       
+      // 更新显示
       PageManager.updateAllDisplays();
       this.renderMap();
       PrizeManager.checkNewAchievements();
       
-      // 显示成功消息
+      // 保存数据到 Supabase
+      if (window.SupabaseManager && window.SupabaseManager.isReady) {
+        console.log('💾 保存到 Supabase...');
+        try {
+          await SupabaseManager.saveCheckinData();
+          console.log('✅ 数据已保存到 Supabase');
+        } catch (saveError) {
+          console.error('❌ 保存失败:', saveError);
+          // 降级到本地存储
+          localStorage.setItem('checkin_data', JSON.stringify({
+            points: AppState.points,
+            checkedCheckpoints: AppState.checkedCheckpoints
+          }));
+        }
+      }
+      
+      // 显示成功结果
       setTimeout(() => {
-        alert(`✅ 打卡成功！\n\n📍 ${checkpoint.name}\n+${checkpoint.points} 积分\n当前积分：${AppState.points}\n\n🎉 继续打卡其他景点解锁更多成就！`);
-        
-        // 清除 URL 参数
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }, 300);
-    } else {
+        this.showCheckinResult(checkpoint, true);
+      }, 800);
+      
+    } catch (error) {
+      console.error('❌ 打卡处理失败:', error);
       setTimeout(() => {
-        alert(`ℹ️ 您已完成 "${checkpoint.name}" 的打卡\n\n当前积分：${AppState.points}`);
+        alert(`⚠️ 打卡失败：${error.message}\n\n请稍后重试`);
         window.history.replaceState({}, document.title, window.location.pathname);
-      }, 300);
+      }, 500);
     }
+  },
+  
+  // 显示打卡处理中提示
+  showCheckinProcessing(checkpoint) {
+    const toast = document.createElement('div');
+    toast.id = 'checkin-processing-toast';
+    toast.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255, 255, 255, 0.95);
+      padding: 30px;
+      border-radius: 20px;
+      text-align: center;
+      z-index: 10000;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+      max-width: 280px;
+    `;
+    toast.innerHTML = `
+      <div style="font-size: 40px; margin-bottom: 15px;">🎯</div>
+      <div style="font-size: 16px; font-weight: 600; color: #333; margin-bottom: 8px;">正在打卡</div>
+      <div style="font-size: 13px; color: #666;">${checkpoint.name}</div>
+      <div style="margin-top: 20px;">
+        <div style="width: 24px; height: 24px; border: 3px solid #e0e0e0; border-top-color: #667eea; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+      </div>
+      <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+    `;
+    document.body.appendChild(toast);
+  },
+  
+  // 显示打卡结果
+  showCheckinResult(checkpoint, success, type = 'success') {
+    // 移除处理中提示
+    const processingToast = document.getElementById('checkin-processing-toast');
+    if (processingToast) {
+      processingToast.remove();
+    }
+    
+    if (type === 'already') {
+      // 已打卡
+      ModalManager.showRedeemInfo(`ℹ️ 您已完成 "${checkpoint.name}" 的打卡\n\n当前积分：${AppState.points}\n\n🎉 继续打卡其他景点解锁更多成就！`);
+    } else if (success) {
+      // 打卡成功
+      this.showCheckinSuccess(checkpoint);
+    }
+    
+    // 清除 URL 参数
+    window.history.replaceState({}, document.title, window.location.pathname);
+  },
+  
+  // 显示打卡成功弹窗（优化版）
+  showCheckinSuccess(checkpoint) {
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      backdrop-filter: blur(4px);
+    `;
+    
+    modal.innerHTML = `
+      <div style="background: white; border-radius: 24px; padding: 32px; max-width: 320px; width: 90%; text-align: center; animation: modalSlideIn 0.3s ease;">
+        <div style="font-size: 60px; margin-bottom: 16px;">✅</div>
+        <div style="font-size: 20px; font-weight: 600; color: #333; margin-bottom: 8px;">打卡成功！</div>
+        <div style="font-size: 15px; color: #666; margin-bottom: 20px;">${checkpoint.name}</div>
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px; border-radius: 12px; margin-bottom: 20px;">
+          <div style="font-size: 13px; opacity: 0.9; margin-bottom: 4px;">获得积分</div>
+          <div style="font-size: 32px; font-weight: bold;">+${checkpoint.points}</div>
+        </div>
+        <div style="font-size: 14px; color: #666; margin-bottom: 24px;">
+          当前总积分：<span style="font-weight: 600; color: #667eea; font-size: 18px;">${AppState.points}</span>
+        </div>
+        <button id="checkin-success-btn" style="width: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 14px; border-radius: 18px; font-size: 16px; font-weight: 500; cursor: pointer; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);">
+          太棒了！
+        </button>
+      </div>
+      <style>
+        @keyframes modalSlideIn {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      </style>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    document.getElementById('checkin-success-btn').onclick = () => {
+      modal.style.opacity = '0';
+      modal.style.transition = 'opacity 0.2s';
+      setTimeout(() => modal.remove(), 200);
+      
+      // 检查是否需要显示成就提示
+      const newAchievement = AppState.achievements.find(a => 
+        a.achieved && !a.notified
+      );
+      
+      if (newAchievement) {
+        ModalManager.showCheckinSuccess(checkpoint.points);
+        newAchievement.notified = true;
+      }
+    };
   },
   
   // 打开导航（优化手机版）
@@ -1058,14 +1217,26 @@ document.addEventListener('DOMContentLoaded', async () => {
   console.log('🚀 开始初始化...');
   console.log('='.repeat(50));
   
-  // 1. 初始化 Supabase 用户管理（异步，必须在最前面）
-  try {
-    await SupabaseManager.init();
-    AppState.userId = SupabaseManager.userId;
-    console.log('✅ Supabase 用户管理初始化完成');
-  } catch(e) { 
-    console.error('❌ Supabase 用户管理:', e); 
-    AppState.userId = 'error_' + Date.now();
+  // 1. 等待 SupabaseManager 加载（从 supabase-manager.js）
+  console.log('⏳ 等待 SupabaseManager 加载...');
+  let waitForManager = 0;
+  while (!window.SupabaseManager && waitForManager < 50) {
+    await new Promise(resolve => setTimeout(resolve, 100));
+    waitForManager++;
+  }
+  
+  if (window.SupabaseManager) {
+    console.log('✅ SupabaseManager 已加载');
+    // 等待 SupabaseManager 初始化完成
+    if (!window.SupabaseManager.isReady) {
+      await window.SupabaseManager.init();
+    }
+    AppState.userId = window.SupabaseManager.userId;
+    console.log('👤 用户 ID:', AppState.userId);
+    console.log('🔐 支付宝环境:', window.SupabaseManager.isAlipay ? '✅' : '❌');
+  } else {
+    console.error('❌ SupabaseManager 加载失败，使用本地模式');
+    AppState.userId = 'local_' + Date.now();
   }
   
   console.log('-'.repeat(50));
@@ -1098,7 +1269,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // 6. 处理 URL 打卡参数
   try {
-    CheckpointManager.handleCheckinFromURL();
+    await CheckpointManager.handleCheckinFromURL();
   } catch(e) { console.error('❌ URL 打卡:', e); }
   
   // 7. 更新显示
