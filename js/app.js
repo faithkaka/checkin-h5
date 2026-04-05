@@ -560,8 +560,9 @@ const CheckpointManager = {
   showCheckpointDetail(cp) {
     if (cp.checked) {
       // 已经打卡，取消打卡
-      if (confirm(`确定要取消 "${cp.name}" 的打卡吗？\n地址：${cp.address}`)) {
+      if (confirm(`确定要取消 "${cp.name}" 的打卡吗？`)) {
         cp.checked = false;
+        cp.checkedAt = null;
         AppState.checkedCheckpoints = AppState.checkedCheckpoints.filter(id => id !== cp.id);
         AppState.points -= cp.points;
         if (AppState.points < 0) AppState.points = 0;
@@ -570,6 +571,11 @@ const CheckpointManager = {
         PrizeManager.updatePrizeCards();
         this.renderMap();
         this.renderCheckpointList();
+        
+        // 保存到 Supabase
+        if (window.SupabaseManager && window.SupabaseManager.isReady) {
+          SupabaseManager.saveCheckinData();
+        }
       }
     } else {
       // 进行打卡
