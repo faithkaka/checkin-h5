@@ -1,5 +1,6 @@
-// SupabaseManager - 支付宝多用户版本
+// SupabaseManager - 支付宝多用户版本 - 优化版（避免"服务正忙"错误）
 // 所有用户使用同一链接，自动识别不同支付宝账号
+
 const SupabaseManager = {
   supabaseUrl: 'https://ussvekkgyntubivhfext.supabase.co',
   supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzc3Zla2tneW50dWJpdmhmZXh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTEwODQwMiwiZXhwIjoyMDkwNjg0NDAyfQ.i1fbQC96UGnToKL6fa7GTfaMtt0s_TGpNNR0xb3ufR0',
@@ -8,46 +9,47 @@ const SupabaseManager = {
   alipayUserId: null,
   isAlipay: false,
   isReady: false,
+  initCalled: false,
   
   // 初始化（异步，带超时保护）
   async init() {
+    if (this.initCalled) {
+      console.log('ℹ️ SupabaseManager 已初始化，跳过');
+      return;
+    }
+    this.initCalled = true;
+    
     console.log('🚀 SupabaseManager 初始化...');
-    console.log('='.repeat(50));
     
     try {
-      // 检查 Supabase SDK 是否加载
       if (typeof supabase !== 'undefined') {
-        // 设置超时，防止网络请求卡住
         const initPromise = (async () => {
           this.supabase = supabase.createClient(this.supabaseUrl, this.supabaseKey);
-          window.supabaseClient = this.supabase; // 暴露给全局
+          window.supabaseClient = this.supabase;
           console.log('✅ Supabase 客户端创建成功');
           
           this.detectAlipay();
           await this.getUserId();
           this.isReady = true;
           
-          console.log('🔐 支付宝环境:', this.isAlipay ? '✅ 是' : '❌ 否');
+          console.log('🔐 支付宝环境:', this.isAlipay ? '✅' : '❌');
           console.log('👤 用户 ID:', this.userId);
-          console.log('='.repeat(50));
         })();
         
-        // 5 秒超时保护
         const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Supabase 初始化超时')), 5000);
+          setTimeout(() => reject(new Error('Supabase 初始化超时')), 8000);
         });
         
         await Promise.race([initPromise, timeoutPromise]);
       } else {
-        console.warn('⚠️ Supabase JS SDK 未加载，使用本地存储模式');
+        console.warn('⚠️ Supabase SDK 未加载，使用本地模式');
         this.isReady = true;
-        this.userId = 'local_' + Date.now();
+        this.userId = 'user_' + Date.now();
       }
     } catch (error) {
       console.error('❌ Supabase 初始化失败:', error.message);
-      console.warn('⚠️ 降级到本地存储模式');
       this.isReady = true;
-      this.userId = 'local_' + Date.now();
+      this.userId = 'user_' + Date.now();
     }
   },
   
@@ -68,31 +70,27 @@ const SupabaseManager = {
     }
   },
   
-  // 获取用户 ID（核心逻辑 - 优化版）
+  // 获取用户 ID（核心逻辑）
   async getUserId() {
     console.log('🔍 开始获取用户 ID...');
     
-    // 1. 优先从 localStorage 获取缓存的用户 ID
+    // 1. 从 localStorage 恢复
     const storedId = localStorage.getItem('alipay_user_id');
     if (storedId && storedId.startsWith('alipay_')) {
       this.userId = storedId;
       this.alipayUserId = storedId;
       console.log('📦 从缓存恢复用户 ID:', this.userId);
-      await this.syncWithSupabase();
+      this.syncWithSupabase();
       return;
     }
     
-    // 2. 在支付宝环境中获取用户 ID
+    // 2. 在支付宝环境中获取
     if (this.isAlipay) {
-      const result = await this.getAlipayAuthUserId();
-      if (result) {
-        return;
-      }
-      // 如果获取失败，继续下面的方案
+      const success = await this.getAlipayAuthUserId();
+      if (success) return;
     }
     
-    // 3. 非支付宝环境或获取失败 - 使用持久化 ID
-    // 检查是否有已保存的持久化 ID
+    // 3. 使用缓存的 ID 或生成新的
     if (storedId) {
       this.userId = storedId;
       this.alipayUserId = storedId;
@@ -108,144 +106,14 @@ const SupabaseManager = {
     console.log('👤 生成新 ID:', this.userId);
   },
   
-  // 通过支付宝 JSAPI 获取用户 ID
-  async getAlipayAuthUserId() {
-    const self = this;
-    
-    return new Promise((resolve, reject) => {
-      // 等待支付宝 JSAPI 就绪
-      const waitForJSBridge = () => {
-        if (window.AlipayJSBridge && window.AlipayJSBridge.call) {
-          callAlipayAPI();
-        } else {
-          document.addEventListener('AlipayJSBridgeReady', callAlipayAPI, false);
-          setTimeout(() => {
-            if (!self.userId) {
-              console.warn('⚠️ 支付宝 JSAPI 超时，使用备用方案');
-              self.userId = 'alipay_anonymous_' + Date.now();
-              self.saveToLocalStorage();
-              resolve();
-            }
-          }, 5000);
-        }
-      };
-      
-      const callAlipayAPI = () => {
-        console.log('🔑 调用支付宝 getAuthCode...');
-        
-        // 方式 1: 小程序环境
-        if (typeof my !== 'undefined' && my.getAuthCode) {
-          my.getAuthCode({ scopes: ['auth_user'] }, (res) => {
-            self.handleAuthResponse(res, resolve);
-          });
-          return;
-        }
-        
-        // 方式 2: H5 环境（支付宝内网页）
-        if (window.AlipayJSBridge && window.AlipayJSBridge.call) {
-          window.AlipayJSBridge.call('getAuthCode', { scopes: ['auth_user'] }, (res) => {
-            self.handleAuthResponse(res, resolve);
-          });
-          return;
-        }
-        
-        // 方式 3: 回退方案
-        self.userId = 'alipay_fallback_' + Date.now();
-        self.saveToLocalStorage();
-        resolve();
-      };
-      
-      waitForJSBridge();
-    });
-  },
-  
-  // 处理支付宝授权响应
-  handleAuthResponse(res, callback) {
-    if (res && res.authCode) {
-      // 使用 authCode 作为用户唯一标识
-      this.alipayUserId = 'alipay_' + res.authCode;
-      this.userId = this.alipayUserId;
-      this.saveToLocalStorage();
-      console.log('✅ 获取到支付宝用户 ID:', this.userId);
-      this.syncWithSupabase();
-      callback(true); // 返回成功
-    } else {
-      console.warn('⚠️ 支付宝授权响应缺少 authCode:', res);
-      callback(false); // 返回失败
-    }
-  },
-  
-  // 修改 getAlipayAuthUserId 的回调处理
-  async getAlipayAuthUserId() {
-    const self = this;
-    
-    return new Promise((resolve) => {
-      console.log('🔑 开始获取支付宝用户 ID...');
-      
-      // 等待支付宝 JSAPI 就绪
-      const waitForJSBridge = () => {
-        if (window.AlipayJSBridge && window.AlipayJSBridge.call) {
-          callAlipayAPI();
-        } else {
-          console.log('⏳ 等待 AlipayJSBridgeReady...');
-          document.addEventListener('AlipayJSBridgeReady', callAlipayAPI, false);
-          setTimeout(() => {
-            if (!self.userId) {
-              console.warn('⚠️ 支付宝 JSAPI 超时 (5 秒)，使用备用方案');
-              self.userId = 'user_alipay_' + Date.now();
-              self.saveToLocalStorage();
-              resolve(true); // 返回 true 表示已处理
-            }
-          }, 5000);
-        }
-      };
-      
-      const callAlipayAPI = () => {
-        console.log('🔑 调用支付宝 getAuthCode...');
-        
-        // 方式 1: 小程序环境
-        if (typeof my !== 'undefined' && my.getAuthCode) {
-          console.log('📱 使用 my.getAuthCode()');
-          my.getAuthCode({ scopes: ['auth_user'] }, (res) => {
-            console.log('📥 my.getAuthCode 响应:', res);
-            const success = self.handleAuthResponse(res, () => {});
-            resolve(success);
-          });
-          return;
-        }
-        
-        // 方式 2: H5 环境（支付宝内网页）
-        if (window.AlipayJSBridge && window.AlipayJSBridge.call) {
-          console.log('📱 使用 AlipayJSBridge.call()');
-          window.AlipayJSBridge.call('getAuthCode', { scopes: ['auth_user'] }, (res) => {
-            console.log('📥 AlipayJSBridge.call 响应:', res);
-            const success = self.handleAuthResponse(res, () => {});
-            resolve(success);
-          });
-          return;
-        }
-        
-        // 方式 3: 回退方案
-        console.warn('⚠️ 支付宝 API 不可用，使用回退方案');
-        self.userId = 'user_alipay_' + Date.now();
-        self.saveToLocalStorage();
-        resolve(true);
-      };
-      
-      waitForJSBridge();
-    });
-  },
-  
-  // 生成唯一 ID（基于设备指纹 + 时间戳）
+  // 生成唯一 ID
   generateUniqueId() {
-    // 使用多种信息生成相对稳定的 ID
     const ua = navigator.userAgent;
     const lang = navigator.language;
     const screen = screen.width + 'x' + screen.height;
     const time = Date.now();
     const random = Math.random().toString(36).substr(2, 9);
     
-    // 简单哈希
     const str = ua + lang + screen + time;
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
@@ -255,6 +123,135 @@ const SupabaseManager = {
     }
     
     return Math.abs(hash).toString(36) + random;
+  },
+  
+  // 通过支付宝 JSAPI 获取用户 ID（优化版 - 避免"服务正忙"错误）
+  async getAlipayAuthUserId() {
+    const self = this;
+    
+    return new Promise((resolve) => {
+      console.log('🔑 开始获取支付宝用户 ID...');
+      
+      let hasResolved = false;
+      const safeResolve = (value) => {
+        if (!hasResolved) {
+          hasResolved = true;
+          resolve(value);
+        }
+      };
+      
+      // 8 秒超时保护
+      const timeoutId = setTimeout(() => {
+        console.warn('⏰ 获取 AuthCode 超时，使用降级方案');
+        self.userId = 'user_' + Date.now();
+        self.saveToLocalStorage();
+        safeResolve(true);
+      }, 8000);
+      
+      const callAlipayAPI = () => {
+        console.log('📱 尝试调用支付宝 API...');
+        
+        // 方式 1: 小程序环境
+        if (typeof my !== 'undefined' && my.getAuthCode) {
+          try {
+            console.log('📱 使用 my.getAuthCode()');
+            my.getAuthCode({ scopes: ['auth_user'] }, (res) => {
+              clearTimeout(timeoutId);
+              console.log('📥 my.getAuthCode 响应:', res);
+              
+              if (res && res.authCode) {
+                self.alipayUserId = 'alipay_' + res.authCode;
+                self.userId = self.alipayUserId;
+                self.saveToLocalStorage();
+                console.log('✅ 获取到支付宝用户 ID:', self.userId);
+                self.syncWithSupabase();
+              } else {
+                console.warn('⚠️ AuthCode 为空，使用降级方案');
+                self.userId = 'user_' + Date.now();
+                self.saveToLocalStorage();
+              }
+              safeResolve(true);
+            });
+          } catch (err) {
+            clearTimeout(timeoutId);
+            console.error('❌ my.getAuthCode 异常:', err);
+            self.userId = 'user_' + Date.now();
+            self.saveToLocalStorage();
+            safeResolve(true);
+          }
+          return;
+        }
+        
+        // 方式 2: H5 环境
+        if (window.AlipayJSBridge && AlipayJSBridge.call) {
+          try {
+            console.log('📱 使用 AlipayJSBridge.call()');
+            AlipayJSBridge.call('getAuthCode', { scopes: ['auth_user'] }, (res) => {
+              clearTimeout(timeoutId);
+              console.log('📥 AlipayJSBridge.call 响应:', res);
+              
+              if (res && res.authCode) {
+                self.alipayUserId = 'alipay_' + res.authCode;
+                self.userId = self.alipayUserId;
+                self.saveToLocalStorage();
+                console.log('✅ 获取到支付宝用户 ID:', self.userId);
+                self.syncWithSupabase();
+              } else {
+                console.warn('⚠️ AuthCode 为空，使用降级方案');
+                self.userId = 'user_' + Date.now();
+                self.saveToLocalStorage();
+              }
+              safeResolve(true);
+            });
+          } catch (err) {
+            clearTimeout(timeoutId);
+            console.error('❌ AlipayJSBridge.call 异常:', err);
+            self.userId = 'user_' + Date.now();
+            self.saveToLocalStorage();
+            safeResolve(true);
+          }
+          return;
+        }
+        
+        // 方式 3: 回退方案
+        clearTimeout(timeoutId);
+        console.warn('⚠️ 支付宝 API 不可用，使用回退方案');
+        self.userId = 'user_' + Date.now();
+        self.saveToLocalStorage();
+        safeResolve(true);
+      };
+      
+      // 等待 JSBridge 就绪
+      if (window.AlipayJSBridge && AlipayJSBridge.call) {
+        callAlipayAPI();
+      } else {
+        console.log('⏳ 等待 AlipayJSBridgeReady...');
+        document.addEventListener('AlipayJSBridgeReady', callAlipayAPI, false);
+        
+        setTimeout(() => {
+          if (!hasResolved) {
+            callAlipayAPI();
+          }
+        }, 3000);
+      }
+    });
+  },
+  
+  // 处理支付宝授权响应
+  handleAuthResponse(res, callback) {
+    if (res && res.authCode) {
+      this.alipayUserId = 'alipay_' + res.authCode;
+      this.userId = this.alipayUserId;
+      this.saveToLocalStorage();
+      console.log('✅ 获取到支付宝用户 ID:', this.userId);
+      this.syncWithSupabase();
+      if (callback) callback(true);
+    } else {
+      console.warn('⚠️ 支付宝授权响应缺少 authCode:', res);
+      this.userId = 'user_' + Date.now();
+      this.saveToLocalStorage();
+      if (callback) callback(false);
+    }
   },
   
   // 保存到 localStorage
@@ -275,7 +272,6 @@ const SupabaseManager = {
     try {
       console.log('🔄 同步用户到 Supabase:', this.userId);
       
-      // 查询用户是否存在
       const { data: existingUser, error: queryError } = await this.supabase
         .from('users')
         .select('*')
@@ -287,13 +283,9 @@ const SupabaseManager = {
       }
       
       if (!existingUser) {
-        // 创建新用户
         const { data: newUser, error: insertError } = await this.supabase
           .from('users')
-          .insert({
-            alipay_user_id: this.userId,
-            points: 0
-          })
+          .insert({ alipay_user_id: this.userId, points: 0 })
           .select()
           .single();
         
@@ -301,14 +293,12 @@ const SupabaseManager = {
         console.log('✅ 新用户创建成功:', newUser.alipay_user_id);
       } else {
         console.log('✅ 用户已存在:', existingUser.alipay_user_id);
-        // 从数据库加载用户数据
         await this.loadFromSupabase();
       }
     } catch (err) {
       console.error('❌ 同步用户失败:', err.message);
-      // 失败时确保有本地 ID
       if (!this.userId) {
-        this.userId = 'error_' + Date.now();
+        this.userId = 'user_' + Date.now();
         this.saveToLocalStorage();
       }
     }
@@ -317,14 +307,13 @@ const SupabaseManager = {
   // 从 Supabase 加载用户数据
   async loadFromSupabase() {
     if (!this.supabase || !this.userId) {
-      console.log('⚠️ 无法从 Supabase 加载：缺少 supabase 或 userId');
+      console.log('⚠️ 无法从 Supabase 加载');
       return;
     }
     
     try {
       console.log('📥 从 Supabase 加载用户数据...');
       
-      // 加载用户积分
       const { data: userData, error: userError } = await this.supabase
         .from('users')
         .select('points')
@@ -332,14 +321,12 @@ const SupabaseManager = {
         .single();
       
       if (!userError && userData && userData.points !== undefined) {
-        // 通过 AppState 更新积分
         if (typeof AppState !== 'undefined') {
           AppState.points = userData.points;
         }
         console.log('✅ 加载用户积分:', userData.points);
       }
       
-      // 加载打卡记录
       const { data: checkins, error: checkinError } = await this.supabase
         .from('checkins')
         .select('checkpoint_id, points, checked_at')
@@ -348,7 +335,6 @@ const SupabaseManager = {
       if (!checkinError && checkins && checkins.length > 0) {
         console.log('✅ 加载打卡记录:', checkins.length, '个');
         
-        // 恢复打卡点状态
         if (typeof AppState !== 'undefined' && AppState.mandatoryCheckpoints) {
           AppState.checkedCheckpoints = checkins.map(c => c.checkpoint_id);
           
@@ -363,8 +349,6 @@ const SupabaseManager = {
           
           console.log('✅ 恢复打卡点状态:', AppState.checkedCheckpoints);
         }
-      } else {
-        console.log('ℹ️ 暂无打卡记录');
       }
       
       console.log('✅ 从 Supabase 加载完成');
@@ -376,20 +360,13 @@ const SupabaseManager = {
   // 保存打卡数据到 Supabase
   async saveCheckinData() {
     if (!this.supabase || !this.userId || typeof AppState === 'undefined') {
-      console.log('⚠️ 无法保存到 Supabase:', { 
-        hasSupabase: !!this.supabase, 
-        hasUserId: !!this.userId,
-        hasAppState: typeof AppState !== 'undefined'
-      });
+      console.log('⚠️ 无法保存到 Supabase');
       return;
     }
     
     try {
       console.log('💾 保存打卡数据到 Supabase...');
-      console.log('   用户 ID:', this.userId);
-      console.log('   当前积分:', AppState.points);
       
-      // 1. 更新用户积分
       const { error: userError } = await this.supabase
         .from('users')
         .upsert({
@@ -403,7 +380,6 @@ const SupabaseManager = {
       if (userError) throw userError;
       console.log('✅ 用户积分已更新');
       
-      // 2. 保存/更新打卡记录
       let savedCount = 0;
       for (const cp of AppState.mandatoryCheckpoints) {
         if (cp.checked) {
@@ -425,10 +401,8 @@ const SupabaseManager = {
       }
       
       console.log('✅ 打卡记录已保存:', savedCount, '个');
-      console.log('💾 保存完成！');
     } catch (err) {
       console.error('❌ 保存到 Supabase 失败:', err.message);
-      // 失败时降级到 localStorage
       this.saveToLocalStorage();
     }
   },
@@ -455,11 +429,7 @@ const SupabaseManager = {
       if (error) throw error;
       
       const rank = data.findIndex(u => u.alipay_user_id === this.userId) + 1;
-      return {
-        rank: rank,
-        total: data.length,
-        points: typeof AppState !== 'undefined' ? AppState.points : 0
-      };
+      return { rank, total: data.length, points: AppState?.points || 0 };
     } catch (err) {
       console.error('❌ 获取排名失败:', err.message);
       return null;
