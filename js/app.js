@@ -162,31 +162,7 @@ const Utils = {
 };
 
 // ==================== Supabase 管理 ====================
-// 注意：实际的 SupabaseManager 在 js/supabase-manager.js 中定义
-// 这里只保留对全局 SupabaseManager 的引用检查
-console.log('📌 等待 SupabaseManager 加载...');
-
-// 延迟检查 SupabaseManager 是否正确加载
-setTimeout(() => {
-  if (window.SupabaseManager) {
-    console.log('✅ SupabaseManager 已从 supabase-manager.js 加载');
-    console.log('👤 用户 ID:', window.SupabaseManager.userId);
-  } else {
-    console.warn('⚠️ SupabaseManager 未加载，创建简化版本');
-    window.SupabaseManager = {
-      userId: 'user_' + Date.now(),
-      isReady: true,
-      saveCheckinData: function() {
-        console.log('⚠️ 简化模式：数据保存到 localStorage');
-        localStorage.setItem('checkin_data', JSON.stringify({
-          points: AppState.points,
-          checkedCheckpoints: AppState.checkedCheckpoints
-        }));
-      }
-    };
-    AppState.userId = window.SupabaseManager.userId;
-  }
-}, 100);
+console.log('📌 Supabase 管理模块已加载');
 
 // ==================== 页面管理 ====================
 const PageManager = {
@@ -1215,72 +1191,33 @@ const ShareManager = {
 // ==================== 初始化 ====================
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('🚀 开始初始化...');
-  console.log('='.repeat(50));
   
-  // 1. 等待 SupabaseManager 加载（从 supabase-manager.js）
-  console.log('⏳ 等待 SupabaseManager 加载...');
-  let waitForManager = 0;
-  while (!window.SupabaseManager && waitForManager < 50) {
-    await new Promise(resolve => setTimeout(resolve, 100));
-    waitForManager++;
-  }
-  
+  // 1. 初始化 SupabaseManager
   if (window.SupabaseManager) {
-    console.log('✅ SupabaseManager 已加载');
-    // 等待 SupabaseManager 初始化完成
-    if (!window.SupabaseManager.isReady) {
-      await window.SupabaseManager.init();
+    window.SupabaseManager.init();
+    console.log('✅ SupabaseManager 已初始化');
+    
+    // 等待 Supabase 就绪（最多 5 秒）
+    let waitCount = 0;
+    while (!window.SupabaseManager.isReady && waitCount < 50) {
+      await new Promise(r => setTimeout(r, 100));
+      waitCount++;
     }
+    
     AppState.userId = window.SupabaseManager.userId;
     console.log('👤 用户 ID:', AppState.userId);
-    console.log('🔐 支付宝环境:', window.SupabaseManager.isAlipay ? '✅' : '❌');
-  } else {
-    console.error('❌ SupabaseManager 加载失败，使用本地模式');
-    AppState.userId = 'local_' + Date.now();
   }
   
-  console.log('-'.repeat(50));
+  // 2. 初始化页面
+  PageManager.init();
+  CheckpointManager.init();
+  PrizeManager.init();
+  ShareManager.init();
   
-  // 2. 初始化页面管理
-  try {
-    PageManager.init();
-    console.log('✅ PageManager 完成');
-  } catch(e) { console.error('❌ PageManager:', e); }
+  // 3. 处理 URL 打卡
+  await CheckpointManager.handleCheckinFromURL();
   
-  // 3. 初始化打卡点管理
-  try {
-    CheckpointManager.init();
-    console.log('✅ CheckpointManager 完成');
-  } catch(e) { console.error('❌ CheckpointManager:', e); }
-  
-  // 4. 初始化奖品管理
-  try {
-    PrizeManager.init();
-    console.log('✅ PrizeManager 完成');
-  } catch(e) { console.error('❌ PrizeManager:', e); }
-  
-  // 5. 初始化分享管理
-  try {
-    await ShareManager.init();
-    console.log('✅ ShareManager 完成');
-  } catch(e) { console.error('❌ ShareManager:', e); }
-  
-  console.log('-'.repeat(50));
-  
-  // 6. 处理 URL 打卡参数
-  try {
-    await CheckpointManager.handleCheckinFromURL();
-  } catch(e) { console.error('❌ URL 打卡:', e); }
-  
-  // 7. 更新显示
-  PageManager.updateAllDisplays();
-  
-  console.log('='.repeat(50));
   console.log('🎉 初始化完成！');
-  console.log('👤 用户 ID:', AppState.userId);
-  console.log('📊 当前积分:', AppState.points);
-  console.log('📍 已打卡点数:', AppState.checkedCheckpoints.length);
-  console.log('='.repeat(50));
 });
 
 // 调试用 - 可以通过控制台调用
