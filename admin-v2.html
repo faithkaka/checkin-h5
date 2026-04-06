@@ -142,6 +142,22 @@
       </div>
     </div>
     
+    <div class="card" id="redemptions-card" style="display: none;">
+      <div class="card-header">
+        🎁 兑奖记录
+      </div>
+      <div class="card-body">
+        <div class="table-wrapper">
+          <table id="redemptions-table">
+            <thead>
+              <tr><th>时间</th><th>用户</th><th>成就</th><th>阶段</th></tr>
+            </thead>
+            <tbody id="redemptions-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    
     <div class="box" id="checkins-box" style="display: none;">
       <h2>📍 最近打卡</h2>
       <div id="checkins-list"></div>
@@ -224,17 +240,77 @@
           document.getElementById('today-count').textContent = todayCount;
           document.getElementById('total-count').textContent = checkins.length;
           
-          // 3. 查询兑奖统计（简单版本）
-          var redeemedCount = 0;
-          document.getElementById('prize-stats').style.display = 'grid';
-          document.getElementById('redeemed-count').textContent = redeemedCount;
-          
-          // 简化逻辑：所有积分>=30 的用户都算待兑奖
-          var waiting = users.filter(function(u) {
-            return (u.points || 0) >= 30;
-          }).length;
-          document.getElementById('waiting-count').textContent = waiting;
-          console.log('⏳ 待兑奖:', waiting);
+          // 3. 查询兑奖统计（从 redemptions 表）
+          fetch(API_URL + '/redemptions?select=id&limit=1000', {
+            headers: {
+              'apikey': API_KEY,
+              'Authorization': 'Bearer ' + API_KEY
+            }
+          })
+          .then(function(res) { return res.json(); })
+          .then(function(data) {
+            var redeemedCount = (data && data.length) || 0;
+            console.log('🎁 已兑奖数量:', redeemedCount);
+            
+            document.getElementById('prize-stats').style.display = 'grid';
+            document.getElementById('redeemed-count').textContent = redeemedCount;
+            
+            // 查询有兑奖记录的唯一用户
+            var redeemedIds = {};
+            if (data && data.length > 0) {
+              data.forEach(function(r) { redeemedIds[r.alipay_user_id] = true; });
+            }
+            
+            // 查询待兑奖：积分>=30 但未兑奖的用户
+            var waiting = users.filter(function(u) {
+              return (u.points || 0) >= 30 && !redeemedIds[u.alipay_user_id];
+            }).length;
+            document.getElementById('waiting-count').textContent = waiting;
+            console.log('⏳ 待兑奖:', waiting);
+            
+            // 在排行榜中标记已兑奖用户
+            showLeaderboard(users, redeemedIds);
+            
+            // 加载兑奖记录
+            fetch(API_URL + '/redemptions?select=*&order=redeemed_at.desc&limit=20', {
+              headers: {
+                'apikey': API_KEY,
+                'Authorization': 'Bearer ' + API_KEY
+              }
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(result) {
+              document.getElementById('redemptions-card').style.display = 'block';
+              var tbody = document.getElementById('redemptions-body');
+              var html = '';
+              
+              if (!result || result.length === 0) {
+                html = '<tr><td colspan="4" class="empty">暂无兑奖记录</td></tr>';
+              } else {
+                result.forEach(function(r) {
+                  var shortUid = r.alipay_user_id;
+                  if (shortUid && shortUid.length > 15) {
+                    shortUid = shortUid.substring(0, 15) + '...';
+                  }
+                  var time = r.redeemed_at ? new Date(r.redeemed_at).toLocaleString('zh-CN') : '-';
+                  
+                  html += '<tr>' +
+                    '<td>' + time + '</td>' +
+                    '<td>' + (shortUid || '未知') + '</td>' +
+                    '<td>' + (r.achievement_name || '-') + '</td>' +
+                    '<td>第' + r.achievement_stage + '阶段</td>' +
+                  '</tr>';
+                });
+              }
+              
+              tbody.innerHTML = html;
+              console.log('🎁 已加载', result ? result.length : 0, '条兑奖记录');
+            });
+          })
+          .catch(function(err) {
+            console.warn('⚠️ 兑奖统计失败:', err.message);
+            document.getElementById('redeemed-count').textContent = '0';
+          });
           
           updateStatus('✅ 已更新 ' + new Date().toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit'}));
         })
