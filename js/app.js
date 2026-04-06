@@ -902,7 +902,7 @@ const PrizeManager = {
   },
   
   // 确认兑奖
-  confirmRedeem(stage) {
+  async confirmRedeem(stage) {
     const achievement = AppState.achievements.find(a => a.stage === stage);
     achievement.redeemed = true;
     AppState.hasRedeemed = true;
@@ -915,7 +915,42 @@ const PrizeManager = {
     this.updatePrizeCards();
     this.updateVoucherList();
     
-    alert(`✅ 兑奖成功！\n\n成就：${achievement.name}\n\n感谢您的参与！`);
+    // ✅ 保存到 Supabase 云端
+    await this.saveRedeemToSupabase(stage, achievement.name);
+  },
+  
+  // 保存兑奖记录到 Supabase
+  async saveRedeemToSupabase(stage, achievementName) {
+    if (!window.SupabaseManager || !window.SupabaseManager.isReady) {
+      console.warn('⚠️ Supabase 未就绪，仅保存到本地');
+      return;
+    }
+    
+    try {
+      const { supabase, userId } = window.SupabaseManager;
+      console.log('💾 保存兑奖记录到云端:', userId, stage, achievementName);
+      
+      // 1. 创建兑奖记录
+      const { data: redemption, error: redeemError } = await supabase
+        .from('redemptions')
+        .insert({
+          alipay_user_id: userId,
+          achievement_stage: stage,
+          achievement_name: achievementName,
+          redeemed_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+      
+      if (redeemError) {
+        console.error('❌ 保存兑奖记录失败:', redeemError);
+      } else {
+        console.log('✅ 兑奖记录已保存到云端:', redemption);
+        alert('✅ 兑奖成功！数据已同步到云端和管理后台');
+      }
+    } catch (err) {
+      console.error('❌ 保存兑奖异常:', err);
+    }
   }
 };
 
