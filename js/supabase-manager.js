@@ -88,6 +88,42 @@ const SupabaseManager = {
     }
   },
   
+  // 查询并应用兑奖记录（同步阻塞）
+  async loadAndApplyRedemptions() {
+    if (!this.supabase || !this.userId || !AppState.hasRedeemed) return;
+    
+    try {
+      console.log('🔍 查询兑奖记录...');
+      const { data: redemptions } = await this.supabase
+        .from('redemptions')
+        .select('achievement_stage')
+        .eq('alipay_user_id', this.userId);
+      
+      if (redemptions && redemptions.length > 0) {
+        console.log('🎁 恢复兑奖记录:', redemptions.length, '条');
+        
+        redemptions.forEach(r => {
+          const achievement = AppState.achievements.find(a => a.stage === r.achievement_stage);
+          if (achievement) {
+            achievement.redeemed = true;
+            console.log('✅ 标记成就已兑奖:', achievement.name);
+          }
+        });
+        
+        // 立即刷新奖品页面
+        if (typeof PrizeManager !== 'undefined') {
+          console.log('🏆 刷新奖品按钮状态...');
+          PrizeManager.updatePrizeCards();
+          PrizeManager.updateVoucherList();
+        }
+      } else {
+        console.log('ℹ️ 无兑奖记录');
+      }
+    } catch (err) {
+      console.error('⚠️ 加载兑奖记录失败:', err.message);
+    }
+  },
+  
   async loadCheckinRecords() {
     if (!this.supabase || !this.userId) return;
     try {
@@ -138,6 +174,12 @@ const SupabaseManager = {
           achievement.achieved = false;
         }
       });
+      
+      // ✅ 关键修复：如果是已兑奖用户，立即查询并应用兑奖记录
+      if (AppState.hasRedeemed) {
+        console.log('🔐 用户已兑奖，立即查询兑奖记录...');
+        await SupabaseManager.loadAndApplyRedemptions();
+      }
       
       console.log('🔄 快速刷新页面显示，打卡点数:', AppState.checkedCheckpoints.length);
       
@@ -219,28 +261,9 @@ const SupabaseManager = {
           PrizeManager.updateVoucherList();
         }
         
-        // 额外确保：如果已兑奖，查询兑奖记录并刷新按钮状态
+        // 额外确保：如果已兑奖，查询兑奖记录并刷新按钮状态（同步等待）
         if (AppState.hasRedeemed) {
-          console.log('🔐 用户已兑奖，查询兑奖记录并刷新按钮状态...');
-          // 查询具体哪个成就已兑奖
-          window.SupabaseManager.supabase
-            .from('redemptions')
-            .select('achievement_stage')
-            .eq('alipay_user_id', window.SupabaseManager.userId)
-            .then(function(result) {
-              if (result.data && result.data.length > 0) {
-                result.data.forEach(function(r) {
-                  const achievement = AppState.achievements.find(a => a.stage === r.achievement_stage);
-                  if (achievement) {
-                    achievement.redeemed = true;
-                  }
-                });
-                if (typeof PrizeManager !== 'undefined') {
-                  PrizeManager.updatePrizeCards();
-                  PrizeManager.updateVoucherList();
-                }
-              }
-            });
+          SupabaseManager.loadAndApplyRedemptions();
         }
         
         // 更新点位列表
@@ -286,6 +309,12 @@ const SupabaseManager = {
             achievement.achieved = false;
           }
         });
+        
+        // ✅ 关键修复：如果是已兑奖用户，立即查询并应用兑奖记录
+        if (AppState.hasRedeemed) {
+          console.log('🔐 用户已兑奖（本地），立即查询兑奖记录...');
+          await SupabaseManager.loadAndApplyRedemptions();
+        }
         
         // 优化体验：分级渲染
         // 第一阶段：立即更新数据（0ms）
