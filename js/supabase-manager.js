@@ -90,14 +90,34 @@ const SupabaseManager = {
   
   // 查询并应用兑奖记录（同步阻塞）
   async loadAndApplyRedemptions() {
-    if (!this.supabase || !this.userId || !AppState.hasRedeemed) return;
+    if (!this.supabase) {
+      console.error('❌ Supabase 客户端不存在');
+      return;
+    }
+    if (!this.userId) {
+      console.error('❌ 用户 ID 不存在');
+      return;
+    }
+    if (!AppState.hasRedeemed) {
+      console.log('ℹ️ 用户未兑奖，跳过查询');
+      return;
+    }
     
     try {
-      console.log('🔍 查询兑奖记录...');
-      const { data: redemptions } = await this.supabase
+      console.log('🔍 开始查询兑奖记录... userId:', this.userId);
+      
+      const { data: redemptions, error } = await this.supabase
         .from('redemptions')
-        .select('achievement_stage')
+        .select('achievement_stage, achievement_name')
         .eq('alipay_user_id', this.userId);
+      
+      if (error) {
+        console.error('❌ 查询兑奖记录失败:', error.message);
+        console.error('错误详情:', JSON.stringify(error));
+        return;
+      }
+      
+      console.log('📊 查询结果:', redemptions);
       
       if (redemptions && redemptions.length > 0) {
         console.log('🎁 恢复兑奖记录:', redemptions.length, '条');
@@ -106,7 +126,9 @@ const SupabaseManager = {
           const achievement = AppState.achievements.find(a => a.stage === r.achievement_stage);
           if (achievement) {
             achievement.redeemed = true;
-            console.log('✅ 标记成就已兑奖:', achievement.name);
+            console.log('✅ 标记成就已兑奖:', achievement.name, '(stage:', r.achievement_stage + ')');
+          } else {
+            console.warn('⚠️ 未找到成就 stage:', r.achievement_stage);
           }
         });
         
@@ -115,12 +137,17 @@ const SupabaseManager = {
           console.log('🏆 刷新奖品按钮状态...');
           PrizeManager.updatePrizeCards();
           PrizeManager.updateVoucherList();
+          console.log('✅ 按钮状态已刷新');
+        } else {
+          console.warn('⚠️ PrizeManager 不存在');
         }
       } else {
-        console.log('ℹ️ 无兑奖记录');
+        console.log('ℹ️ 没有找到兑奖记录（redemptions 表为空）');
+        console.log('💡 请确认 redemptions 表已创建且有数据');
       }
     } catch (err) {
-      console.error('⚠️ 加载兑奖记录失败:', err.message);
+      console.error('❌ 加载兑奖记录异常:', err);
+      console.error('堆栈:', err.stack);
     }
   },
   
