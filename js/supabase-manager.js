@@ -91,16 +91,18 @@ const SupabaseManager = {
   async loadCheckinRecords() {
     if (!this.supabase || !this.userId) return;
     try {
-      // 1. 先加载用户积分
+      // 1. 先加载用户完整信息（积分 + 兑奖状态）
       const { data: userData } = await this.supabase
         .from('users')
-        .select('points')
+        .select('points, has_redeemed')
         .eq('alipay_user_id', this.userId)
         .single();
       
       if (userData && typeof AppState !== 'undefined') {
         AppState.points = userData.points || 0;
-        console.log('📊 从云端加载积分:', AppState.points);
+        // ✅ 关键修复：恢复兑奖状态
+        AppState.hasRedeemed = userData.has_redeemed || false;
+        console.log('📊 从云端加载 - 积分:', AppState.points, '已兑奖:', AppState.hasRedeemed);
       }
       
       // 2. 加载打卡记录
@@ -215,6 +217,12 @@ const SupabaseManager = {
           console.log('🏆 更新奖品卡片和兑奖券列表...');
           PrizeManager.updatePrizeCards();
           PrizeManager.updateVoucherList();
+        }
+        
+        // 额外确保：如果已兑奖，刷新按钮状态
+        if (AppState.hasRedeemed) {
+          console.log('🔐 用户已兑奖，刷新按钮状态...');
+          PrizeManager.updatePrizeCards();
         }
         
         // 更新点位列表
