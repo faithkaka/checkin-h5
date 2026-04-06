@@ -219,10 +219,28 @@ const SupabaseManager = {
           PrizeManager.updateVoucherList();
         }
         
-        // 额外确保：如果已兑奖，刷新按钮状态
+        // 额外确保：如果已兑奖，查询兑奖记录并刷新按钮状态
         if (AppState.hasRedeemed) {
-          console.log('🔐 用户已兑奖，刷新按钮状态...');
-          PrizeManager.updatePrizeCards();
+          console.log('🔐 用户已兑奖，查询兑奖记录并刷新按钮状态...');
+          // 查询具体哪个成就已兑奖
+          window.SupabaseManager.supabase
+            .from('redemptions')
+            .select('achievement_stage')
+            .eq('alipay_user_id', window.SupabaseManager.userId)
+            .then(function(result) {
+              if (result.data && result.data.length > 0) {
+                result.data.forEach(function(r) {
+                  const achievement = AppState.achievements.find(a => a.stage === r.achievement_stage);
+                  if (achievement) {
+                    achievement.redeemed = true;
+                  }
+                });
+                if (typeof PrizeManager !== 'undefined') {
+                  PrizeManager.updatePrizeCards();
+                  PrizeManager.updateVoucherList();
+                }
+              }
+            });
         }
         
         // 更新点位列表
@@ -322,6 +340,32 @@ const SupabaseManager = {
             }
             
             console.log('💾 从本地缓存更新兑奖券，数量:', AppState.vouchers.length);
+          }
+          
+          // ✅ 关键修复：查询兑奖记录，标记已兑奖的成就
+          if (window.SupabaseManager?.isReady) {
+            window.SupabaseManager.supabase
+              .from('redemptions')
+              .select('achievement_stage')
+              .eq('alipay_user_id', window.SupabaseManager.userId)
+              .then(function(result) {
+                if (result.data && result.data.length > 0) {
+                  console.log('🎁 恢复兑奖记录:', result.data.length, '条');
+                  result.data.forEach(function(r) {
+                    const achievement = AppState.achievements.find(a => a.stage === r.achievement_stage);
+                    if (achievement) {
+                      achievement.redeemed = true;
+                      console.log('✅ 标记成就已兑奖:', achievement.name);
+                    }
+                  });
+                  
+                  // 刷新奖品页面
+                  if (typeof PrizeManager !== 'undefined') {
+                    PrizeManager.updatePrizeCards();
+                    PrizeManager.updateVoucherList();
+                  }
+                }
+              });
           }
           
           if (typeof PrizeManager !== 'undefined') {
