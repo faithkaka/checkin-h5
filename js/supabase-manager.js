@@ -88,22 +88,66 @@ const SupabaseManager = {
     }
   },
   
+  // 查询并应用兑奖记录
+  async loadAndApplyRedemptions() {
+    if (!this.supabase || !this.userId) return;
+    
+    try {
+      console.log('🔍 查询兑奖记录...');
+      const { data, error } = await this.supabase
+        .from('redemptions')
+        .select('achievement_stage')
+        .eq('alipay_user_id', this.userId);
+      
+      if (error) {
+        console.error('❌ 查询兑奖记录失败:', error.message);
+        return;
+      }
+      
+      if (data && data.length > 0) {
+        console.log('🎁 恢复兑奖记录:', data.length, '条');
+        
+        data.forEach(r => {
+          const achievement = AppState.achievements.find(a => a.stage === r.achievement_stage);
+          if (achievement) {
+            achievement.redeemed = true;
+            console.log('✅ 标记成就已兑奖:', achievement.name);
+          }
+        });
+        
+        // 立即刷新奖品页面
+        if (typeof PrizeManager !== 'undefined') {
+          console.log('🏆 刷新奖品按钮状态...');
+          PrizeManager.updatePrizeCards();
+        }
+      }
+    } catch (err) {
+      console.error('⚠️ 加载兑奖记录异常:', err.message);
+    }
+  },
+  
   async loadCheckinRecords() {
     if (!this.supabase || !this.userId) return;
     try {
-      // 1. 先加载用户积分
+      // 1. 先加载用户完整信息（积分 + 兑奖状态）
       const { data: userData } = await this.supabase
         .from('users')
-        .select('points')
+        .select('points, has_redeemed')
         .eq('alipay_user_id', this.userId)
         .single();
       
       if (userData && typeof AppState !== 'undefined') {
         AppState.points = userData.points || 0;
-        console.log('📊 从云端加载积分:', AppState.points);
+        AppState.hasRedeemed = userData.has_redeemed || false;
+        console.log('📊 从云端加载 - 积分:', AppState.points, '已兑奖:', AppState.hasRedeemed);
       }
       
-      // 2. 加载打卡记录
+      // 2. 如果是已兑奖用户，查询具体兑奖记录并恢复状态
+      if (AppState.hasRedeemed) {
+        await this.loadAndApplyRedemptions();
+      }
+      
+      // 3. 加载打卡记录
       const { data: checkins } = await this.supabase
         .from('checkins')
         .select('checkpoint_id, points, checked_at')
