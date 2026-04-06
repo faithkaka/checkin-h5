@@ -917,6 +917,8 @@ const PrizeManager = {
     
     // ✅ 保存到 Supabase 云端
     await this.saveRedeemToSupabase(stage, achievement.name);
+    
+    alert(`✅ 兑奖成功！\n\n成就：${achievement.name}\n\n数据已同步到云端和管理后台！`);
   },
   
   // 保存兑奖记录到 Supabase
@@ -930,7 +932,10 @@ const PrizeManager = {
       const { supabase, userId } = window.SupabaseManager;
       console.log('💾 保存兑奖记录到云端:', userId, stage, achievementName);
       
-      // 1. 创建兑奖记录
+      // 1. 更新用户兑奖状态
+      await supabase.from('users').update({ has_redeemed: true }).eq('alipay_user_id', userId);
+      
+      // 2. 创建兑奖记录
       const { data: redemption, error: redeemError } = await supabase
         .from('redemptions')
         .insert({
@@ -946,7 +951,6 @@ const PrizeManager = {
         console.error('❌ 保存兑奖记录失败:', redeemError);
       } else {
         console.log('✅ 兑奖记录已保存到云端:', redemption);
-        alert('✅ 兑奖成功！数据已同步到云端和管理后台');
       }
     } catch (err) {
       console.error('❌ 保存兑奖异常:', err);
